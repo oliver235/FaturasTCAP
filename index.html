@@ -83,8 +83,8 @@ input,select{width:100%;padding:10px;border-radius:8px;border:1px solid #3a3a3a;
 const CATS={combustivel:"Combustível",alimentacao:"Alimentação",estadias:"Estadias",outros:"Outros"};
 const CAT_RULES={
  combustivel:["combustivel","combustível","gasolina","gasoleo","gasóleo","diesel","adblue","galp","repsol","bp ","shell","prr","combust"],
- alimentacao:["aliment","supermercado","mercearia","restaurante","cafe","café","padaria","talho","peixaria","lanche","mcdonald","burger","pizza","sushi","continente","auchan","pingo doce","intermarche","lidl","aldi","jumbo","froiz","minipreco","mini preço","snack","pastelaria","pastel","doces","frutas","legumes","pao","pão","leite","iogurte","queijo","carne","peixe","arroz","massa","bebida","agua","água","sumo","cerveja","vinho","refrigerante","fanta","coca"],
- estadias:["hotel","hostel","albergue","motel","resort","pousada","estalagem","apartamento","airbnb","booking","expedia","hospedagem","alojamento","pernoite","quarto","suite","check-in","checkin","checkout","pensao","pensão","guest house","bnb","turistico","turístico","camping"]
+ alimentacao:["aliment","supermercado","mercearia","restaurante","cafe","café","padaria","talho","peixaria","lanche","mcdonald","burger","pizza","sushi","continente","auchan","pingo doce","intermarche","lidl","aldi","jumbo","froiz","minipreco","mini preço","snack","pastelaria","doces","frutas","legumes","pao","pão","leite","iogurte","queijo","carne","peixe","arroz","massa","bebida","agua","água","sumo","cerveja","vinho"],
+ estadias:["hotel","hostel","albergue","motel","resort","pousada","estalagem","apartamento","airbnb","booking","expedia","hospedagem","alojamento","pernoite","quarto","suite","check-in","checkin","checkout","pensao","pensão","guest house","bnb","camping"]
 };
 const video=document.getElementById("video");
 const canvas=document.getElementById("canvas");
@@ -135,7 +135,7 @@ function detectAndCrop(img){
   cv.approxPolyDP(c,approx,0.02*peri,true);
   if(approx.rows===4){
    const a=cv.contourArea(approx);
-   if(a>bestArea && a>src.cols*src.rows*0.12){if(best)best.delete();bestArea=a;best=approx;}
+   if(a>bestArea&&a>src.cols*src.rows*0.12){if(best)best.delete();bestArea=a;best=approx;}
    else approx.delete();
   } else approx.delete();
   c.delete();
@@ -152,12 +152,13 @@ function detectAndCrop(img){
  const dst=new cv.Mat();
  cv.warpPerspective(src,dst,M,new cv.Size(w,h),cv.INTER_LINEAR,cv.BORDER_CONSTANT,new cv.Scalar());
  procCanvas.width=w;procCanvas.height=h;cv.imshow(procCanvas,dst);
- const out=procCanvas.toDataURL("image/jpeg",0.9);
+ const out=procCanvas.toDataURL("image/jpeg",0.92);
  src.delete();gray.delete();blur.delete();edges.delete();dilated.delete();contours.delete();hierarchy.delete();k.delete();srcM.delete();dstM.delete();M.delete();dst.delete();best.delete();
  return out;
 }
 function parseInvoice(text){
- const t=(text||"").toLowerCase();
+ const raw=text||"";
+ const t=raw.toLowerCase().replace(/\u00a0/g," ");
  let cat="outros";
  const keys=Object.keys(CAT_RULES);
  for(let i=0;i<keys.length;i++){
@@ -165,15 +166,25 @@ function parseInvoice(text){
   for(let j=0;j<listK.length;j++){if(t.indexOf(listK[j])!==-1){cat=keys[i];i=keys.length;break;}}
  }
  let date=null;
- const dm=t.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
- if(dm){let d=dm[1].padStart(2,"0"),m=dm[2].padStart(2,"0"),y=dm[3];if(y.length===2)y="20"+y;date=y+"-"+m+"-"+d;}
+ const dm=raw.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+ if(dm){
+  let d=dm[1].padStart(2,"0"),m=dm[2].padStart(2,"0"),y=dm[3];
+  if(y.length===2)y="20"+y;
+  if(Number(m)>=1&&Number(m)<=12&&Number(d)>=1&&Number(d)<=31) date=y+"-"+m+"-"+d;
+ }
  let amount=null;
- const am=t.match(/(?:total|tot\.|€|eur|euros?)[^\d]{0,8}(\d+[.,]\d{2})/i)||t.match(/(\d+[.,]\d{2})\s*(?:€|eur|euros?)/i);
- if(am)amount=parseFloat(am[1].replace(",","."));
+ const totalLine=t.match(/total(?![^\n]{0,16}dep[oó]sito)[^\d]{0,80}(\d{1,4}[.,]\d{2})/);
+ if(totalLine) amount=parseFloat(totalLine[1].replace(",","."));
+ if(amount==null){
+  const all=[];
+  const re=/(\d{1,4}[.,]\d{2})\s*(?:€|eur|euros?)/gi;
+  let x; while((x=re.exec(t))) all.push(parseFloat(x[1].replace(",",".")));
+  if(all.length) amount=Math.max.apply(null,all);
+ }
  return{cat:cat,date:date,amount:amount};
 }
 async function ensureOcr(){
- if(ocrWorker)return ocrWorker;
+ if(ocrWorker) return ocrWorker;
  scanStatus.innerHTML='<span class="spin"></span>A preparar leitura do texto...';
  ocrWorker=await Tesseract.createWorker("por+eng",1,{logger:function(){}});
  return ocrWorker;
@@ -181,62 +192,62 @@ async function ensureOcr(){
 async function startCamera(){
  try{
   const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
-  video.srcObject=stream;await video.play();
-  startCamBtn.style.display="none";captureBtn.style.display="block";
-  scanStatus.textContent="Câmara pronta. Enquadra a fatura e tira a foto.";
+  video.srcObject=stream; await video.play();
+  startCamBtn.style.display="none"; captureBtn.style.display="block";
+  scanStatus.textContent="Fotografa o talão INTEIRO, do topo até ao QR.";
  }catch(e){scanStatus.textContent="Erro da câmara: "+e.message;}
 }
 function showScan(){scanPage.classList.add("active");listPage.classList.remove("active");tabScan.classList.remove("ghost");tabList.classList.add("ghost");}
 function showList(){scanPage.classList.remove("active");listPage.classList.add("active");tabScan.classList.add("ghost");tabList.classList.remove("ghost");renderList();}
 function resetCapture(){currentImage=null;shot.style.display="none";video.style.display="block";captureBtn.style.display="block";retakeBtn.style.display="none";form.style.display="none";scanStatus.textContent="Toca em Tirar foto.";}
-startCamBtn.onclick=startCamera;tabScan.onclick=showScan;tabList.onclick=showList;retakeBtn.onclick=resetCapture;
+startCamBtn.onclick=startCamera; tabScan.onclick=showScan; tabList.onclick=showList; retakeBtn.onclick=resetCapture;
 captureBtn.onclick=async function(){
  if(!video.videoWidth){scanStatus.textContent="A câmara ainda não está pronta.";return;}
- canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+ canvas.width=video.videoWidth; canvas.height=video.videoHeight;
  canvas.getContext("2d").drawImage(video,0,0);
- const raw=canvas.toDataURL("image/jpeg",0.9);
+ const raw=canvas.toDataURL("image/jpeg",0.92);
  scanStatus.innerHTML='<span class="spin"></span>A recortar a fatura...';
  let cropped=null;
  try{cropped=detectAndCrop(canvas);}catch(e){cropped=null;}
- if(!cropped){scanStatus.textContent="Não encontrei bordas nítidas. A usar a foto inteira.";cropped=raw;}
- currentImage=cropped;shot.src=cropped;shot.style.display="block";video.style.display="none";
- captureBtn.style.display="none";retakeBtn.style.display="block";form.style.display="grid";
- dateInput.value=todayISO();catInput.value="outros";amountInput.value="";noteInput.value="";
+ currentImage=cropped||raw;
+ shot.src=currentImage; shot.style.display="block"; video.style.display="none";
+ captureBtn.style.display="none"; retakeBtn.style.display="block"; form.style.display="grid";
+ dateInput.value=todayISO(); catInput.value="outros"; amountInput.value=""; noteInput.value="";
  scanStatus.innerHTML='<span class="spin"></span>A ler o texto da fatura...';
  try{
   const w=await ensureOcr();
-  const result=await w.recognize(cropped);
+  const result=await w.recognize(raw);
   const p=parseInvoice(result.data.text);
-  if(p.date)dateInput.value=p.date;
-  if(p.cat)catInput.value=p.cat;
-  if(p.amount)amountInput.value=p.amount.toFixed(2);
+  if(p.date) dateInput.value=p.date;
+  if(p.cat) catInput.value=p.cat;
+  if(p.amount!=null&&!isNaN(p.amount)) amountInput.value=p.amount.toFixed(2);
   const lines=(result.data.text||"").split("\n").map(function(s){return s.trim();}).filter(Boolean).slice(0,2).join(" · ");
   noteInput.value=lines.slice(0,60);
-  scanStatus.textContent="Lido. Confirma data, categoria e total, e guarda.";
+  scanStatus.textContent=(p.date?"Data: "+p.date:"Data não encontrada")+" · "+(p.amount!=null?"Total: "+money(p.amount):"Total não encontrado")+" · Confirma e guarda.";
  }catch(e){scanStatus.textContent="Não consegui ler o texto. Preenche manualmente.";}
 };
 document.getElementById("saveBtn").onclick=async function(){
- if(!currentImage)return;
+ if(!currentImage) return;
  const date=dateInput.value||todayISO();
  await addFatura({id:Date.now().toString(),date:date,month:monthKey(date),category:catInput.value,amount:parseFloat(amountInput.value)||0,note:noteInput.value.trim(),image:currentImage});
- noteInput.value="";amountInput.value="";resetCapture();scanStatus.textContent="Fatura guardada.";
+ noteInput.value=""; amountInput.value=""; resetCapture(); scanStatus.textContent="Fatura guardada.";
 };
 async function renderList(){
  const items=(await getAll()).sort(function(a,b){return b.date.localeCompare(a.date);});
  const months=[];
- for(let i=0;i<items.length;i++){if(months.indexOf(items[i].month)===-1)months.push(items[i].month);}
+ for(let i=0;i<items.length;i++){if(months.indexOf(items[i].month)===-1) months.push(items[i].month);}
  months.sort().reverse();
  monthSelect.innerHTML=months.length?months.map(function(m){return '<option value="'+m+'">'+monthLabel(m)+"</option>";}).join(""):'<option value="">Sem faturas</option>';
- if(!items.length){list.innerHTML='<div class="empty">Ainda não há faturas. Tira a primeira foto.</div>';return;}
+ if(!items.length){list.innerHTML='<div class="empty">Ainda não há faturas.</div>';return;}
  let html="";
  for(let mi=0;mi<months.length;mi++){
   const m=months[mi];
   const group=items.filter(function(i){return i.month===m;});
-  let total=0;const byCat={};
+  let total=0; const byCat={};
   for(let g=0;g<group.length;g++){const amt=group[g].amount||0;total+=amt;byCat[group[g].category]=(byCat[group[g].category]||0)+amt;}
   html+='<div class="month">'+monthLabel(m)+' <span class="month-total">· Total: '+money(total)+"</span></div>";
   const catKeys=Object.keys(byCat);
-  for(let c=0;c<catKeys.length;c++)html+='<div class="cat-sub">'+(CATS[catKeys[c]]||catKeys[c])+": "+money(byCat[catKeys[c]])+"</div>";
+  for(let c=0;c<catKeys.length;c++) html+='<div class="cat-sub">'+(CATS[catKeys[c]]||catKeys[c])+": "+money(byCat[catKeys[c]])+"</div>";
   for(let g=0;g<group.length;g++){
    const item=group[g];
    html+='<div class="card"><img src="'+item.image+'"><div><strong>'+(CATS[item.category]||item.category)+"</strong><small>"+item.date+(item.amount?" · "+money(item.amount):"")+(item.note?" · "+item.note:"")+'</small></div><button class="btn ghost" data-del="'+item.id+'">Apagar</button></div>';
@@ -249,27 +260,26 @@ async function renderList(){
  }
 }
 document.getElementById("pdfBtn").onclick=async function(){
- const month=monthSelect.value;if(!month)return;
+ const month=monthSelect.value; if(!month) return;
  const items=(await getAll()).filter(function(i){return i.month===month;}).sort(function(a,b){return a.date.localeCompare(b.date);});
- if(!items.length)return;
+ if(!items.length) return;
  const doc=new window.jspdf.jsPDF({unit:"mm",format:"a4"});
- let total=0;const byCat={};const rows=[];
+ let total=0; const byCat={}; const rows=[];
  for(let i=0;i<items.length;i++){const amt=items[i].amount||0;total+=amt;byCat[items[i].category]=(byCat[items[i].category]||0)+amt;rows.push([items[i].date,CATS[items[i].category]||items[i].category,items[i].note||"",money(amt)]);}
- doc.setFontSize(16);doc.setTextColor(235,10,30);doc.text("Faturas pela TCAP",14,16);
- doc.setTextColor(0,0,0);doc.setFontSize(11);doc.text(monthLabel(month)+"  ·  Total: "+money(total),14,24);
- const catRows=Object.keys(byCat).map(function(c){return[CATS[c]||c,money(byCat[c])];});
- doc.autoTable({startY:30,head:[["Categoria","Subtotal"]],body:catRows,theme:"grid",headStyles:{fillColor:[235,10,30]}});
+ doc.setFontSize(16); doc.setTextColor(235,10,30); doc.text("Faturas pela TCAP",14,16);
+ doc.setTextColor(0,0,0); doc.setFontSize(11); doc.text(monthLabel(month)+"  ·  Total: "+money(total),14,24);
+ doc.autoTable({startY:30,head:[["Categoria","Subtotal"]],body:Object.keys(byCat).map(function(c){return[CATS[c]||c,money(byCat[c])];}),theme:"grid",headStyles:{fillColor:[235,10,30]}});
  doc.autoTable({startY:doc.lastAutoTable.finalY+8,head:[["Data","Categoria","Notas","Total"]],body:rows,theme:"grid",headStyles:{fillColor:[235,10,30]}});
  let y=doc.lastAutoTable.finalY+10;
  for(let i=0;i<items.length;i++){
   if(y>250){doc.addPage();y=16;}
-  doc.setFontSize(10);doc.text(items[i].date+" · "+(CATS[items[i].category]||items[i].category),14,y);y+=4;
+  doc.setFontSize(10); doc.text(items[i].date+" · "+(CATS[items[i].category]||items[i].category),14,y); y+=4;
   try{
    const props=doc.getImageProperties(items[i].image);
    let w=182,h=(props.height*w)/props.width;
    if(h>90){h=90;w=(props.width*h)/props.height;}
    if(y+h>280){doc.addPage();y=16;}
-   doc.addImage(items[i].image,"JPEG",14,y,w,h);y+=h+8;
+   doc.addImage(items[i].image,"JPEG",14,y,w,h); y+=h+8;
   }catch(e){}
  }
  doc.save("faturas-tcap-"+month+".pdf");
