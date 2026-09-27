@@ -88,9 +88,9 @@
     }
     return out;
   }
-  function bestPaperComponent(paper, ink, w, h) {
+  function paperComponents(paper, ink, w, h) {
     const seen = new Uint8Array(w * h);
-    let best = null;
+    const found = [];
     const stack = new Int32Array(w * h);
     for (let start = 0; start < paper.length; start++) {
       if (!paper[start] || seen[start]) continue;
@@ -148,11 +148,47 @@
           }
         }
       }
-      if (!best || inkCount > best.ink) {
-        best = { x0, y0, x1, y1, ink: inkCount, inkY0, inkY1, area };
+      if (inkCount > 0) found.push({ x0, y0, x1, y1, ink: inkCount, inkY0, inkY1, area });
+    }
+    return found;
+  }
+  function mergeSheet(comps) {
+    if (!comps.length) return null;
+    const list = comps.slice().sort((a, b) => b.ink - a.ink || b.area - a.area);
+    const box = { ...list[0] };
+    const used = new Set([0]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (let i = 1; i < list.length; i++) {
+        if (used.has(i)) continue;
+        const c = list[i];
+        const overlapX = Math.min(box.x1, c.x1) - Math.max(box.x0, c.x0);
+        const overlapY = Math.min(box.y1, c.y1) - Math.max(box.y0, c.y0);
+        const gapX = Math.max(0, -overlapX);
+        const gapY = Math.max(0, -overlapY);
+        const bw = box.x1 - box.x0 + 1;
+        const bh = box.y1 - box.y0 + 1;
+        const cw = c.x1 - c.x0 + 1;
+        const ch = c.y1 - c.y0 + 1;
+        const xAligned = overlapX > Math.min(bw, cw) * 0.4;
+        const yAligned = overlapY > Math.min(bh, ch) * 0.4;
+        const close = gapX <= Math.max(10, bw * 0.15) && gapY <= Math.max(10, bh * 0.22);
+        if (close && (xAligned || yAligned)) {
+          box.x0 = Math.min(box.x0, c.x0);
+          box.y0 = Math.min(box.y0, c.y0);
+          box.x1 = Math.max(box.x1, c.x1);
+          box.y1 = Math.max(box.y1, c.y1);
+          box.ink += c.ink;
+          box.area += c.area;
+          box.inkY0 = Math.min(box.inkY0, c.inkY0);
+          box.inkY1 = Math.max(box.inkY1, c.inkY1);
+          used.add(i);
+          grew = true;
+        }
       }
     }
-    return best && best.ink > 0 ? best : null;
+    return box.ink > 0 ? box : null;
   }
   function inkBounds(ink, w, h) {
     let x0 = w;
@@ -194,8 +230,8 @@
       const b = rgba[o + 2];
       const y = luma(r, g, b);
       const s = sat(r, g, b);
-      if (y < 118 && s < 0.38) ink[i] = 1;
-      if (y > 168 && s < 0.28) paper[i] = 1;
+      if (y < 140 && s < 0.38) ink[i] = 1;
+      if (y > 150 && s < 0.32) paper[i] = 1;
     }
     let inkCount = 0;
     for (let i = 0; i < n; i++) inkCount += ink[i];
@@ -204,7 +240,7 @@
     for (let i = 0; i < n; i++) {
       if (ink[i]) closed[i] = 1;
     }
-    const comp = bestPaperComponent(closed, ink, w, h);
+    const comp = mergeSheet(paperComponents(closed, ink, w, h));
     const inkBox = inkBounds(ink, w, h);
     if (!comp && !inkBox) return null;
     let x0;
@@ -221,10 +257,14 @@
       y0 = comp.y0;
       x1 = comp.x1;
       y1 = comp.y1;
-      x0 -= 3;
-      y0 -= 3;
-      x1 += 3;
-      y1 += 3;
+      const spanX = x1 - x0 + 1;
+      const spanY = y1 - y0 + 1;
+      const padX = Math.round(spanX * 0.03) + 4;
+      const padY = Math.round(spanY * 0.03) + 4;
+      x0 -= padX;
+      y0 -= padY;
+      x1 += padX;
+      y1 += padY;
     } else if (inkBox) {
       const bw = inkBox.x1 - inkBox.x0 + 1;
       const bh = inkBox.y1 - inkBox.y0 + 1;
@@ -266,88 +306,31 @@
     if (!next || next.w < 24 || next.h < 24) return rect;
     return next;
   }
-  function percentile(hist, total, p) {
-    if (total <= 0) return 0;
-    const target = total * p;
-    let acc = 0;
-    for (let i = 0; i < 256; i++) {
-      acc += hist[i];
-      if (acc >= target) return i;
-    }
-    return 255;
-  }
-  function samplePaper(grid, bw, bh, gx, gy) {
-    const x = Math.max(0, Math.min(bw - 1, gx));
-    const y = Math.max(0, Math.min(bh - 1, gy));
-    const x0 = Math.floor(x);
-    const y0 = Math.floor(y);
-    const x1 = Math.min(bw - 1, x0 + 1);
-    const y1 = Math.min(bh - 1, y0 + 1);
-    const tx = x - x0;
-    const ty = y - y0;
-    const a = grid[y0 * bw + x0];
-    const b = grid[y0 * bw + x1];
-    const c = grid[y1 * bw + x0];
-    const d = grid[y1 * bw + x1];
-    return a * (1 - tx) * (1 - ty) + b * tx * (1 - ty) + c * (1 - tx) * ty + d * tx * ty;
-  }
-  function scanWhitenRGBA(rgba, w, h) {
-    const out = new Uint8ClampedArray(rgba.length);
-    const block = 32;
-    const bw = Math.max(1, Math.ceil(w / block));
-    const bh = Math.max(1, Math.ceil(h / block));
-    const paper = new Float32Array(bw * bh);
-    for (let by = 0; by < bh; by++) {
-      const y0 = by * block;
-      const y1 = Math.min(h, y0 + block);
-      for (let bx = 0; bx < bw; bx++) {
-        const hist = new Uint32Array(256);
-        let count = 0;
-        const x0 = bx * block;
-        const x1 = Math.min(w, x0 + block);
-        for (let y = y0; y < y1; y++) {
-          for (let x = x0; x < x1; x++) {
-            const o = (y * w + x) * 4;
-            hist[luma(rgba[o], rgba[o + 1], rgba[o + 2])]++;
-            count++;
-          }
-        }
-        const p = percentile(hist, count, 0.7);
-        paper[by * bw + bx] = p < 8 ? 8 : p;
-      }
-    }
-    let sumIn = 0;
-    let sumOut = 0;
-    for (let y = 0; y < h; y++) {
-      const gy = (y + 0.5) / block - 0.5;
-      for (let x = 0; x < w; x++) {
-        const o = (y * w + x) * 4;
-        const r = rgba[o];
-        const g = rgba[o + 1];
-        const b = rgba[o + 2];
-        const Y = luma(r, g, b);
-        const local = samplePaper(paper, bw, bh, (x + 0.5) / block - 0.5, gy);
-        const ratio = Y / Math.max(1, local);
-        let v = Y;
-        if (ratio >= 0.58 || (sat(r, g, b) > 0.4 && ratio > 0.42)) v = 255;
-        if (v < Y) v = Y;
-        out[o] = v;
-        out[o + 1] = v;
-        out[o + 2] = v;
-        out[o + 3] = 255;
-        sumIn += Y;
-        sumOut += v;
-      }
-    }
-    if (sumOut + w * h * 15 < sumIn) return new Uint8ClampedArray(rgba);
-    return out;
-  }
-
   var MONTHS = {
-    janeiro: 1, fevereiro: 2, marco: 3, abril: 4, maio: 5, junho: 6,
-    julho: 7, agosto: 8, setembro: 9, outubro: 10, novembro: 11, dezembro: 12,
-    jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6,
-    jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12
+    janeiro: 1,
+    fevereiro: 2,
+    marco: 3,
+    abril: 4,
+    maio: 5,
+    junho: 6,
+    julho: 7,
+    agosto: 8,
+    setembro: 9,
+    outubro: 10,
+    novembro: 11,
+    dezembro: 12,
+    jan: 1,
+    fev: 2,
+    mar: 3,
+    abr: 4,
+    mai: 5,
+    jun: 6,
+    jul: 7,
+    ago: 8,
+    set: 9,
+    out: 10,
+    nov: 11,
+    dez: 12
   };
   var MONTH_RE = "janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez";
   function fold(s) {
@@ -366,7 +349,10 @@
     return y >= 70 ? 1900 + y : 2000 + y;
   }
   function foldDateGlyphs(s) {
-    return s.replace(/[0-9oOlI|/.\-\s]{4,}/gi, (m) => m.replace(/o/gi, "0").replace(/[l|I]/g, "1"));
+    return s.replace(
+      /[0-9oOlI|/.\-\s]{4,}/gi,
+      (m) => m.replace(/o/gi, "0").replace(/[l|I]/g, "1")
+    );
   }
   function pushDate(into, y, m, d, index, score, raw) {
     const year = expandYear(y);
@@ -381,14 +367,23 @@
       }
       return;
     }
-    into.push({ iso, display: pad(d) + "/" + pad(m) + "/" + year, score, index, raw });
+    into.push({
+      iso,
+      display: pad(d) + "/" + pad(m) + "/" + year,
+      score,
+      index,
+      raw
+    });
   }
   function collectDates(text, baseScore, indexBias) {
     const folded = fold(foldDateGlyphs(text));
     const found = [];
     const ymd = /(\d{4})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{1,2})/g;
     for (const match of folded.matchAll(ymd)) {
-      pushDate(found, Number(match[1]), Number(match[2]), Number(match[3]), indexBias + (match.index ?? 0), baseScore + 2, match[0]);
+      const y = Number(match[1]);
+      const m = Number(match[2]);
+      const d = Number(match[3]);
+      pushDate(found, y, m, d, indexBias + (match.index ?? 0), baseScore + 2, match[0]);
     }
     const dmy = /(\d{1,2})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{2,4})/g;
     for (const match of folded.matchAll(dmy)) {
@@ -404,18 +399,50 @@
       }
       pushDate(found, y, month, day, indexBias + (match.index ?? 0), baseScore, match[0]);
     }
-    const written = new RegExp("(\\d{1,2})\\s+de\\s+(" + MONTH_RE + ")\\.?\\s+de\\s+(\\d{4})", "g");
+    const written = new RegExp(
+      "(\\d{1,2})\\s+de\\s+(" + MONTH_RE + ")\\.?\\s+de\\s+(\\d{4})",
+      "g"
+    );
     for (const match of folded.matchAll(written)) {
-      pushDate(found, Number(match[3]), MONTHS[match[2]] ?? 0, Number(match[1]), indexBias + (match.index ?? 0), baseScore + 3, match[0]);
+      const month = MONTHS[match[2]] ?? 0;
+      pushDate(
+        found,
+        Number(match[3]),
+        month,
+        Number(match[1]),
+        indexBias + (match.index ?? 0),
+        baseScore + 3,
+        match[0]
+      );
     }
-    const shortWritten = new RegExp("(\\d{1,2})\\s+(" + MONTH_RE + ")\\.?\\s+(?:de\\s+)?(\\d{4})", "g");
+    const shortWritten = new RegExp(
+      "(\\d{1,2})\\s+(" + MONTH_RE + ")\\.?\\s+(?:de\\s+)?(\\d{4})",
+      "g"
+    );
     for (const match of folded.matchAll(shortWritten)) {
-      pushDate(found, Number(match[3]), MONTHS[match[2]] ?? 0, Number(match[1]), indexBias + (match.index ?? 0), baseScore + 1, match[0]);
+      const month = MONTHS[match[2]] ?? 0;
+      pushDate(
+        found,
+        Number(match[3]),
+        month,
+        Number(match[1]),
+        indexBias + (match.index ?? 0),
+        baseScore + 1,
+        match[0]
+      );
     }
     if (baseScore >= 70) {
       const loose = /(\d{1,2})\s+(\d{1,2})\s+(\d{4})/g;
       for (const match of folded.matchAll(loose)) {
-        pushDate(found, Number(match[3]), Number(match[2]), Number(match[1]), indexBias + (match.index ?? 0), baseScore - 5, match[0]);
+        pushDate(
+          found,
+          Number(match[3]),
+          Number(match[2]),
+          Number(match[1]),
+          indexBias + (match.index ?? 0),
+          baseScore - 5,
+          match[0]
+        );
       }
     }
     return found;
@@ -446,7 +473,9 @@
   function parseEuroAmount(token) {
     const t = token.replace(/\s/g, "").replace(/€/g, "");
     if (!t) return null;
-    if (/^\d{1,3}(\.\d{3})+,\d{2}$/.test(t)) return Number(t.replace(/\./g, "").replace(",", "."));
+    if (/^\d{1,3}(\.\d{3})+,\d{2}$/.test(t)) {
+      return Number(t.replace(/\./g, "").replace(",", "."));
+    }
     if (/^\d+,\d{2}$/.test(t)) return Number(t.replace(",", "."));
     if (/^\d+\.\d{2}$/.test(t) && !/^\d{1,3}(\.\d{3})+$/.test(t)) return Number(t);
     return null;
@@ -456,7 +485,9 @@
     if (!s) return null;
     const prep = s.replace(/\s/g, "").replace(/€|eur/gi, "").replace(/\.(?=\d{3}\b)/g, "");
     if (/^\d{1,3}(\.\d{3})+,\d{2}$/.test(s.replace(/\s/g, ""))) return parseEuroAmount(s);
-    if (prep.includes(",") && prep.includes(".")) return parseEuroAmount(s);
+    if (prep.includes(",") && prep.includes(".")) {
+      return parseEuroAmount(s);
+    }
     if (/^\d+,\d{1,2}$/.test(prep)) {
       const parts = prep.split(",");
       return Number(parts[0] + "." + parts[1].padEnd(2, "0"));
@@ -487,7 +518,9 @@
   }
   var TOTAL_RE = /\b(valor a pagar|total a pagar|valor pago|total pago|total)\b\s*[:.\-]*\s*(?:eur|euros?|€)?\s*[:.\-]*\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/g;
   function scoreLabel(label) {
-    if (label === "valor a pagar" || label === "total a pagar" || label === "valor pago" || label === "total pago") return 100;
+    if (label === "valor a pagar" || label === "total a pagar" || label === "valor pago" || label === "total pago") {
+      return 100;
+    }
     return 50;
   }
   function parseTotal(text) {
@@ -500,7 +533,12 @@
       for (const match of line.matchAll(TOTAL_RE)) {
         const euros = parseEuroAmount(match[2]);
         if (euros == null || !Number.isFinite(euros)) continue;
-        found.push({ euros, score: scoreLabel(match[1]), index, raw: match[0] });
+        found.push({
+          euros,
+          score: scoreLabel(match[1]),
+          index,
+          raw: match[0]
+        });
       }
     };
     for (let i = 0; i < lines.length; i++) {
@@ -512,9 +550,18 @@
     return found[0];
   }
   var CATEGORY_RULES = [
-    { cat: "Combustível", re: /\b(galp|repsol|cepsa|prio|gasoleo|gasolina|combustivel|diesel|q8|plenitude|posto)\b|\bbp\b/ },
-    { cat: "Estadias", re: /\b(hotel|hostel|airbnb|pousada|residencial|alojamento|dormida|pensao|ibis|pestana|marriott|booking|resort)\b|\binn\b/ },
-    { cat: "Alimentação", re: /\b(continente|pingo doce|pingodoce|auchan|lidl|mercadona|minipreco|mini preco|intermarche|padaria|pastelaria|restaurante|cafe|mcdonald|burger|pizza|supermercado|talho|peixaria|mercearia|recheio|aldi|spar)\b/ }
+    {
+      cat: "Combustível",
+      re: /\b(galp|repsol|cepsa|prio|gasoleo|gasolina|combustivel|diesel|q8|plenitude|posto)\b|\bbp\b/
+    },
+    {
+      cat: "Estadias",
+      re: /\b(hotel|hostel|airbnb|pousada|residencial|alojamento|dormida|pensao|ibis|pestana|marriott|booking|resort|campanile|hospede|hospedaria)\b|\binn\b/
+    },
+    {
+      cat: "Alimentação",
+      re: /\b(continente|pingo doce|pingodoce|auchan|lidl|mercadona|minipreco|mini preco|intermarche|padaria|pastelaria|restaurante|cafe|mcdonald|burger|pizza|supermercado|talho|peixaria|mercearia|recheio|aldi|spar)\b/
+    }
   ];
   function categorize(text) {
     const s = fold(text);
@@ -533,19 +580,36 @@
     if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "sem-data";
     return iso.slice(0, 7);
   }
-  var MONTH_LABELS = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  var MONTH_LABELS = [
+    "janeiro",
+    "fevereiro",
+    "março",
+    "abril",
+    "maio",
+    "junho",
+    "julho",
+    "agosto",
+    "setembro",
+    "outubro",
+    "novembro",
+    "dezembro"
+  ];
   function formatMonthKey(key) {
     if (key === "sem-data") return "Sem data";
     const parts = key.split("-");
-    const name = MONTH_LABELS[Number(parts[1]) - 1];
-    if (!name || !parts[0]) return key;
-    return name + " " + parts[0];
+    const y = parts[0];
+    const m = parts[1];
+    const name = MONTH_LABELS[Number(m) - 1];
+    if (!name || !y) return key;
+    return name + " " + y;
   }
   function formatEuros(value) {
     if (value == null || !Number.isFinite(value)) return "—";
-    return value.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+    return value.toLocaleString("pt-PT", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }) + " €";
   }
-
   var TESS_SRC = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
   var workerPromise = null;
   function loadScript(src) {
@@ -557,7 +621,11 @@
           return;
         }
         prev.addEventListener("load", () => resolve(), { once: true });
-        prev.addEventListener("error", () => reject(new Error("falha ao carregar leitor")), { once: true });
+        prev.addEventListener(
+          "error",
+          () => reject(new Error("falha ao carregar leitor")),
+          { once: true }
+        );
         return;
       }
       const s = document.createElement("script");
@@ -587,7 +655,10 @@
         }
       }
     });
-    await worker.setParameters({ tessedit_pageseg_mode: "6", preserve_interword_spaces: "1" });
+    await worker.setParameters({
+      tessedit_pageseg_mode: "6",
+      preserve_interword_spaces: "1"
+    });
     return worker;
   }
   async function getWorker(onStatus) {
@@ -621,7 +692,12 @@
     let text = await recognize(worker, canvas);
     if (!parseEmissionDate(text) || (parseEmissionDate(text)?.score ?? 0) < 70) {
       onStatus("A reler o topo (data de emissão)…");
-      const top = sliceCanvas(canvas, 0, Math.round(canvas.height * 0.42), canvas.width < 1200 ? 1.8 : 1.25);
+      const top = sliceCanvas(
+        canvas,
+        0,
+        Math.round(canvas.height * 0.42),
+        canvas.width < 1200 ? 1.8 : 1.25
+      );
       text = (await recognize(worker, top)) + "\n" + text;
     }
     if (!parseTotal(text)) {
@@ -631,7 +707,6 @@
     }
     return text;
   }
-
   var PDF_SRC = "https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js";
   function loadScript2(src) {
     return new Promise((resolve, reject) => {
@@ -678,8 +753,8 @@
     const pageH = doc.internal.pageSize.getHeight();
     const margin = 14;
     let y = 16;
-    const need = (hh) => {
-      if (y + hh > pageH - 12) {
+    const need = (h) => {
+      if (y + h > pageH - 12) {
         doc.addPage();
         y = 16;
       }
@@ -749,7 +824,8 @@
       const dataUrl = await blobToDataUrl(item.image);
       const size = await imageSize(dataUrl).catch(() => ({ w: 600, h: 800 }));
       const note = item.notes.trim();
-      need(18 + (note ? 10 : 0) + 20);
+      const head = 18 + (note ? 10 : 0);
+      need(head + 20);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       const when = item.issuedDate ? item.issuedDate.split("-").reverse().join("/") : "Sem data de emissão";
@@ -793,7 +869,6 @@
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
-
   var DB_NAME = "faturas-tcap";
   var STORE = "faturas";
   function openDb() {
@@ -801,7 +876,9 @@
       const req = indexedDB.open(DB_NAME, 1);
       req.onupgradeneeded = () => {
         const db = req.result;
-        if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: "id" });
+        if (!db.objectStoreNames.contains(STORE)) {
+          db.createObjectStore(STORE, { keyPath: "id" });
+        }
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error ?? new Error("IndexedDB"));
@@ -840,48 +917,172 @@
     await txDone(tx);
     db.close();
   }
-
   var CATEGORIES = ["Combustível", "Alimentação", "Estadias", "Outros"];
   var CSS = `
 .ft, .ft * { box-sizing: border-box; }
-.ft { min-height: 100dvh; background: #f2f2f3; color: #111; font-family: "Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif; font-size: 16px; line-height: 1.45; padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+.ft {
+  min-height: 100dvh;
+  background: #f2f2f3;
+  color: #111;
+  font-family: "Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+}
 .ft button, .ft input, .ft select, .ft textarea { font: inherit; color: inherit; }
-.ft-top { display: flex; align-items: center; gap: 12px; padding: calc(14px + env(safe-area-inset-top)) 16px 14px; background: #111; color: #fff; }
+.ft-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: calc(14px + env(safe-area-inset-top)) 16px 14px;
+  background: #111;
+  color: #fff;
+}
 .ft-logo { width: 64px; height: 42px; flex: none; }
-.ft-kicker { margin: 0; color: #EB0A1E; font-size: 11px; font-weight: 700; letter-spacing: 0.16em; }
+.ft-kicker {
+  margin: 0;
+  color: #EB0A1E;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
 .ft-top h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
 .ft-main { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-.ft-card { background: #fff; border: 1px solid #e4e4e6; border-radius: 18px; padding: 16px; }
+.ft-card {
+  background: #fff;
+  border: 1px solid #e4e4e6;
+  border-radius: 18px;
+  padding: 16px;
+}
 .ft-lead { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.03em; line-height: 1.2; }
 .ft-muted { color: #58595B; margin: 0; }
 .ft-steps { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
 .ft-steps li { display: flex; gap: 10px; align-items: flex-start; }
-.ft-num { flex: none; width: 26px; height: 26px; border-radius: 50%; background: #111; color: #fff; font-size: 13px; font-weight: 700; display: grid; place-items: center; }
-.ft-btn { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; border-radius: 14px; border: 0; background: #EB0A1E; color: #fff; font-weight: 700; padding: 12px 16px; }
+.ft-num {
+  flex: none;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: #111;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: grid; place-items: center;
+}
+.ft-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  border-radius: 14px;
+  border: 0;
+  background: #EB0A1E;
+  color: #fff;
+  font-weight: 700;
+  padding: 12px 16px;
+}
 .ft-btn:disabled { opacity: 0.55; }
-.ft-btn.secondary { background: #fff; color: #111; border: 1px solid #cfcfd2; }
-.ft-btn.ghost { background: transparent; color: #111; border: 1px solid #cfcfd2; min-height: 44px; }
+.ft-btn.secondary {
+  background: #fff;
+  color: #111;
+  border: 1px solid #cfcfd2;
+}
+.ft-btn.ghost {
+  background: transparent;
+  color: #111;
+  border: 1px solid #cfcfd2;
+  min-height: 44px;
+}
 .ft-btn.danger { background: #111; }
 .ft-row { display: flex; gap: 8px; }
 .ft-row > * { flex: 1; }
-.ft-nav { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 8px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.94); border-top: 1px solid #e4e4e6; backdrop-filter: blur(10px); z-index: 5; }
-.ft-nav button { flex: 1; min-height: 48px; border-radius: 12px; border: 0; background: transparent; color: #58595B; font-weight: 700; }
+.ft-nav {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.94);
+  border-top: 1px solid #e4e4e6;
+  backdrop-filter: blur(10px);
+  z-index: 5;
+}
+.ft-nav button {
+  flex: 1;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 0;
+  background: transparent;
+  color: #58595B;
+  font-weight: 700;
+}
 .ft-nav button[aria-current="page"] { background: #111; color: #fff; }
-.ft-cam { position: fixed; inset: 0; background: #000; z-index: 20; display: flex; flex-direction: column; }
+.ft-cam {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
 .ft-cam video { flex: 1; width: 100%; object-fit: cover; background: #000; }
-.ft-cam-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px calc(18px + env(safe-area-inset-bottom)); background: #111; }
-.ft-shutter { width: 68px; height: 68px; border-radius: 50%; border: 4px solid #fff; background: #EB0A1E; padding: 0; }
-.ft-cam-bar button.link { background: none; border: 0; color: #fff; min-height: 48px; min-width: 72px; font-weight: 700; }
-.ft-scan { width: 100%; height: auto; border-radius: 12px; background: #fff; border: 1px solid #e4e4e6; display: block; }
+.ft-cam-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px calc(18px + env(safe-area-inset-bottom));
+  background: #111;
+}
+.ft-shutter {
+  width: 68px; height: 68px; border-radius: 50%;
+  border: 4px solid #fff;
+  background: #EB0A1E;
+  padding: 0;
+}
+.ft-cam-bar button.link {
+  background: none; border: 0; color: #fff; min-height: 48px; min-width: 72px; font-weight: 700;
+}
+.ft-scan {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e4e4e6;
+  display: block;
+}
 .ft label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: #58595B; }
-.ft input, .ft select, .ft textarea { width: 100%; min-height: 48px; border-radius: 12px; border: 1px solid #d0d0d3; background: #fff; padding: 10px 12px; font-weight: 600; color: #111; }
+.ft input, .ft select, .ft textarea {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid #d0d0d3;
+  background: #fff;
+  padding: 10px 12px;
+  font-weight: 600;
+  color: #111;
+}
 .ft textarea { min-height: 120px; font-weight: 500; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-.ft-warn { background: #fff4f4; border: 1px solid #f3b7bd; color: #111; border-radius: 12px; padding: 10px 12px; margin: 0; }
+.ft-warn {
+  background: #fff4f4;
+  border: 1px solid #f3b7bd;
+  color: #111;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 0;
+}
+.ft-ok { background: #f4f4f5; border-radius: 12px; padding: 10px 12px; margin: 0; }
 .ft-month { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .ft-month h2 { margin: 0; font-size: 20px; letter-spacing: -0.03em; }
 .ft-sum { margin: 0; font-size: 18px; font-weight: 800; color: #EB0A1E; }
 .ft-sub { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
-.ft-item { display: grid; grid-template-columns: 72px 1fr; gap: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+.ft-item {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
 .ft-item img { width: 72px; height: 96px; object-fit: cover; border-radius: 8px; background: #fff; border: 1px solid #e4e4e6; }
 .ft-item h3 { margin: 0; font-size: 16px; }
 .ft-item p { margin: 2px 0 0; }
@@ -898,9 +1099,9 @@
     style.textContent = CSS;
     document.head.appendChild(style);
   }
-  function el(tag, attrs = {}, html) {
+  function el(tag, attrs, html) {
     const node = document.createElement(tag);
-    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    for (const pair of Object.entries(attrs || {})) node.setAttribute(pair[0], pair[1]);
     if (html != null) node.innerHTML = html;
     return node;
   }
@@ -926,9 +1127,6 @@
     ctx.fillStyle = "#fff";
     ctx.fillRect(0, 0, c.width, c.height);
     ctx.drawImage(src, rect.x, rect.y, rect.w, rect.h, 0, 0, c.width, c.height);
-    const img = ctx.getImageData(0, 0, c.width, c.height);
-    const white = Uint8ClampedArray.from(scanWhitenRGBA(img.data, c.width, c.height));
-    ctx.putImageData(new ImageData(white, c.width, c.height), 0, 0);
     return c;
   }
   async function canvasFromFile(file) {
@@ -960,7 +1158,11 @@
   }
   function canvasToBlob(canvas) {
     return new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("sem imagem")), "image/jpeg", 0.82);
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error("sem imagem")),
+        "image/jpeg",
+        0.82
+      );
     });
   }
   function mountFaturas(root2) {
@@ -972,9 +1174,21 @@
     const main = el("main", { class: "ft-main" });
     const nav = el("nav", { class: "ft-nav" });
     nav.innerHTML = '<button type="button" data-tab="nova">Nova</button><button type="button" data-tab="arquivo">Arquivo</button>';
-    const fileCam = el("input", { type: "file", accept: "image/*", capture: "environment", class: "ft-hidden", "aria-label": "Fotografar talão" });
-    const fileLib = el("input", { type: "file", accept: "image/*", class: "ft-hidden", "aria-label": "Escolher da galeria" });
+    const fileCam = el("input", {
+      type: "file",
+      accept: "image/*",
+      capture: "environment",
+      class: "ft-hidden",
+      "aria-label": "Fotografar talão"
+    });
+    const fileLib = el("input", {
+      type: "file",
+      accept: "image/*",
+      class: "ft-hidden",
+      "aria-label": "Escolher da galeria"
+    });
     root2.append(header, main, nav, fileCam, fileLib);
+    let tab = "nova";
     let source = null;
     let rect = null;
     let cropFailed = false;
@@ -987,8 +1201,10 @@
       urls.length = 0;
     };
     const setTab = (next) => {
+      tab = next;
       for (const btn of nav.querySelectorAll("button")) {
-        if (btn.getAttribute("data-tab") === next) btn.setAttribute("aria-current", "page");
+        const on = btn.getAttribute("data-tab") === next;
+        if (on) btn.setAttribute("aria-current", "page");
         else btn.removeAttribute("aria-current");
       }
     };
@@ -997,7 +1213,7 @@
       nav.classList.remove("ft-hidden");
       main.replaceChildren();
       const card = el("section", { class: "ft-card" });
-      card.innerHTML = '<h2 class="ft-lead">O talão inteiro, fundo branco.</h2><p class="ft-muted">A data está no topo. O total e o QR estão em baixo. Enquadra o papel todo, em cima da mesa.</p><ol class="ft-steps"><li><span class="ft-num">1</span><span>Fotografa com a câmara traseira.</span></li><li><span class="ft-num">2</span><span>Confirma a data de emissão e o total. Se não ler, escreve tu — a app não inventa.</span></li><li><span class="ft-num">3</span><span>No arquivo, exporta o PDF do mês.</span></li></ol>';
+      card.innerHTML = '<h2 class="ft-lead">A foto fica como a câmara a viu.</h2><p class="ft-muted">Enquadra a folha inteira. A data está no topo. O total está em baixo. Não pinto a folha de preto.</p><ol class="ft-steps"><li><span class="ft-num">1</span><span>Fotografa com a câmara traseira.</span></li><li><span class="ft-num">2</span><span>Confirma a data de emissão e o total. Se não ler, escreve tu.</span></li><li><span class="ft-num">3</span><span>No arquivo, exporta o PDF do mês.</span></li></ol>';
       const shoot = el("button", { class: "ft-btn", type: "button" });
       shoot.textContent = "Fotografar talão";
       const gallery = el("button", { class: "ft-btn secondary", type: "button" });
@@ -1015,7 +1231,11 @@
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 2560 } }
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920 },
+            height: { ideal: 2560 }
+          }
         });
       } catch {
         fileCam.click();
@@ -1037,7 +1257,7 @@
       bar.append(cancel, shutter, spacer);
       wrap.append(video, bar);
       root2.append(wrap);
-      await video.play().catch(() => undefined);
+      await video.play().catch(() => void 0);
       const close = () => {
         stream.getTracks().forEach((t) => t.stop());
         wrap.remove();
@@ -1170,10 +1390,18 @@
           fields.dateHint.textContent = "Não li a data de emissão. Preenche à mão — não uso a data de hoje.";
         }
         if (total && fields.total && !fields.total.value) {
-          fields.total.value = total.euros.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          fields.total.value = total.euros.toLocaleString("pt-PT", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
         }
         if (fields.cat && cat !== "Outros") fields.cat.value = cat;
-        setStatus((date ? "Data " + date.display : "Data não lida") + " · " + (total ? "Total " + formatEuros(total.euros) : "Total não lido") + " · " + cat + ". Confirma antes de guardar.");
+        const bits = [
+          date ? "Data " + date.display : "Data não lida",
+          total ? "Total " + formatEuros(total.euros) : "Total não lido",
+          cat
+        ];
+        setStatus(bits.join(" · ") + ". Confirma antes de guardar.");
       } catch {
         setStatus("Não consegui ler o talão. Preenche a data e o total à mão — não invento valores.");
       } finally {
@@ -1193,7 +1421,7 @@
       busy = true;
       try {
         const image = await canvasToBlob(scan);
-        await saveFatura({
+        const fatura = {
           id: crypto.randomUUID(),
           createdAt: Date.now(),
           issuedDate,
@@ -1203,13 +1431,16 @@
           notes: fields.notes?.value.trim() ?? "",
           ocrText: fields.ocr?.value ?? "",
           image
-        });
+        };
+        await saveFatura(fatura);
         source = null;
         scan = null;
         rect = null;
         await showArchive();
       } catch {
-        if (fields.status) fields.status.textContent = "Não consegui guardar no telemóvel. Tenta outra vez.";
+        if (fields.status) {
+          fields.status.textContent = "Não consegui guardar no telemóvel. Tenta outra vez.";
+        }
       } finally {
         busy = false;
       }
@@ -1299,7 +1530,8 @@
         btn.addEventListener("click", () => {
           const id = btn.getAttribute("data-edit");
           const item = rows.find((r) => r.id === id);
-          if (item) openEdit(item);
+          if (!item) return;
+          openEdit(item);
         });
       });
     }
@@ -1308,7 +1540,8 @@
       const card = el("section", { class: "ft-card" });
       const url = URL.createObjectURL(item.image);
       urls.push(url);
-      card.innerHTML = '<img class="ft-scan" alt="Talão" src="' + url + '" /><label>Data de emissão<input data-date type="date" value="' + (item.issuedDate ?? "") + '" /></label><label>Total pago (€)<input data-total inputmode="decimal" value="' + (item.total == null ? "" : item.total.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + '" /></label><label>Categoria<select data-cat>' + CATEGORIES.map((c) => "<option " + (c === item.category ? "selected" : "") + ">" + c + "</option>").join("") + '</select></label><label>Notas<input data-notes maxlength="180" value="' + escapeAttr(item.notes) + '" /></label><label>Texto lido<textarea readonly>' + escapeHtml(item.ocrText) + "</textarea></label>";
+      const totalValue = item.total == null ? "" : item.total.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      card.innerHTML = '<img class="ft-scan" alt="Talão" src="' + url + '" /><label>Data de emissão<input data-date type="date" value="' + (item.issuedDate ?? "") + '" /></label><label>Total pago (€)<input data-total inputmode="decimal" value="' + totalValue + '" /></label><label>Categoria<select data-cat>' + CATEGORIES.map((c) => "<option " + (c === item.category ? "selected" : "") + ">" + c + "</option>").join("") + '</select></label><label>Notas<input data-notes maxlength="180" value="' + escapeAttr(item.notes) + '" /></label><label>Texto lido<textarea readonly>' + escapeHtml(item.ocrText) + "</textarea></label>";
       const save = el("button", { class: "ft-btn", type: "button" });
       save.textContent = "Atualizar";
       const back = el("button", { class: "ft-btn secondary", type: "button" });
@@ -1325,14 +1558,15 @@
           return;
         }
         const issuedDate = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
-        void saveFatura({
+        const next = {
           ...item,
           issuedDate,
           month: monthKeyFromIso(issuedDate),
           total,
           category: card.querySelector("[data-cat]").value,
           notes: card.querySelector("[data-notes]").value.trim()
-        }).then(() => showArchive()).catch(() => {
+        };
+        void saveFatura(next).then(() => showArchive()).catch(() => {
           status.textContent = "Não consegui atualizar.";
         });
       });
@@ -1361,7 +1595,6 @@
   function escapeAttr(s) {
     return escapeHtml(s).replace(/\u0022/g, "&quot;");
   }
-
   var root = document.getElementById("app");
   if (root) mountFaturas(root);
 })();
