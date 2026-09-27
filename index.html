@@ -90,13 +90,16 @@
   }
   function paperComponents(paper, ink, w, h) {
     const seen = new Uint8Array(w * h);
+    const labels = new Int32Array(w * h);
     const found = [];
     const stack = new Int32Array(w * h);
     for (let start = 0; start < paper.length; start++) {
       if (!paper[start] || seen[start]) continue;
+      const id = found.length + 1;
       let sp = 0;
       stack[sp++] = start;
       seen[start] = 1;
+      labels[start] = id;
       let x0 = w;
       let y0 = h;
       let x1 = 0;
@@ -123,6 +126,7 @@
           const n = i - 1;
           if (paper[n] && !seen[n]) {
             seen[n] = 1;
+            labels[n] = id;
             stack[sp++] = n;
           }
         }
@@ -130,6 +134,7 @@
           const n = i + 1;
           if (paper[n] && !seen[n]) {
             seen[n] = 1;
+            labels[n] = id;
             stack[sp++] = n;
           }
         }
@@ -137,6 +142,7 @@
           const n = i - w;
           if (paper[n] && !seen[n]) {
             seen[n] = 1;
+            labels[n] = id;
             stack[sp++] = n;
           }
         }
@@ -144,18 +150,21 @@
           const n = i + w;
           if (paper[n] && !seen[n]) {
             seen[n] = 1;
+            labels[n] = id;
             stack[sp++] = n;
           }
         }
       }
-      if (inkCount > 0) found.push({ x0, y0, x1, y1, ink: inkCount, inkY0, inkY1, area });
+      if (inkCount > 0) {
+        found.push({ x0, y0, x1, y1, ink: inkCount, inkY0, inkY1, area, ids: [id] });
+      }
     }
-    return found;
+    return { comps: found, labels };
   }
   function mergeSheet(comps) {
     if (!comps.length) return null;
     const list = comps.slice().sort((a, b) => b.ink - a.ink || b.area - a.area);
-    const box = { ...list[0] };
+    const box = { ...list[0], ids: list[0].ids.slice() };
     const used = new Set([0]);
     let grew = true;
     while (grew) {
@@ -183,6 +192,7 @@
           box.area += c.area;
           box.inkY0 = Math.min(box.inkY0, c.inkY0);
           box.inkY1 = Math.max(box.inkY1, c.inkY1);
+          box.ids = box.ids.concat(c.ids);
           used.add(i);
           grew = true;
         }
@@ -207,7 +217,7 @@
       }
     }
     if (count < 12) return null;
-    return { x0, y0, x1, y1, ink: count, inkY0: y0, inkY1: y1, area: count };
+    return { x0, y0, x1, y1, ink: count, inkY0: y0, inkY1: y1, area: count, ids: [] };
   }
   function clampRect(x, y, w, h, iw, ih) {
     const x0 = Math.max(0, Math.min(iw - 1, Math.floor(x)));
@@ -219,7 +229,126 @@
     if (rw < 8 || rh < 8) return null;
     return { x: x0, y: y0, w: rw, h: rh };
   }
-  function detectSmall(rgba, w, h) {
+  function cross(o, a, b) {
+    return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  }
+  function convexHull(pts) {
+    const p = pts.slice().sort((a, b) => a.x - b.x || a.y - b.y);
+    if (p.length < 3) return p;
+    const lower = [];
+    for (const pt of p) {
+      while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], pt) <= 0) {
+        lower.pop();
+      }
+      lower.push(pt);
+    }
+    const upper = [];
+    for (let i = p.length - 1; i >= 0; i--) {
+      const pt = p[i];
+      while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], pt) <= 0) {
+        upper.pop();
+      }
+      upper.push(pt);
+    }
+    lower.pop();
+    upper.pop();
+    return lower.concat(upper);
+  }
+  function orderCorners(pts) {
+    if (pts.length !== 4) return null;
+    const cx = (pts[0].x + pts[1].x + pts[2].x + pts[3].x) / 4;
+    const cy = (pts[0].y + pts[1].y + pts[2].y + pts[3].y) / 4;
+    const sorted = pts.slice().sort(
+      (p, q) => Math.atan2(p.y - cy, p.x - cx) - Math.atan2(q.y - cy, q.x - cx)
+    );
+    let start = 0;
+    let best = Infinity;
+    for (let i = 0; i < 4; i++) {
+      const s = sorted[i].x + sorted[i].y;
+      if (s < best) {
+        best = s;
+        start = i;
+      }
+    }
+    const ordered = [0, 1, 2, 3].map((i) => sorted[(start + i) % 4]);
+    for (let i = 0; i < 4; i++) {
+      const a = ordered[(i + 3) % 4];
+      const b = ordered[i];
+      const c = ordered[(i + 1) % 4];
+      const v1x = a.x - b.x;
+      const v1y = a.y - b.y;
+      const v2x = c.x - b.x;
+      const v2y = c.y - b.y;
+      const mag = Math.hypot(v1x, v1y) * Math.hypot(v2x, v2y);
+      if (mag < 1) return null;
+      const cos = (v1x * v2x + v1y * v2y) / mag;
+      if (cos > 0.45 || cos < -0.45) return null;
+    }
+    const sides = ordered.map((p, i) => Math.hypot(ordered[(i + 1) % 4].x - p.x, ordered[(i + 1) % 4].y - p.y));
+    const minSide = Math.min(...sides);
+    const maxSide = Math.max(...sides);
+    if (minSide < 12 || maxSide / minSide > 8) return null;
+    return ordered;
+  }
+  function quadFromMask(mask, w, h) {
+    const pts = [];
+    for (let y = 1; y < h - 1; y++) {
+      const row = y * w;
+      for (let x = 1; x < w - 1; x++) {
+        const i = row + x;
+        if (!mask[i]) continue;
+        if (!mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w]) pts.push({ x, y });
+      }
+    }
+    if (pts.length < 16) return null;
+    const step = Math.max(1, Math.floor(pts.length / 2500));
+    const sample = step === 1 ? pts : pts.filter((_, i) => i % step === 0);
+    const hull = convexHull(sample);
+    if (hull.length < 4) return null;
+    let bestArea = Infinity;
+    let best = null;
+    for (let i = 0; i < hull.length; i++) {
+      const a = hull[i];
+      const b = hull[(i + 1) % hull.length];
+      const len = Math.hypot(b.x - a.x, b.y - a.y);
+      if (len < 1) continue;
+      const ux = (b.x - a.x) / len;
+      const uy = (b.y - a.y) / len;
+      const vx = -uy;
+      const vy = ux;
+      let minU = Infinity;
+      let maxU = -Infinity;
+      let minV = Infinity;
+      let maxV = -Infinity;
+      for (const p of hull) {
+        const u = p.x * ux + p.y * uy;
+        const v = p.x * vx + p.y * vy;
+        if (u < minU) minU = u;
+        if (u > maxU) maxU = u;
+        if (v < minV) minV = v;
+        if (v > maxV) maxV = v;
+      }
+      const area = (maxU - minU) * (maxV - minV);
+      if (area < bestArea) {
+        bestArea = area;
+        const corner = (u, v) => ({
+          x: u * ux + v * vx,
+          y: u * uy + v * vy
+        });
+        best = [corner(minU, minV), corner(maxU, minV), corner(maxU, maxV), corner(minU, maxV)];
+      }
+    }
+    if (!best) return null;
+    const ordered = orderCorners(best);
+    if (!ordered) return null;
+    const cx = (ordered[0].x + ordered[1].x + ordered[2].x + ordered[3].x) / 4;
+    const cy = (ordered[0].y + ordered[1].y + ordered[2].y + ordered[3].y) / 4;
+    return ordered.map((p) => ({
+      x: cx + (p.x - cx) * 1.03,
+      y: cy + (p.y - cy) * 1.03
+    }));
+  }
+  function detectPage(rgba, w, h) {
     const n = w * h;
     const ink = new Uint8Array(n);
     const paper = new Uint8Array(n);
@@ -240,7 +369,8 @@
     for (let i = 0; i < n; i++) {
       if (ink[i]) closed[i] = 1;
     }
-    const comp = mergeSheet(paperComponents(closed, ink, w, h));
+    const packed = paperComponents(closed, ink, w, h);
+    const comp = mergeSheet(packed.comps);
     const inkBox = inkBounds(ink, w, h);
     if (!comp && !inkBox) return null;
     let x0;
@@ -252,6 +382,7 @@
     const inkSpan = comp && comp.ink > 0 ? comp.inkY1 - comp.inkY0 + 1 : 0;
     const thinStrip = compH > 0 && compH < compW * 0.28 && compH < h * 0.22;
     const paperSwallowedTable = !!comp && comp.area > n * 0.62 && inkSpan < compH * 0.42;
+    let corners = null;
     if (comp && !thinStrip && !paperSwallowedTable) {
       x0 = comp.x0;
       y0 = comp.y0;
@@ -265,6 +396,10 @@
       y0 -= padY;
       x1 += padX;
       y1 += padY;
+      const want = new Set(comp.ids);
+      const mask = new Uint8Array(n);
+      for (let i = 0; i < n; i++) if (want.has(packed.labels[i])) mask[i] = 1;
+      corners = quadFromMask(mask, w, h);
     } else if (inkBox) {
       const bw = inkBox.x1 - inkBox.x0 + 1;
       const bh = inkBox.y1 - inkBox.y0 + 1;
@@ -278,21 +413,141 @@
     const rect = clampRect(x0, y0, x1 - x0 + 1, y1 - y0 + 1, w, h);
     if (!rect) return null;
     if (rect.h < rect.w * 0.28 && rect.h < h * 0.22) return null;
-    return rect;
+    return { rect, corners };
   }
-  function detectReceiptCropFromRGBA(rgba, width, height) {
+  function scalePage(hit, s, width, height) {
+    const rect = clampRect(hit.rect.x / s, hit.rect.y / s, hit.rect.w / s, hit.rect.h / s, width, height);
+    if (!rect) return null;
+    const corners = hit.corners ? hit.corners.map((p) => ({ x: p.x / s, y: p.y / s })) : null;
+    return { rect, corners };
+  }
+  function findPage(rgba, width, height) {
     if (width < 8 || height < 8) return null;
     const maxW = 360;
     if (width > maxW) {
       const s = maxW / width;
-      const nw = maxW;
       const nh = Math.max(1, Math.round(height * s));
-      const small = downsample(rgba, width, height, nw, nh);
-      const rect = detectSmall(small, nw, nh);
-      if (!rect) return null;
-      return clampRect(rect.x / s, rect.y / s, rect.w / s, rect.h / s, width, height);
+      const small = downsample(rgba, width, height, maxW, nh);
+      const hit = detectPage(small, maxW, nh);
+      if (!hit) return null;
+      return scalePage(hit, s, width, height);
     }
-    return detectSmall(rgba, width, height);
+    return detectPage(rgba, width, height);
+  }
+  function detectReceiptScanFromRGBA(rgba, width, height) {
+    const hit = findPage(rgba, width, height);
+    if (!hit) return null;
+    return { rect: hit.rect, corners: hit.corners };
+  }
+  function scaleQuad(corners, frac, iw, ih) {
+    const cx = (corners[0].x + corners[1].x + corners[2].x + corners[3].x) / 4;
+    const cy = (corners[0].y + corners[1].y + corners[2].y + corners[3].y) / 4;
+    const k = 1 + frac;
+    return corners.map((p) => ({
+      x: Math.max(-8, Math.min(iw + 8, cx + (p.x - cx) * k)),
+      y: Math.max(-8, Math.min(ih + 8, cy + (p.y - cy) * k))
+    }));
+  }
+  function solve8(a, b) {
+    const n = 8;
+    const m = a.map((row, i) => row.concat(b[i]));
+    for (let col = 0; col < n; col++) {
+      let piv = col;
+      for (let r = col + 1; r < n; r++) {
+        if (Math.abs(m[r][col]) > Math.abs(m[piv][col])) piv = r;
+      }
+      if (Math.abs(m[piv][col]) < 1e-8) return null;
+      const tmp = m[col];
+      m[col] = m[piv];
+      m[piv] = tmp;
+      const div = m[col][col];
+      for (let c = col; c <= n; c++) m[col][c] /= div;
+      for (let r = 0; r < n; r++) {
+        if (r === col) continue;
+        const f = m[r][col];
+        for (let c = col; c <= n; c++) m[r][c] -= f * m[col][c];
+      }
+    }
+    return m.map((row) => row[n]);
+  }
+  function homography(from, to) {
+    const a = [];
+    const b = [];
+    for (let i = 0; i < 4; i++) {
+      const x = from[i].x;
+      const y = from[i].y;
+      const u = to[i].x;
+      const v = to[i].y;
+      a.push([x, y, 1, 0, 0, 0, -u * x, -u * y]);
+      b.push(u);
+      a.push([0, 0, 0, x, y, 1, -v * x, -v * y]);
+      b.push(v);
+    }
+    return solve8(a, b);
+  }
+  function sampleBilinear(src, w, h, x, y) {
+    if (x < 0 || y < 0 || x > w - 1 || y > h - 1) return [255, 255, 255];
+    const x0 = Math.floor(x);
+    const y0 = Math.floor(y);
+    const x1 = Math.min(w - 1, x0 + 1);
+    const y1 = Math.min(h - 1, y0 + 1);
+    const tx = x - x0;
+    const ty = y - y0;
+    const i00 = (y0 * w + x0) * 4;
+    const i10 = (y0 * w + x1) * 4;
+    const i01 = (y1 * w + x0) * 4;
+    const i11 = (y1 * w + x1) * 4;
+    const mix = (k) => {
+      const a = src[i00 + k] * (1 - tx) + src[i10 + k] * tx;
+      const b = src[i01 + k] * (1 - tx) + src[i11 + k] * tx;
+      return a * (1 - ty) + b * ty;
+    };
+    return [mix(0), mix(1), mix(2)];
+  }
+  function warpPageRGBA(src, sw, sh, corners) {
+    const top = Math.hypot(corners[1].x - corners[0].x, corners[1].y - corners[0].y);
+    const bot = Math.hypot(corners[2].x - corners[3].x, corners[2].y - corners[3].y);
+    const left = Math.hypot(corners[3].x - corners[0].x, corners[3].y - corners[0].y);
+    const right = Math.hypot(corners[2].x - corners[1].x, corners[2].y - corners[1].y);
+    let W = Math.max(8, Math.round(Math.max(top, bot)));
+    let H = Math.max(8, Math.round(Math.max(left, right)));
+    const fit = Math.min(1, 1200 / Math.max(W, H));
+    W = Math.max(8, Math.round(W * fit));
+    H = Math.max(8, Math.round(H * fit));
+    const dest = [
+      { x: 0, y: 0 },
+      { x: W - 1, y: 0 },
+      { x: W - 1, y: H - 1 },
+      { x: 0, y: H - 1 }
+    ];
+    const h = homography(dest, corners);
+    if (!h) return null;
+    const out = new Uint8ClampedArray(W * H * 4);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const den = h[6] * x + h[7] * y + 1;
+        if (Math.abs(den) < 1e-6) continue;
+        const sx = (h[0] * x + h[1] * y + h[2]) / den;
+        const sy = (h[3] * x + h[4] * y + h[5]) / den;
+        let [r, g, b] = sampleBilinear(src, sw, sh, sx, sy);
+        const Y = luma(r, g, b);
+        const s = sat(r, g, b);
+        if (Y >= 208 && s < 0.2) {
+          const t = Math.min(1, (Y - 208) / 32);
+          const v = Y + (255 - Y) * t;
+          const f = v / Math.max(1, Y);
+          r = Math.min(255, r * f);
+          g = Math.min(255, g * f);
+          b = Math.min(255, b * f);
+        }
+        const o = (y * W + x) * 4;
+        out[o] = r;
+        out[o + 1] = g;
+        out[o + 2] = b;
+        out[o + 3] = 255;
+      }
+    }
+    return { data: out, w: W, h: H };
   }
   function expandRect(rect, iw, ih, frac) {
     const dx = rect.w * frac;
@@ -307,30 +562,9 @@
     return next;
   }
   var MONTHS = {
-    janeiro: 1,
-    fevereiro: 2,
-    marco: 3,
-    abril: 4,
-    maio: 5,
-    junho: 6,
-    julho: 7,
-    agosto: 8,
-    setembro: 9,
-    outubro: 10,
-    novembro: 11,
-    dezembro: 12,
-    jan: 1,
-    fev: 2,
-    mar: 3,
-    abr: 4,
-    mai: 5,
-    jun: 6,
-    jul: 7,
-    ago: 8,
-    set: 9,
-    out: 10,
-    nov: 11,
-    dez: 12
+    janeiro: 1, fevereiro: 2, marco: 3, abril: 4, maio: 5, junho: 6,
+    julho: 7, agosto: 8, setembro: 9, outubro: 10, novembro: 11, dezembro: 12,
+    jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6, jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12
   };
   var MONTH_RE = "janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez";
   function fold(s) {
@@ -349,10 +583,7 @@
     return y >= 70 ? 1900 + y : 2000 + y;
   }
   function foldDateGlyphs(s) {
-    return s.replace(
-      /[0-9oOlI|/.\-\s]{4,}/gi,
-      (m) => m.replace(/o/gi, "0").replace(/[l|I]/g, "1")
-    );
+    return s.replace(/[0-9oOlI|/.\-\s]{4,}/gi, (m) => m.replace(/o/gi, "0").replace(/[l|I]/g, "1"));
   }
   function pushDate(into, y, m, d, index, score, raw) {
     const year = expandYear(y);
@@ -367,23 +598,14 @@
       }
       return;
     }
-    into.push({
-      iso,
-      display: pad(d) + "/" + pad(m) + "/" + year,
-      score,
-      index,
-      raw
-    });
+    into.push({ iso, display: pad(d) + "/" + pad(m) + "/" + year, score, index, raw });
   }
   function collectDates(text, baseScore, indexBias) {
     const folded = fold(foldDateGlyphs(text));
     const found = [];
     const ymd = /(\d{4})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{1,2})/g;
     for (const match of folded.matchAll(ymd)) {
-      const y = Number(match[1]);
-      const m = Number(match[2]);
-      const d = Number(match[3]);
-      pushDate(found, y, m, d, indexBias + (match.index ?? 0), baseScore + 2, match[0]);
+      pushDate(found, Number(match[1]), Number(match[2]), Number(match[3]), indexBias + (match.index ?? 0), baseScore + 2, match[0]);
     }
     const dmy = /(\d{1,2})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{2,4})/g;
     for (const match of folded.matchAll(dmy)) {
@@ -399,50 +621,18 @@
       }
       pushDate(found, y, month, day, indexBias + (match.index ?? 0), baseScore, match[0]);
     }
-    const written = new RegExp(
-      "(\\d{1,2})\\s+de\\s+(" + MONTH_RE + ")\\.?\\s+de\\s+(\\d{4})",
-      "g"
-    );
+    const written = new RegExp("(\\d{1,2})\\s+de\\s+(" + MONTH_RE + ")\\.?\\s+de\\s+(\\d{4})", "g");
     for (const match of folded.matchAll(written)) {
-      const month = MONTHS[match[2]] ?? 0;
-      pushDate(
-        found,
-        Number(match[3]),
-        month,
-        Number(match[1]),
-        indexBias + (match.index ?? 0),
-        baseScore + 3,
-        match[0]
-      );
+      pushDate(found, Number(match[3]), MONTHS[match[2]] ?? 0, Number(match[1]), indexBias + (match.index ?? 0), baseScore + 3, match[0]);
     }
-    const shortWritten = new RegExp(
-      "(\\d{1,2})\\s+(" + MONTH_RE + ")\\.?\\s+(?:de\\s+)?(\\d{4})",
-      "g"
-    );
+    const shortWritten = new RegExp("(\\d{1,2})\\s+(" + MONTH_RE + ")\\.?\\s+(?:de\\s+)?(\\d{4})", "g");
     for (const match of folded.matchAll(shortWritten)) {
-      const month = MONTHS[match[2]] ?? 0;
-      pushDate(
-        found,
-        Number(match[3]),
-        month,
-        Number(match[1]),
-        indexBias + (match.index ?? 0),
-        baseScore + 1,
-        match[0]
-      );
+      pushDate(found, Number(match[3]), MONTHS[match[2]] ?? 0, Number(match[1]), indexBias + (match.index ?? 0), baseScore + 1, match[0]);
     }
     if (baseScore >= 70) {
       const loose = /(\d{1,2})\s+(\d{1,2})\s+(\d{4})/g;
       for (const match of folded.matchAll(loose)) {
-        pushDate(
-          found,
-          Number(match[3]),
-          Number(match[2]),
-          Number(match[1]),
-          indexBias + (match.index ?? 0),
-          baseScore - 5,
-          match[0]
-        );
+        pushDate(found, Number(match[3]), Number(match[2]), Number(match[1]), indexBias + (match.index ?? 0), baseScore - 5, match[0]);
       }
     }
     return found;
@@ -473,9 +663,7 @@
   function parseEuroAmount(token) {
     const t = token.replace(/\s/g, "").replace(/€/g, "");
     if (!t) return null;
-    if (/^\d{1,3}(\.\d{3})+,\d{2}$/.test(t)) {
-      return Number(t.replace(/\./g, "").replace(",", "."));
-    }
+    if (/^\d{1,3}(\.\d{3})+,\d{2}$/.test(t)) return Number(t.replace(/\./g, "").replace(",", "."));
     if (/^\d+,\d{2}$/.test(t)) return Number(t.replace(",", "."));
     if (/^\d+\.\d{2}$/.test(t) && !/^\d{1,3}(\.\d{3})+$/.test(t)) return Number(t);
     return null;
@@ -485,9 +673,7 @@
     if (!s) return null;
     const prep = s.replace(/\s/g, "").replace(/€|eur/gi, "").replace(/\.(?=\d{3}\b)/g, "");
     if (/^\d{1,3}(\.\d{3})+,\d{2}$/.test(s.replace(/\s/g, ""))) return parseEuroAmount(s);
-    if (prep.includes(",") && prep.includes(".")) {
-      return parseEuroAmount(s);
-    }
+    if (prep.includes(",") && prep.includes(".")) return parseEuroAmount(s);
     if (/^\d+,\d{1,2}$/.test(prep)) {
       const parts = prep.split(",");
       return Number(parts[0] + "." + parts[1].padEnd(2, "0"));
@@ -518,9 +704,7 @@
   }
   var TOTAL_RE = /\b(valor a pagar|total a pagar|valor pago|total pago|total)\b\s*[:.\-]*\s*(?:eur|euros?|€)?\s*[:.\-]*\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/g;
   function scoreLabel(label) {
-    if (label === "valor a pagar" || label === "total a pagar" || label === "valor pago" || label === "total pago") {
-      return 100;
-    }
+    if (label === "valor a pagar" || label === "total a pagar" || label === "valor pago" || label === "total pago") return 100;
     return 50;
   }
   function parseTotal(text) {
@@ -533,12 +717,7 @@
       for (const match of line.matchAll(TOTAL_RE)) {
         const euros = parseEuroAmount(match[2]);
         if (euros == null || !Number.isFinite(euros)) continue;
-        found.push({
-          euros,
-          score: scoreLabel(match[1]),
-          index,
-          raw: match[0]
-        });
+        found.push({ euros, score: scoreLabel(match[1]), index, raw: match[0] });
       }
     };
     for (let i = 0; i < lines.length; i++) {
@@ -550,18 +729,9 @@
     return found[0];
   }
   var CATEGORY_RULES = [
-    {
-      cat: "Combustível",
-      re: /\b(galp|repsol|cepsa|prio|gasoleo|gasolina|combustivel|diesel|q8|plenitude|posto)\b|\bbp\b/
-    },
-    {
-      cat: "Estadias",
-      re: /\b(hotel|hostel|airbnb|pousada|residencial|alojamento|dormida|pensao|ibis|pestana|marriott|booking|resort|campanile|hospede|hospedaria)\b|\binn\b/
-    },
-    {
-      cat: "Alimentação",
-      re: /\b(continente|pingo doce|pingodoce|auchan|lidl|mercadona|minipreco|mini preco|intermarche|padaria|pastelaria|restaurante|cafe|mcdonald|burger|pizza|supermercado|talho|peixaria|mercearia|recheio|aldi|spar)\b/
-    }
+    { cat: "Combustível", re: /\b(galp|repsol|cepsa|prio|gasoleo|gasolina|combustivel|diesel|q8|plenitude|posto)\b|\bbp\b/ },
+    { cat: "Estadias", re: /\b(hotel|hostel|airbnb|pousada|residencial|alojamento|dormida|pensao|ibis|pestana|marriott|booking|resort|campanile|hospede|hospedaria)\b|\binn\b/ },
+    { cat: "Alimentação", re: /\b(continente|pingo doce|pingodoce|auchan|lidl|mercadona|minipreco|mini preco|intermarche|padaria|pastelaria|restaurante|cafe|mcdonald|burger|pizza|supermercado|talho|peixaria|mercearia|recheio|aldi|spar)\b/ }
   ];
   function categorize(text) {
     const s = fold(text);
@@ -580,35 +750,17 @@
     if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "sem-data";
     return iso.slice(0, 7);
   }
-  var MONTH_LABELS = [
-    "janeiro",
-    "fevereiro",
-    "março",
-    "abril",
-    "maio",
-    "junho",
-    "julho",
-    "agosto",
-    "setembro",
-    "outubro",
-    "novembro",
-    "dezembro"
-  ];
+  var MONTH_LABELS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
   function formatMonthKey(key) {
     if (key === "sem-data") return "Sem data";
     const parts = key.split("-");
-    const y = parts[0];
-    const m = parts[1];
-    const name = MONTH_LABELS[Number(m) - 1];
-    if (!name || !y) return key;
-    return name + " " + y;
+    const name = MONTH_LABELS[Number(parts[1]) - 1];
+    if (!name || !parts[0]) return key;
+    return name + " " + parts[0];
   }
   function formatEuros(value) {
     if (value == null || !Number.isFinite(value)) return "—";
-    return value.toLocaleString("pt-PT", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }) + " €";
+    return value.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
   }
   var TESS_SRC = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
   var workerPromise = null;
@@ -621,11 +773,7 @@
           return;
         }
         prev.addEventListener("load", () => resolve(), { once: true });
-        prev.addEventListener(
-          "error",
-          () => reject(new Error("falha ao carregar leitor")),
-          { once: true }
-        );
+        prev.addEventListener("error", () => reject(new Error("falha ao carregar leitor")), { once: true });
         return;
       }
       const s = document.createElement("script");
@@ -655,10 +803,7 @@
         }
       }
     });
-    await worker.setParameters({
-      tessedit_pageseg_mode: "6",
-      preserve_interword_spaces: "1"
-    });
+    await worker.setParameters({ tessedit_pageseg_mode: "6", preserve_interword_spaces: "1" });
     return worker;
   }
   async function getWorker(onStatus) {
@@ -692,12 +837,7 @@
     let text = await recognize(worker, canvas);
     if (!parseEmissionDate(text) || (parseEmissionDate(text)?.score ?? 0) < 70) {
       onStatus("A reler o topo (data de emissão)…");
-      const top = sliceCanvas(
-        canvas,
-        0,
-        Math.round(canvas.height * 0.42),
-        canvas.width < 1200 ? 1.8 : 1.25
-      );
+      const top = sliceCanvas(canvas, 0, Math.round(canvas.height * 0.42), canvas.width < 1200 ? 1.8 : 1.25);
       text = (await recognize(worker, top)) + "\n" + text;
     }
     if (!parseTotal(text)) {
@@ -824,8 +964,7 @@
       const dataUrl = await blobToDataUrl(item.image);
       const size = await imageSize(dataUrl).catch(() => ({ w: 600, h: 800 }));
       const note = item.notes.trim();
-      const head = 18 + (note ? 10 : 0);
-      need(head + 20);
+      need(18 + (note ? 10 : 0) + 20);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       const when = item.issuedDate ? item.issuedDate.split("-").reverse().join("/") : "Sem data de emissão";
@@ -876,9 +1015,7 @@
       const req = indexedDB.open(DB_NAME, 1);
       req.onupgradeneeded = () => {
         const db = req.result;
-        if (!db.objectStoreNames.contains(STORE)) {
-          db.createObjectStore(STORE, { keyPath: "id" });
-        }
+        if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: "id" });
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error ?? new Error("IndexedDB"));
@@ -920,169 +1057,44 @@
   var CATEGORIES = ["Combustível", "Alimentação", "Estadias", "Outros"];
   var CSS = `
 .ft, .ft * { box-sizing: border-box; }
-.ft {
-  min-height: 100dvh;
-  background: #f2f2f3;
-  color: #111;
-  font-family: "Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif;
-  font-size: 16px;
-  line-height: 1.45;
-  padding-bottom: calc(76px + env(safe-area-inset-bottom));
-}
+.ft { min-height: 100dvh; background: #f2f2f3; color: #111; font-family: "Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif; font-size: 16px; line-height: 1.45; padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
 .ft button, .ft input, .ft select, .ft textarea { font: inherit; color: inherit; }
-.ft-top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: calc(14px + env(safe-area-inset-top)) 16px 14px;
-  background: #111;
-  color: #fff;
-}
+.ft-top { display: flex; align-items: center; gap: 12px; padding: calc(14px + env(safe-area-inset-top)) 16px 14px; background: #111; color: #fff; }
 .ft-logo { width: 64px; height: 42px; flex: none; }
-.ft-kicker {
-  margin: 0;
-  color: #EB0A1E;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-}
+.ft-kicker { margin: 0; color: #EB0A1E; font-size: 11px; font-weight: 700; letter-spacing: 0.16em; }
 .ft-top h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
 .ft-main { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-.ft-card {
-  background: #fff;
-  border: 1px solid #e4e4e6;
-  border-radius: 18px;
-  padding: 16px;
-}
+.ft-card { background: #fff; border: 1px solid #e4e4e6; border-radius: 18px; padding: 16px; }
 .ft-lead { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.03em; line-height: 1.2; }
 .ft-muted { color: #58595B; margin: 0; }
 .ft-steps { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
 .ft-steps li { display: flex; gap: 10px; align-items: flex-start; }
-.ft-num {
-  flex: none;
-  width: 26px; height: 26px;
-  border-radius: 50%;
-  background: #111;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  display: grid; place-items: center;
-}
-.ft-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 52px;
-  border-radius: 14px;
-  border: 0;
-  background: #EB0A1E;
-  color: #fff;
-  font-weight: 700;
-  padding: 12px 16px;
-}
+.ft-num { flex: none; width: 26px; height: 26px; border-radius: 50%; background: #111; color: #fff; font-size: 13px; font-weight: 700; display: grid; place-items: center; }
+.ft-btn { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; border-radius: 14px; border: 0; background: #EB0A1E; color: #fff; font-weight: 700; padding: 12px 16px; }
 .ft-btn:disabled { opacity: 0.55; }
-.ft-btn.secondary {
-  background: #fff;
-  color: #111;
-  border: 1px solid #cfcfd2;
-}
-.ft-btn.ghost {
-  background: transparent;
-  color: #111;
-  border: 1px solid #cfcfd2;
-  min-height: 44px;
-}
+.ft-btn.secondary { background: #fff; color: #111; border: 1px solid #cfcfd2; }
+.ft-btn.ghost { background: transparent; color: #111; border: 1px solid #cfcfd2; min-height: 44px; }
 .ft-btn.danger { background: #111; }
 .ft-row { display: flex; gap: 8px; }
 .ft-row > * { flex: 1; }
-.ft-nav {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  display: flex;
-  gap: 8px;
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-  background: rgba(255,255,255,.94);
-  border-top: 1px solid #e4e4e6;
-  backdrop-filter: blur(10px);
-  z-index: 5;
-}
-.ft-nav button {
-  flex: 1;
-  min-height: 48px;
-  border-radius: 12px;
-  border: 0;
-  background: transparent;
-  color: #58595B;
-  font-weight: 700;
-}
+.ft-nav { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 8px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.94); border-top: 1px solid #e4e4e6; backdrop-filter: blur(10px); z-index: 5; }
+.ft-nav button { flex: 1; min-height: 48px; border-radius: 12px; border: 0; background: transparent; color: #58595B; font-weight: 700; }
 .ft-nav button[aria-current="page"] { background: #111; color: #fff; }
-.ft-cam {
-  position: fixed;
-  inset: 0;
-  background: #000;
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-}
+.ft-cam { position: fixed; inset: 0; background: #000; z-index: 20; display: flex; flex-direction: column; }
 .ft-cam video { flex: 1; width: 100%; object-fit: cover; background: #000; }
-.ft-cam-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 18px calc(18px + env(safe-area-inset-bottom));
-  background: #111;
-}
-.ft-shutter {
-  width: 68px; height: 68px; border-radius: 50%;
-  border: 4px solid #fff;
-  background: #EB0A1E;
-  padding: 0;
-}
-.ft-cam-bar button.link {
-  background: none; border: 0; color: #fff; min-height: 48px; min-width: 72px; font-weight: 700;
-}
-.ft-scan {
-  width: 100%;
-  height: auto;
-  border-radius: 12px;
-  background: #fff;
-  border: 1px solid #e4e4e6;
-  display: block;
-}
+.ft-cam-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px calc(18px + env(safe-area-inset-bottom)); background: #111; }
+.ft-shutter { width: 68px; height: 68px; border-radius: 50%; border: 4px solid #fff; background: #EB0A1E; padding: 0; }
+.ft-cam-bar button.link { background: none; border: 0; color: #fff; min-height: 48px; min-width: 72px; font-weight: 700; }
+.ft-scan { width: 100%; height: auto; border-radius: 12px; background: #fff; border: 1px solid #e4e4e6; display: block; }
 .ft label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: #58595B; }
-.ft input, .ft select, .ft textarea {
-  width: 100%;
-  min-height: 48px;
-  border-radius: 12px;
-  border: 1px solid #d0d0d3;
-  background: #fff;
-  padding: 10px 12px;
-  font-weight: 600;
-  color: #111;
-}
+.ft input, .ft select, .ft textarea { width: 100%; min-height: 48px; border-radius: 12px; border: 1px solid #d0d0d3; background: #fff; padding: 10px 12px; font-weight: 600; color: #111; }
 .ft textarea { min-height: 120px; font-weight: 500; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-.ft-warn {
-  background: #fff4f4;
-  border: 1px solid #f3b7bd;
-  color: #111;
-  border-radius: 12px;
-  padding: 10px 12px;
-  margin: 0;
-}
-.ft-ok { background: #f4f4f5; border-radius: 12px; padding: 10px 12px; margin: 0; }
+.ft-warn { background: #fff4f4; border: 1px solid #f3b7bd; color: #111; border-radius: 12px; padding: 10px 12px; margin: 0; }
 .ft-month { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .ft-month h2 { margin: 0; font-size: 20px; letter-spacing: -0.03em; }
 .ft-sum { margin: 0; font-size: 18px; font-weight: 800; color: #EB0A1E; }
 .ft-sub { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
-.ft-item {
-  display: grid;
-  grid-template-columns: 72px 1fr;
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
-}
+.ft-item { display: grid; grid-template-columns: 72px 1fr; gap: 10px; padding-top: 10px; border-top: 1px solid #eee; }
 .ft-item img { width: 72px; height: 96px; object-fit: cover; border-radius: 8px; background: #fff; border: 1px solid #e4e4e6; }
 .ft-item h3 { margin: 0; font-size: 16px; }
 .ft-item p { margin: 2px 0 0; }
@@ -1129,6 +1141,21 @@
     ctx.drawImage(src, rect.x, rect.y, rect.w, rect.h, 0, 0, c.width, c.height);
     return c;
   }
+  function renderWarp(src, corners) {
+    const ctx = src.getContext("2d", { willReadFrequently: true });
+    const img = ctx?.getImageData(0, 0, src.width, src.height);
+    const fallback = renderScan(src, { x: 0, y: 0, w: src.width, h: src.height });
+    if (!img) return fallback;
+    const warped = warpPageRGBA(img.data, src.width, src.height, corners);
+    if (!warped) return fallback;
+    const c = document.createElement("canvas");
+    c.width = warped.w;
+    c.height = warped.h;
+    const out = c.getContext("2d");
+    if (!out) return fallback;
+    out.putImageData(new ImageData(warped.data, warped.w, warped.h), 0, 0);
+    return c;
+  }
   async function canvasFromFile(file) {
     const c = document.createElement("canvas");
     try {
@@ -1158,11 +1185,7 @@
   }
   function canvasToBlob(canvas) {
     return new Promise((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => blob ? resolve(blob) : reject(new Error("sem imagem")),
-        "image/jpeg",
-        0.82
-      );
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("sem imagem")), "image/jpeg", 0.82);
     });
   }
   function mountFaturas(root2) {
@@ -1174,23 +1197,12 @@
     const main = el("main", { class: "ft-main" });
     const nav = el("nav", { class: "ft-nav" });
     nav.innerHTML = '<button type="button" data-tab="nova">Nova</button><button type="button" data-tab="arquivo">Arquivo</button>';
-    const fileCam = el("input", {
-      type: "file",
-      accept: "image/*",
-      capture: "environment",
-      class: "ft-hidden",
-      "aria-label": "Fotografar talão"
-    });
-    const fileLib = el("input", {
-      type: "file",
-      accept: "image/*",
-      class: "ft-hidden",
-      "aria-label": "Escolher da galeria"
-    });
+    const fileCam = el("input", { type: "file", accept: "image/*", capture: "environment", class: "ft-hidden", "aria-label": "Fotografar talão" });
+    const fileLib = el("input", { type: "file", accept: "image/*", class: "ft-hidden", "aria-label": "Escolher da galeria" });
     root2.append(header, main, nav, fileCam, fileLib);
-    let tab = "nova";
     let source = null;
     let rect = null;
+    let quad = null;
     let cropFailed = false;
     let scan = null;
     let busy = false;
@@ -1201,10 +1213,8 @@
       urls.length = 0;
     };
     const setTab = (next) => {
-      tab = next;
       for (const btn of nav.querySelectorAll("button")) {
-        const on = btn.getAttribute("data-tab") === next;
-        if (on) btn.setAttribute("aria-current", "page");
+        if (btn.getAttribute("data-tab") === next) btn.setAttribute("aria-current", "page");
         else btn.removeAttribute("aria-current");
       }
     };
@@ -1213,7 +1223,7 @@
       nav.classList.remove("ft-hidden");
       main.replaceChildren();
       const card = el("section", { class: "ft-card" });
-      card.innerHTML = '<h2 class="ft-lead">A foto fica como a câmara a viu.</h2><p class="ft-muted">Enquadra a folha inteira. A data está no topo. O total está em baixo. Não pinto a folha de preto.</p><ol class="ft-steps"><li><span class="ft-num">1</span><span>Fotografa com a câmara traseira.</span></li><li><span class="ft-num">2</span><span>Confirma a data de emissão e o total. Se não ler, escreve tu.</span></li><li><span class="ft-num">3</span><span>No arquivo, exporta o PDF do mês.</span></li></ol>';
+      card.innerHTML = '<h2 class="ft-lead">Recorte à volta da folha, como um scanner.</h2><p class="ft-muted">A mesa fica de fora. A folha endireita. O texto fica como na foto, sem ficar preto.</p><ol class="ft-steps"><li><span class="ft-num">1</span><span>Fotografa com a câmara traseira.</span></li><li><span class="ft-num">2</span><span>Confirma a data de emissão e o total. Se não ler, escreve tu.</span></li><li><span class="ft-num">3</span><span>No arquivo, exporta o PDF do mês.</span></li></ol>';
       const shoot = el("button", { class: "ft-btn", type: "button" });
       shoot.textContent = "Fotografar talão";
       const gallery = el("button", { class: "ft-btn secondary", type: "button" });
@@ -1231,11 +1241,7 @@
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1920 },
-            height: { ideal: 2560 }
-          }
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 2560 } }
         });
       } catch {
         fileCam.click();
@@ -1284,10 +1290,11 @@
       source = full;
       const ctx = full.getContext("2d", { willReadFrequently: true });
       const data = ctx?.getImageData(0, 0, full.width, full.height);
-      const found = data ? detectReceiptCropFromRGBA(data.data, full.width, full.height) : null;
+      const found = data ? detectReceiptScanFromRGBA(data.data, full.width, full.height) : null;
       cropFailed = !found;
-      rect = found ?? { x: 0, y: 0, w: full.width, h: full.height };
-      scan = renderScan(full, rect);
+      rect = found?.rect ?? { x: 0, y: 0, w: full.width, h: full.height };
+      quad = found?.corners ?? null;
+      scan = quad ? renderWarp(full, quad) : renderScan(full, rect);
       setTab("nova");
       nav.classList.remove("ft-hidden");
       paintReview();
@@ -1326,24 +1333,27 @@
       main.append(figure, again, form, reread, save);
       const apply = () => {
         if (!source || !rect) return;
-        scan = renderScan(source, rect);
+        scan = quad ? renderWarp(source, quad) : renderScan(source, rect);
         view.width = scan.width;
         view.height = scan.height;
         view.getContext("2d")?.drawImage(scan, 0, 0);
       };
       tighter.addEventListener("click", () => {
         if (!source || !rect) return;
-        rect = shrinkRect(rect, source.width, source.height, 0.04);
+        if (quad) quad = scaleQuad(quad, -0.04, source.width, source.height);
+        else rect = shrinkRect(rect, source.width, source.height, 0.04);
         cropFailed = false;
         apply();
       });
       wider.addEventListener("click", () => {
         if (!source || !rect) return;
-        rect = expandRect(rect, source.width, source.height, 0.06);
+        if (quad) quad = scaleQuad(quad, 0.06, source.width, source.height);
+        else rect = expandRect(rect, source.width, source.height, 0.06);
         apply();
       });
       whole.addEventListener("click", () => {
         if (!source) return;
+        quad = null;
         rect = { x: 0, y: 0, w: source.width, h: source.height };
         cropFailed = false;
         apply();
@@ -1390,18 +1400,10 @@
           fields.dateHint.textContent = "Não li a data de emissão. Preenche à mão — não uso a data de hoje.";
         }
         if (total && fields.total && !fields.total.value) {
-          fields.total.value = total.euros.toLocaleString("pt-PT", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          });
+          fields.total.value = total.euros.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
         if (fields.cat && cat !== "Outros") fields.cat.value = cat;
-        const bits = [
-          date ? "Data " + date.display : "Data não lida",
-          total ? "Total " + formatEuros(total.euros) : "Total não lido",
-          cat
-        ];
-        setStatus(bits.join(" · ") + ". Confirma antes de guardar.");
+        setStatus([date ? "Data " + date.display : "Data não lida", total ? "Total " + formatEuros(total.euros) : "Total não lido", cat].join(" · ") + ". Confirma antes de guardar.");
       } catch {
         setStatus("Não consegui ler o talão. Preenche a data e o total à mão — não invento valores.");
       } finally {
@@ -1420,8 +1422,7 @@
       }
       busy = true;
       try {
-        const image = await canvasToBlob(scan);
-        const fatura = {
+        await saveFatura({
           id: crypto.randomUUID(),
           createdAt: Date.now(),
           issuedDate,
@@ -1430,17 +1431,15 @@
           total,
           notes: fields.notes?.value.trim() ?? "",
           ocrText: fields.ocr?.value ?? "",
-          image
-        };
-        await saveFatura(fatura);
+          image: await canvasToBlob(scan)
+        });
         source = null;
         scan = null;
         rect = null;
+        quad = null;
         await showArchive();
       } catch {
-        if (fields.status) {
-          fields.status.textContent = "Não consegui guardar no telemóvel. Tenta outra vez.";
-        }
+        if (fields.status) fields.status.textContent = "Não consegui guardar no telemóvel. Tenta outra vez.";
       } finally {
         busy = false;
       }
@@ -1530,8 +1529,7 @@
         btn.addEventListener("click", () => {
           const id = btn.getAttribute("data-edit");
           const item = rows.find((r) => r.id === id);
-          if (!item) return;
-          openEdit(item);
+          if (item) openEdit(item);
         });
       });
     }
@@ -1558,15 +1556,14 @@
           return;
         }
         const issuedDate = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
-        const next = {
+        void saveFatura({
           ...item,
           issuedDate,
           month: monthKeyFromIso(issuedDate),
           total,
           category: card.querySelector("[data-cat]").value,
           notes: card.querySelector("[data-notes]").value.trim()
-        };
-        void saveFatura(next).then(() => showArchive()).catch(() => {
+        }).then(() => showArchive()).catch(() => {
           status.textContent = "Não consegui atualizar.";
         });
       });
