@@ -10,28 +10,26 @@
 <style>
 :root{--red:#EB0A1E;--black:#111;--white:#fff;--card:#1c1c1c}
 *{box-sizing:border-box}
-body{margin:0;font-family:-apple-system,sans-serif;background:var(--black);color:var(--white)}
+body{margin:0;font-family:-apple-system,sans-serif;background:#111;color:#fff}
 header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #2a2a2a;position:sticky;top:0;background:#111;z-index:5}
 .logo{width:40px;height:40px}
-h1{font-size:18px;margin:0;color:var(--red)}
+h1{font-size:18px;margin:0;color:#EB0A1E}
 .sub{font-size:12px;color:#9a9a9a}
 nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px}
-nav button,.btn{border:0;border-radius:10px;padding:12px;font-size:15px;font-weight:600;color:#fff;background:var(--red)}
+nav button,.btn{border:0;border-radius:10px;padding:12px;font-size:15px;font-weight:600;color:#fff;background:#EB0A1E}
 .ghost{background:#2a2a2a!important}
 .page{display:none;padding:0 16px 24px}
 .page.active{display:block}
-video,canvas,img.shot{width:100%;border-radius:12px;background:#000;display:block}
+video,canvas,img.shot{width:100%;border-radius:12px;background:#fff;display:block}
 .row{display:grid;gap:8px;margin-top:12px}
 label{font-size:13px;color:#bdbdbd}
-input,select{width:100%;padding:10px;border-radius:8px;border:1px solid #3a3a3a;background:#1a1a1a;color:#fff;font-size:16px}
-.month{margin:18px 0 8px;color:var(--red);font-size:15px;font-weight:700}
-.month-total{font-size:13px;color:#9a9a9a;font-weight:400}
-.cat-sub{margin:0 0 8px 8px;font-size:13px;color:#bdbdbd}
-.card{background:var(--card);border-radius:12px;padding:10px;margin-bottom:10px;display:grid;grid-template-columns:72px 1fr auto;gap:10px;align-items:center}
-.card img{width:72px;height:72px;object-fit:cover;border-radius:8px}
-.card small{color:#9a9a9a;display:block}
-.empty,.status{color:#8a8a8a;padding:8px 0}
-.spin{display:inline-block;width:14px;height:14px;border:2px solid #555;border-top-color:var(--red);border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle;margin-right:6px}
+input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #3a3a3a;background:#1a1a1a;color:#fff;font-size:16px}
+textarea{min-height:90px;font-size:13px}
+.month{margin:18px 0 8px;color:#EB0A1E;font-weight:700}
+.month-total,.cat-sub,.empty,.status,.card small{color:#9a9a9a}
+.card{background:#1c1c1c;border-radius:12px;padding:10px;margin-bottom:10px;display:grid;grid-template-columns:72px 1fr auto;gap:10px;align-items:center}
+.card img{width:72px;height:72px;object-fit:cover;border-radius:8px;background:#fff}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #555;border-top-color:#EB0A1E;border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle;margin-right:6px}
 @keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -55,7 +53,7 @@ input,select{width:100%;padding:10px;border-radius:8px;border:1px solid #3a3a3a;
 <button class="btn ghost" id="retakeBtn" style="display:none">Tirar outra</button>
 </div>
 <div id="form" class="row" style="display:none">
-<label>Data <input type="date" id="dateInput"></label>
+<label>Data de emissão <input type="date" id="dateInput"></label>
 <label>Categoria
 <select id="catInput">
 <option value="combustivel">Combustível</option>
@@ -65,7 +63,10 @@ input,select{width:100%;padding:10px;border-radius:8px;border:1px solid #3a3a3a;
 </select>
 </label>
 <label>Total (€) <input type="number" step="0.01" id="amountInput" placeholder="0,00"></label>
-<label>Notas <input type="text" id="noteInput" placeholder="Ex.: Galp, hotel"></label>
+<label>Notas <input type="text" id="noteInput"></label>
+<label>Texto lido da fatura
+<textarea id="ocrBox" readonly></textarea>
+</label>
 <button class="btn" id="saveBtn">Guardar fatura</button>
 </div>
 <div class="status" id="scanStatus"></div>
@@ -81,30 +82,11 @@ input,select{width:100%;padding:10px;border-radius:8px;border:1px solid #3a3a3a;
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script>
 const CATS={combustivel:"Combustível",alimentacao:"Alimentação",estadias:"Estadias",outros:"Outros"};
-const CAT_RULES={
- combustivel:["combustivel","combustível","gasolina","gasoleo","gasóleo","diesel","adblue","galp","repsol","bp ","shell","prr","combust"],
- alimentacao:["aliment","supermercado","mercearia","restaurante","cafe","café","padaria","talho","peixaria","lanche","mcdonald","burger","pizza","sushi","continente","auchan","pingo doce","intermarche","lidl","aldi","jumbo","froiz","minipreco","mini preço","snack","pastelaria","doces","frutas","legumes","pao","pão","leite","iogurte","queijo","carne","peixe","arroz","massa","bebida","agua","água","sumo","cerveja","vinho"],
- estadias:["hotel","hostel","albergue","motel","resort","pousada","estalagem","apartamento","airbnb","booking","expedia","hospedagem","alojamento","pernoite","quarto","suite","check-in","checkin","checkout","pensao","pensão","guest house","bnb","camping"]
-};
-const video=document.getElementById("video");
-const canvas=document.getElementById("canvas");
-const procCanvas=document.getElementById("procCanvas");
-const shot=document.getElementById("shot");
-const startCamBtn=document.getElementById("startCamBtn");
-const captureBtn=document.getElementById("captureBtn");
-const retakeBtn=document.getElementById("retakeBtn");
-const form=document.getElementById("form");
-const dateInput=document.getElementById("dateInput");
-const catInput=document.getElementById("catInput");
-const amountInput=document.getElementById("amountInput");
-const noteInput=document.getElementById("noteInput");
-const scanStatus=document.getElementById("scanStatus");
-const list=document.getElementById("list");
-const monthSelect=document.getElementById("monthSelect");
-const scanPage=document.getElementById("scanPage");
-const listPage=document.getElementById("listPage");
-const tabScan=document.getElementById("tabScan");
-const tabList=document.getElementById("tabList");
+const CAT_RULES={combustivel:["combustivel","combustível","gasolina","gasoleo","gasóleo","diesel","adblue","galp","repsol","bp ","shell","prr","combust"],alimentacao:["aliment","supermercado","mercearia","restaurante","cafe","café","padaria","continente","auchan","pingo doce","intermarche","lidl","aldi","jumbo","minipreco"],estadias:["hotel","hostel","motel","resort","pousada","airbnb","booking","hospedagem","alojamento","quarto","suite","pensão","pensao","bnb"]};
+const video=document.getElementById("video"),canvas=document.getElementById("canvas"),procCanvas=document.getElementById("procCanvas"),shot=document.getElementById("shot");
+const startCamBtn=document.getElementById("startCamBtn"),captureBtn=document.getElementById("captureBtn"),retakeBtn=document.getElementById("retakeBtn");
+const form=document.getElementById("form"),dateInput=document.getElementById("dateInput"),catInput=document.getElementById("catInput"),amountInput=document.getElementById("amountInput"),noteInput=document.getElementById("noteInput"),ocrBox=document.getElementById("ocrBox"),scanStatus=document.getElementById("scanStatus"),list=document.getElementById("list"),monthSelect=document.getElementById("monthSelect");
+const scanPage=document.getElementById("scanPage"),listPage=document.getElementById("listPage"),tabScan=document.getElementById("tabScan"),tabList=document.getElementById("tabList");
 let currentImage=null,db=null,cvReady=false,ocrWorker=null;
 function todayISO(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function monthKey(iso){return iso.slice(0,7);}
@@ -115,149 +97,121 @@ function addFatura(item){return new Promise(function(res,rej){const tx=db.transa
 function getAll(){return new Promise(function(res,rej){const tx=db.transaction("faturas","readonly");const r=tx.objectStore("faturas").getAll();r.onsuccess=function(){res(r.result||[]);};r.onerror=function(){rej(r.error);};});}
 function deleteFatura(id){return new Promise(function(res,rej){const tx=db.transaction("faturas","readwrite");tx.objectStore("faturas").delete(id);tx.oncomplete=res;tx.onerror=function(){rej(tx.error);};});}
 function orderPts(pts){const s=pts.map(function(p){return p.x+p.y;});const d=pts.map(function(p){return p.y-p.x;});return[pts[s.indexOf(Math.min.apply(null,s))],pts[d.indexOf(Math.min.apply(null,d))],pts[s.indexOf(Math.max.apply(null,s))],pts[d.indexOf(Math.max.apply(null,d))]];}
+function validISO(y,m,d){y=Number(y);m=Number(m);d=Number(d);if(y<100)y+=2000;if(y<2000||y>2100||m<1||m>12||d<1||d>31)return null;return y+"-"+String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0");}
+function parseDateFromText(raw){
+ const t=(raw||"").toLowerCase().replace(/\u00a0/g," ");
+ const months={janeiro:1,fevereiro:2,marco:3,"março":3,abril:4,maio:5,junho:6,julho:7,agosto:8,setembro:9,outubro:10,novembro:11,dezembro:12,jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
+ let found=null; function keep(iso,score){if(iso&&(!found||score>=found.score))found={iso:iso,score:score};} let m;
+ const r1=/(\d{1,2})\s*[\/\-\.]\s*(\d{1,2})\s*[\/\-\.]\s*(\d{2,4})/g;
+ while((m=r1.exec(t))){const iso=validISO(m[3],m[2],m[1]);const near=t.slice(Math.max(0,m.index-28),m.index+24);keep(iso,/data|emiss|emitid|hora|fatura/.test(near)?8:2);}
+ const r1b=/(\d{1,2})\s+(\d{1,2})\s+(\d{4})/g; while((m=r1b.exec(t))) keep(validISO(m[3],m[2],m[1]),2);
+ const r2=/(\d{4})\s*[\/\-\.]\s*(\d{1,2})\s*[\/\-\.]\s*(\d{1,2})/g; while((m=r2.exec(t))) keep(validISO(m[1],m[2],m[3]),3);
+ const r3=/(\d{1,2})\s+de\s+(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+(?:de\s+)?(\d{4})/g;
+ while((m=r3.exec(t))) keep(validISO(m[3],months[m[2].replace("ç","c")]||months[m[2]],m[1]),7);
+ return found?found.iso:null;
+}
+function parseInvoice(text){
+ const raw=text||"";
+ const t=raw.toLowerCase().replace(/\u00a0/g," ").replace(/t0tal/g,"total").replace(/tota1/g,"total");
+ let cat="outros"; const keys=Object.keys(CAT_RULES);
+ for(let i=0;i<keys.length;i++){const listK=CAT_RULES[keys[i]];for(let j=0;j<listK.length;j++){if(t.indexOf(listK[j])!==-1){cat=keys[i];i=keys.length;break;}}}
+ const date=parseDateFromText(raw);
+ let amount=null;
+ let m=t.match(/total(?![a-z]{0,10}dep)[\s\S]{0,60}?(\d{1,4}[.,]\d{2})\s*(?:€|eur|e\b)/i);
+ if(!m) m=t.match(/(\d{1,4}[.,]\d{2})\s*(?:€|eur)\b/i);
+ if(!m) m=t.match(/total(?![a-z]{0,10}dep)[^\d]{0,80}(\d{1,4}[.,]\d{2})/i);
+ if(m) amount=parseFloat(m[1].replace(",","."));
+ if(amount==null){const all=[];const re=/(\d{1,4}[.,]\d{2})\s*(?:€|eur)/gi;let x;while((x=re.exec(t))) all.push(parseFloat(x[1].replace(",",".")));if(all.length) amount=Math.max.apply(null,all);}
+ return{cat:cat,date:date,amount:amount};
+}
 function detectAndCrop(img){
- if(!cvReady||!window.cv)return null;
- const cv=window.cv;
- const src=cv.imread(img);
- const gray=new cv.Mat(),blur=new cv.Mat(),edges=new cv.Mat(),dilated=new cv.Mat();
- const contours=new cv.MatVector(),hierarchy=new cv.Mat();
- cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY);
- cv.GaussianBlur(gray,blur,new cv.Size(5,5),0);
- cv.Canny(blur,edges,50,150);
- const k=cv.Mat.ones(3,3,cv.CV_8U);
- cv.dilate(edges,dilated,k,new cv.Point(-1,-1),1);
- cv.findContours(dilated,contours,hierarchy,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE);
- let best=null,bestArea=0;
+ if(!cvReady||!window.cv) return null;
+ const cv=window.cv, src=cv.imread(img), gray=new cv.Mat(), blur=new cv.Mat(), mask=new cv.Mat();
+ cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY); cv.GaussianBlur(gray,blur,new cv.Size(5,5),0);
+ cv.threshold(blur,mask,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU);
+ if(cv.mean(mask)[0]<127) cv.bitwise_not(mask,mask);
+ const k=cv.getStructuringElement(cv.MORPH_RECT,new cv.Size(15,15)), closed=new cv.Mat(), contours=new cv.MatVector(), hierarchy=new cv.Mat();
+ cv.morphologyEx(mask,closed,cv.MORPH_CLOSE,k);
+ cv.findContours(closed,contours,hierarchy,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE);
+ let bestPts=null,bestArea=0, frame=src.cols*src.rows;
  for(let i=0;i<contours.size();i++){
-  const c=contours.get(i);
-  const peri=cv.arcLength(c,true);
-  const approx=new cv.Mat();
-  cv.approxPolyDP(c,approx,0.02*peri,true);
-  if(approx.rows===4){
-   const a=cv.contourArea(approx);
-   if(a>bestArea&&a>src.cols*src.rows*0.12){if(best)best.delete();bestArea=a;best=approx;}
-   else approx.delete();
-  } else approx.delete();
-  c.delete();
+  const c=contours.get(i), area=cv.contourArea(c);
+  if(area<frame*0.12||area>frame*0.98){c.delete();continue;}
+  const peri=cv.arcLength(c,true), approx=new cv.Mat(); cv.approxPolyDP(c,approx,0.02*peri,true);
+  if(approx.rows===4&&area>bestArea){bestArea=area;bestPts=[];for(let p=0;p<4;p++) bestPts.push({x:approx.intPtr(p,0)[0],y:approx.intPtr(p,0)[1]});}
+  else if(area>bestArea){const rect=cv.minAreaRect(c), box=cv.boxPoints(rect), data=box.data32F; if(data&&data.length>=8){bestArea=area;bestPts=[{x:data[0],y:data[1]},{x:data[2],y:data[3]},{x:data[4],y:data[5]},{x:data[6],y:data[7]}];} box.delete();}
+  approx.delete(); c.delete();
  }
- if(!best){src.delete();gray.delete();blur.delete();edges.delete();dilated.delete();contours.delete();hierarchy.delete();k.delete();return null;}
- const pts=[];
- for(let i=0;i<4;i++)pts.push({x:best.intPtr(i,0)[0],y:best.intPtr(i,0)[1]});
- const o=orderPts(pts);
+ gray.delete();blur.delete();mask.delete();k.delete();closed.delete();contours.delete();hierarchy.delete();
+ if(!bestPts){src.delete();return null;}
+ const o=orderPts(bestPts);
  const w=Math.max(Math.hypot(o[1].x-o[0].x,o[1].y-o[0].y),Math.hypot(o[2].x-o[3].x,o[2].y-o[3].y));
  const h=Math.max(Math.hypot(o[3].x-o[0].x,o[3].y-o[0].y),Math.hypot(o[2].x-o[1].x,o[2].y-o[1].y));
  const srcM=cv.matFromArray(4,1,cv.CV_32FC2,[o[0].x,o[0].y,o[1].x,o[1].y,o[2].x,o[2].y,o[3].x,o[3].y]);
  const dstM=cv.matFromArray(4,1,cv.CV_32FC2,[0,0,w,0,w,h,0,h]);
- const M=cv.getPerspectiveTransform(srcM,dstM);
- const dst=new cv.Mat();
- cv.warpPerspective(src,dst,M,new cv.Size(w,h),cv.INTER_LINEAR,cv.BORDER_CONSTANT,new cv.Scalar());
- procCanvas.width=w;procCanvas.height=h;cv.imshow(procCanvas,dst);
+ const M=cv.getPerspectiveTransform(srcM,dstM), warped=new cv.Mat();
+ cv.warpPerspective(src,warped,M,new cv.Size(w,h),cv.INTER_LINEAR,cv.BORDER_CONSTANT,new cv.Scalar(255,255,255,255));
+ const g2=new cv.Mat(),n2=new cv.Mat(),bin=new cv.Mat(),rgba=new cv.Mat();
+ cv.cvtColor(warped,g2,cv.COLOR_RGBA2GRAY); cv.normalize(g2,n2,0,255,cv.NORM_MINMAX);
+ cv.adaptiveThreshold(n2,bin,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY,25,12);
+ cv.cvtColor(bin,rgba,cv.COLOR_GRAY2RGBA);
+ procCanvas.width=w; procCanvas.height=h; cv.imshow(procCanvas,rgba);
  const out=procCanvas.toDataURL("image/jpeg",0.92);
- src.delete();gray.delete();blur.delete();edges.delete();dilated.delete();contours.delete();hierarchy.delete();k.delete();srcM.delete();dstM.delete();M.delete();dst.delete();best.delete();
+ src.delete();srcM.delete();dstM.delete();M.delete();warped.delete();g2.delete();n2.delete();bin.delete();rgba.delete();
  return out;
 }
-function parseInvoice(text){
- const raw=text||"";
- const t=raw.toLowerCase().replace(/\u00a0/g," ");
- let cat="outros";
- const keys=Object.keys(CAT_RULES);
- for(let i=0;i<keys.length;i++){
-  const listK=CAT_RULES[keys[i]];
-  for(let j=0;j<listK.length;j++){if(t.indexOf(listK[j])!==-1){cat=keys[i];i=keys.length;break;}}
- }
- let date=null;
- const dm=raw.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
- if(dm){
-  let d=dm[1].padStart(2,"0"),m=dm[2].padStart(2,"0"),y=dm[3];
-  if(y.length===2)y="20"+y;
-  if(Number(m)>=1&&Number(m)<=12&&Number(d)>=1&&Number(d)<=31) date=y+"-"+m+"-"+d;
- }
- let amount=null;
- const totalLine=t.match(/total(?![^\n]{0,16}dep[oó]sito)[^\d]{0,80}(\d{1,4}[.,]\d{2})/);
- if(totalLine) amount=parseFloat(totalLine[1].replace(",","."));
- if(amount==null){
-  const all=[];
-  const re=/(\d{1,4}[.,]\d{2})\s*(?:€|eur|euros?)/gi;
-  let x; while((x=re.exec(t))) all.push(parseFloat(x[1].replace(",",".")));
-  if(all.length) amount=Math.max.apply(null,all);
- }
- return{cat:cat,date:date,amount:amount};
-}
-async function ensureOcr(){
- if(ocrWorker) return ocrWorker;
- scanStatus.innerHTML='<span class="spin"></span>A preparar leitura do texto...';
- ocrWorker=await Tesseract.createWorker("por+eng",1,{logger:function(){}});
- return ocrWorker;
-}
-async function startCamera(){
- try{
-  const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
-  video.srcObject=stream; await video.play();
-  startCamBtn.style.display="none"; captureBtn.style.display="block";
-  scanStatus.textContent="Fotografa o talão INTEIRO, do topo até ao QR.";
- }catch(e){scanStatus.textContent="Erro da câmara: "+e.message;}
-}
+async function ensureOcr(){if(ocrWorker)return ocrWorker;scanStatus.innerHTML='<span class="spin"></span>A preparar leitura...';ocrWorker=await Tesseract.createWorker("por+eng",1,{logger:function(){}});return ocrWorker;}
+async function startCamera(){try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});video.srcObject=stream;await video.play();startCamBtn.style.display="none";captureBtn.style.display="block";scanStatus.textContent="Fotografa o talão INTEIRO: topo com a data + linha TOTAL.";}catch(e){scanStatus.textContent="Erro da câmara: "+e.message;}}
 function showScan(){scanPage.classList.add("active");listPage.classList.remove("active");tabScan.classList.remove("ghost");tabList.classList.add("ghost");}
 function showList(){scanPage.classList.remove("active");listPage.classList.add("active");tabScan.classList.add("ghost");tabList.classList.remove("ghost");renderList();}
-function resetCapture(){currentImage=null;shot.style.display="none";video.style.display="block";captureBtn.style.display="block";retakeBtn.style.display="none";form.style.display="none";scanStatus.textContent="Toca em Tirar foto.";}
-startCamBtn.onclick=startCamera; tabScan.onclick=showScan; tabList.onclick=showList; retakeBtn.onclick=resetCapture;
+function resetCapture(){currentImage=null;shot.style.display="none";video.style.display="block";captureBtn.style.display="block";retakeBtn.style.display="none";form.style.display="none";}
+startCamBtn.onclick=startCamera;tabScan.onclick=showScan;tabList.onclick=showList;retakeBtn.onclick=resetCapture;
 captureBtn.onclick=async function(){
  if(!video.videoWidth){scanStatus.textContent="A câmara ainda não está pronta.";return;}
- canvas.width=video.videoWidth; canvas.height=video.videoHeight;
- canvas.getContext("2d").drawImage(video,0,0);
+ canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext("2d").drawImage(video,0,0);
  const raw=canvas.toDataURL("image/jpeg",0.92);
- scanStatus.innerHTML='<span class="spin"></span>A recortar a fatura...';
- let cropped=null;
- try{cropped=detectAndCrop(canvas);}catch(e){cropped=null;}
- currentImage=cropped||raw;
- shot.src=currentImage; shot.style.display="block"; video.style.display="none";
+ scanStatus.innerHTML='<span class="spin"></span>A recortar...';
+ let cropped=null; try{cropped=detectAndCrop(canvas);}catch(e){cropped=null;}
+ currentImage=cropped||raw; shot.src=currentImage; shot.style.display="block"; video.style.display="none";
  captureBtn.style.display="none"; retakeBtn.style.display="block"; form.style.display="grid";
- dateInput.value=todayISO(); catInput.value="outros"; amountInput.value=""; noteInput.value="";
- scanStatus.innerHTML='<span class="spin"></span>A ler o texto da fatura...';
+ dateInput.value=todayISO(); catInput.value="outros"; amountInput.value=""; noteInput.value=""; ocrBox.value="";
+ scanStatus.innerHTML='<span class="spin"></span>A ler data de emissão e total...';
  try{
   const w=await ensureOcr();
-  const result=await w.recognize(raw);
-  const p=parseInvoice(result.data.text);
+  const a=await w.recognize(raw);
+  const b=cropped?await w.recognize(cropped):{data:{text:""}};
+  const text=((a.data.text||"")+"\n"+(b.data.text||"")).trim();
+  ocrBox.value=text;
+  const p=parseInvoice(text);
   if(p.date) dateInput.value=p.date;
   if(p.cat) catInput.value=p.cat;
   if(p.amount!=null&&!isNaN(p.amount)) amountInput.value=p.amount.toFixed(2);
-  const lines=(result.data.text||"").split("\n").map(function(s){return s.trim();}).filter(Boolean).slice(0,2).join(" · ");
-  noteInput.value=lines.slice(0,60);
-  scanStatus.textContent=(p.date?"Data: "+p.date:"Data não encontrada")+" · "+(p.amount!=null?"Total: "+money(p.amount):"Total não encontrado")+" · Confirma e guarda.";
- }catch(e){scanStatus.textContent="Não consegui ler o texto. Preenche manualmente.";}
+  noteInput.value=text.split("\n").map(function(s){return s.trim();}).filter(Boolean).slice(0,2).join(" · ").slice(0,60);
+  scanStatus.textContent=(p.date?"Data de emissão: "+p.date:"Data NÃO está no texto lido")+" · "+(p.amount!=null?"Total: "+money(p.amount):"Total NÃO está no texto lido")+". Vê a caixa Texto lido.";
+ }catch(e){scanStatus.textContent="Falha a ler. Preenche data e total à mão.";}
 };
 document.getElementById("saveBtn").onclick=async function(){
  if(!currentImage) return;
  const date=dateInput.value||todayISO();
  await addFatura({id:Date.now().toString(),date:date,month:monthKey(date),category:catInput.value,amount:parseFloat(amountInput.value)||0,note:noteInput.value.trim(),image:currentImage});
- noteInput.value=""; amountInput.value=""; resetCapture(); scanStatus.textContent="Fatura guardada.";
+ noteInput.value="";amountInput.value="";ocrBox.value="";resetCapture();scanStatus.textContent="Fatura guardada.";
 };
 async function renderList(){
  const items=(await getAll()).sort(function(a,b){return b.date.localeCompare(a.date);});
- const months=[];
- for(let i=0;i<items.length;i++){if(months.indexOf(items[i].month)===-1) months.push(items[i].month);}
- months.sort().reverse();
+ const months=[]; for(let i=0;i<items.length;i++){if(months.indexOf(items[i].month)===-1)months.push(items[i].month);} months.sort().reverse();
  monthSelect.innerHTML=months.length?months.map(function(m){return '<option value="'+m+'">'+monthLabel(m)+"</option>";}).join(""):'<option value="">Sem faturas</option>';
  if(!items.length){list.innerHTML='<div class="empty">Ainda não há faturas.</div>';return;}
  let html="";
  for(let mi=0;mi<months.length;mi++){
-  const m=months[mi];
-  const group=items.filter(function(i){return i.month===m;});
-  let total=0; const byCat={};
+  const m=months[mi], group=items.filter(function(i){return i.month===m;}); let total=0; const byCat={};
   for(let g=0;g<group.length;g++){const amt=group[g].amount||0;total+=amt;byCat[group[g].category]=(byCat[group[g].category]||0)+amt;}
   html+='<div class="month">'+monthLabel(m)+' <span class="month-total">· Total: '+money(total)+"</span></div>";
-  const catKeys=Object.keys(byCat);
-  for(let c=0;c<catKeys.length;c++) html+='<div class="cat-sub">'+(CATS[catKeys[c]]||catKeys[c])+": "+money(byCat[catKeys[c]])+"</div>";
-  for(let g=0;g<group.length;g++){
-   const item=group[g];
-   html+='<div class="card"><img src="'+item.image+'"><div><strong>'+(CATS[item.category]||item.category)+"</strong><small>"+item.date+(item.amount?" · "+money(item.amount):"")+(item.note?" · "+item.note:"")+'</small></div><button class="btn ghost" data-del="'+item.id+'">Apagar</button></div>';
-  }
+  const catKeys=Object.keys(byCat); for(let c=0;c<catKeys.length;c++) html+='<div class="cat-sub">'+(CATS[catKeys[c]]||catKeys[c])+": "+money(byCat[catKeys[c]])+"</div>";
+  for(let g=0;g<group.length;g++){const item=group[g]; html+='<div class="card"><img src="'+item.image+'"><div><strong>'+(CATS[item.category]||item.category)+"</strong><small>"+item.date+(item.amount?" · "+money(item.amount):"")+(item.note?" · "+item.note:"")+'</small></div><button class="btn ghost" data-del="'+item.id+'">Apagar</button></div>';}
  }
  list.innerHTML=html;
  const dels=list.querySelectorAll("[data-del]");
- for(let i=0;i<dels.length;i++){
-  dels[i].onclick=async function(){if(!confirm("Apagar esta fatura?"))return;await deleteFatura(this.getAttribute("data-del"));renderList();};
- }
+ for(let i=0;i<dels.length;i++){dels[i].onclick=async function(){if(!confirm("Apagar esta fatura?"))return;await deleteFatura(this.getAttribute("data-del"));renderList();};}
 }
 document.getElementById("pdfBtn").onclick=async function(){
  const month=monthSelect.value; if(!month) return;
@@ -266,26 +220,14 @@ document.getElementById("pdfBtn").onclick=async function(){
  const doc=new window.jspdf.jsPDF({unit:"mm",format:"a4"});
  let total=0; const byCat={}; const rows=[];
  for(let i=0;i<items.length;i++){const amt=items[i].amount||0;total+=amt;byCat[items[i].category]=(byCat[items[i].category]||0)+amt;rows.push([items[i].date,CATS[items[i].category]||items[i].category,items[i].note||"",money(amt)]);}
- doc.setFontSize(16); doc.setTextColor(235,10,30); doc.text("Faturas pela TCAP",14,16);
- doc.setTextColor(0,0,0); doc.setFontSize(11); doc.text(monthLabel(month)+"  ·  Total: "+money(total),14,24);
+ doc.setFontSize(16);doc.setTextColor(235,10,30);doc.text("Faturas pela TCAP",14,16);
+ doc.setTextColor(0,0,0);doc.setFontSize(11);doc.text(monthLabel(month)+"  ·  Total: "+money(total),14,24);
  doc.autoTable({startY:30,head:[["Categoria","Subtotal"]],body:Object.keys(byCat).map(function(c){return[CATS[c]||c,money(byCat[c])];}),theme:"grid",headStyles:{fillColor:[235,10,30]}});
  doc.autoTable({startY:doc.lastAutoTable.finalY+8,head:[["Data","Categoria","Notas","Total"]],body:rows,theme:"grid",headStyles:{fillColor:[235,10,30]}});
  let y=doc.lastAutoTable.finalY+10;
- for(let i=0;i<items.length;i++){
-  if(y>250){doc.addPage();y=16;}
-  doc.setFontSize(10); doc.text(items[i].date+" · "+(CATS[items[i].category]||items[i].category),14,y); y+=4;
-  try{
-   const props=doc.getImageProperties(items[i].image);
-   let w=182,h=(props.height*w)/props.width;
-   if(h>90){h=90;w=(props.width*h)/props.height;}
-   if(y+h>280){doc.addPage();y=16;}
-   doc.addImage(items[i].image,"JPEG",14,y,w,h); y+=h+8;
-  }catch(e){}
- }
+ for(let i=0;i<items.length;i++){if(y>250){doc.addPage();y=16;} doc.setFontSize(10);doc.text(items[i].date+" · "+(CATS[items[i].category]||items[i].category),14,y);y+=4;
+  try{const props=doc.getImageProperties(items[i].image);let w=182,h=(props.height*w)/props.width;if(h>90){h=90;w=(props.width*h)/props.height;}if(y+h>280){doc.addPage();y=16;}doc.addImage(items[i].image,"JPEG",14,y,w,h);y+=h+8;}catch(e){}}
  doc.save("faturas-tcap-"+month+".pdf");
 };
 if(window.cv){window.cv["onRuntimeInitialized"]=function(){cvReady=true;scanStatus.textContent="Pronto. Toca em Abrir câmara.";};}
-(async function(){dateInput.value=todayISO();db=await openDb();if(!cvReady)scanStatus.textContent="A carregar o motor de imagem...";})();
-</script>
-</body>
-</html>
+(async function(){dateInput.value=todayISO();db=
