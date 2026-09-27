@@ -1,102 +1,281 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#EB0A1E">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Faturas TCAP">
-  <title>Faturas pela TCAP</title>
-  <style>
-    :root { --red:#EB0A1E; --black:#111; --white:#fff; --card:#1c1c1c; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family:-apple-system,sans-serif; background:var(--black); color:var(--white); }
-    header { display:flex; align-items:center; gap:10px; padding:14px 16px; }
-    .logo { width:40px; height:40px; }
-    h1 { font-size:18px; margin:0; color:var(--red); }
-    .sub { font-size:12px; color:#9a9a9a; }
-    nav { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:0 16px 12px; }
-    nav button, .btn { border:0; border-radius:10px; padding:12px; font-size:15px; font-weight:600; color:#fff; background:var(--red); }
-    .ghost { background:#2a2a2a !important; }
-    .page { display:none; padding:0 16px 24px; }
-    .page.active { display:block; }
-    video, canvas, img.shot { width:100%; border-radius:12px; background:#000; display:block; }
-    .row { display:grid; gap:8px; margin-top:12px; }
-    label { font-size:13px; color:#bdbdbd; }
-    input, select { width:100%; padding:10px; border-radius:8px; border:1px solid #3a3a3a; background:#1a1a1a; color:#fff; font-size:16px; }
-    .month { margin:18px 0 8px; color:var(--red); }
-    .card { background:var(--card); border-radius:12px; padding:10px; margin-bottom:10px; display:grid; grid-template-columns:72px 1fr auto; gap:10px; align-items:center; }
-    .card img { width:72px; height:72px; object-fit:cover; border-radius:8px; }
-    .card small { color:#9a9a9a; display:block; }
-    .empty, .status { color:#8a8a8a; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EB0A1E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Faturas TCAP">
+<title>Faturas pela TCAP</title>
+<style>
+:root{--red:#EB0A1E;--black:#111;--white:#fff;--card:#1c1c1c}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,sans-serif;background:var(--black);color:var(--white)}
+header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #2a2a2a;position:sticky;top:0;background:#111;z-index:5}
+.logo{width:40px;height:40px}
+h1{font-size:18px;margin:0;color:var(--red)}
+.sub{font-size:12px;color:#9a9a9a}
+nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px}
+nav button,.btn{border:0;border-radius:10px;padding:12px;font-size:15px;font-weight:600;color:#fff;background:var(--red)}
+.ghost{background:#2a2a2a!important}
+.page{display:none;padding:0 16px 24px}
+.page.active{display:block}
+video,canvas,img.shot{width:100%;border-radius:12px;background:#000;display:block}
+.row{display:grid;gap:8px;margin-top:12px}
+label{font-size:13px;color:#bdbdbd}
+input,select{width:100%;padding:10px;border-radius:8px;border:1px solid #3a3a3a;background:#1a1a1a;color:#fff;font-size:16px}
+.month{margin:18px 0 8px;color:var(--red);font-size:15px;font-weight:700}
+.month-total{font-size:13px;color:#9a9a9a;font-weight:400}
+.cat-sub{margin:0 0 8px 8px;font-size:13px;color:#bdbdbd}
+.card{background:var(--card);border-radius:12px;padding:10px;margin-bottom:10px;display:grid;grid-template-columns:72px 1fr auto;gap:10px;align-items:center}
+.card img{width:72px;height:72px;object-fit:cover;border-radius:8px}
+.card small{color:#9a9a9a;display:block}
+.empty,.status{color:#8a8a8a;padding:8px 0}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #555;border-top-color:var(--red);border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
 </head>
 <body>
-  <header>
-    <svg class="logo" viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="46" ry="22" fill="none" stroke="#EB0A1E" stroke-width="7" transform="rotate(-30 50 50)"/><ellipse cx="50" cy="50" rx="46" ry="22" fill="none" stroke="#EB0A1E" stroke-width="7"/><ellipse cx="50" cy="50" rx="46" ry="22" fill="none" stroke="#EB0A1E" stroke-width="7" transform="rotate(30 50 50)"/></svg>
-    <div><h1>Faturas pela TCAP</h1><div class="sub">Scanner de faturas</div></div>
-  </header>
-  <nav>
-    <button id="tabScan">Câmara</button>
-    <button id="tabList" class="ghost">Arquivo</button>
-  </nav>
-  <section id="scanPage" class="page active">
-    <video id="video" autoplay playsinline webkit-playsinline muted></video>
-    <canvas id="canvas" style="display:none"></canvas>
-    <img id="shot" class="shot" style="display:none">
-    <div class="row">
-      <button class="btn" id="startCamBtn">Abrir câmara</button>
-      <button class="btn" id="captureBtn" style="display:none">Tirar foto</button>
-      <button class="btn ghost" id="retakeBtn" style="display:none">Tirar outra</button>
-    </div>
-    <div id="form" class="row" style="display:none">
-      <label>Data <input type="date" id="dateInput"></label>
-      <label>Categoria
-        <select id="catInput">
-          <option value="combustivel">Combustível</option>
-          <option value="alimentacao">Alimentação</option>
-          <option value="estadias">Estadias</option>
-          <option value="outros">Outros</option>
-        </select>
-      </label>
-      <label>Notas <input type="text" id="noteInput" placeholder="Ex.: Galp, hotel"></label>
-      <button class="btn" id="saveBtn">Guardar fatura</button>
-    </div>
-    <div class="status" id="scanStatus"></div>
-  </section>
-  <section id="listPage" class="page">
-    <label>Mês para imprimir <select id="monthSelect"></select></label>
-    <div class="row"><button class="btn" id="pdfBtn">Descarregar PDF do mês</button></div>
-    <div id="list"></div>
-  </section>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script>
-    const CATS={combustivel:"Combustível",alimentacao:"Alimentação",estadias:"Estadias",outros:"Outros"};
-    const video=document.getElementById("video"),canvas=document.getElementById("canvas"),shot=document.getElementById("shot");
-    const startCamBtn=document.getElementById("startCamBtn"),captureBtn=document.getElementById("captureBtn"),retakeBtn=document.getElementById("retakeBtn");
-    const form=document.getElementById("form"),dateInput=document.getElementById("dateInput"),catInput=document.getElementById("catInput");
-    const noteInput=document.getElementById("noteInput"),scanStatus=document.getElementById("scanStatus"),list=document.getElementById("list"),monthSelect=document.getElementById("monthSelect");
-    let currentImage=null,db=null;
-    function todayISO(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
-    function monthKey(iso){return iso.slice(0,7);}
-    function monthLabel(key){const n=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];const [y,m]=key.split("-");return n[Number(m)-1]+" "+y;}
-    function openDb(){return new Promise((res,rej)=>{const r=indexedDB.open("faturas-tcap",1);r.onupgradeneeded=()=>{r.result.createObjectStore("faturas",{keyPath:"id"}).createIndex("month","month");};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
-    function addFatura(item){return new Promise((res,rej)=>{const tx=db.transaction("faturas","readwrite");tx.objectStore("faturas").add(item);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}
-    function getAll(){return new Promise((res,rej)=>{const tx=db.transaction("faturas","readonly");const r=tx.objectStore("faturas").getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error);});}
-    function deleteFatura(id){return new Promise((res,rej)=>{const tx=db.transaction("faturas","readwrite");tx.objectStore("faturas").delete(id);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}
-    async function startCamera(){try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});video.srcObject=stream;await video.play();startCamBtn.style.display="none";captureBtn.style.display="block";scanStatus.textContent="Câmara pronta.";}catch(e){scanStatus.textContent="Erro da câmara: "+e.message;}}
-    function showScan(){scanPage.classList.add("active");listPage.classList.remove("active");tabScan.classList.remove("ghost");tabList.classList.add("ghost");}
-    function showList(){scanPage.classList.remove("active");listPage.classList.add("active");tabScan.classList.add("ghost");tabList.classList.remove("ghost");renderList();}
-    const scanPage=document.getElementById("scanPage"),listPage=document.getElementById("listPage"),tabScan=document.getElementById("tabScan"),tabList=document.getElementById("tabList");
-    function resetCapture(){currentImage=null;shot.style.display="none";video.style.display="block";captureBtn.style.display="block";retakeBtn.style.display="none";form.style.display="none";}
-    startCamBtn.onclick=startCamera;
-    captureBtn.onclick=()=>{if(!video.videoWidth)return;canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext("2d").drawImage(video,0,0);currentImage=canvas.toDataURL("image/jpeg",0.85);shot.src=currentImage;shot.style.display="block";video.style.display="none";captureBtn.style.display="none";retakeBtn.style.display="block";form.style.display="grid";dateInput.value=todayISO();};
-    retakeBtn.onclick=resetCapture;
-    document.getElementById("saveBtn").onclick=async()=>{if(!currentImage)return;await addFatura({id:Date.now().toString(),date:dateInput.value||todayISO(),month:monthKey(dateInput.value||todayISO()),category:catInput.value,note:noteInput.value.trim(),image:currentImage});noteInput.value="";resetCapture();scanStatus.textContent="Fatura guardada.";};
-    async function renderList(){const items=(await getAll()).sort((a,b)=>b.date.localeCompare(a.date));const months=[...new Set(items.map(i=>i.month))].sort().reverse();monthSelect.innerHTML=months.length?months.map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join(""):`<option value="">Sem faturas</option>`;if(!items.length){list.innerHTML='<div class="empty">Ainda não há faturas.</div>';return;}let html="",last="";for(const item of items){if(item.month!==last){last=item.month;html+=`<div class="month">${monthLabel(item.month)}</div>`;}html+=`<div class="card"><img src="${item.image}"><div><strong>${CATS[item.category]||item.category}</strong><small>${item.date}${item.note?" · "+item.note:""}</small></div><button class="btn ghost" data-del="${item.id}">Apagar</button></div>`;}list.innerHTML=html;list.querySelectorAll("[data-del]").forEach(btn=>btn.onclick=async()=>{if(confirm("Apagar?")){await deleteFatura(btn.dataset.del);renderList();}});}
-    document.getElementById("pdfBtn").onclick=async()=>{const month=monthSelect.value;if(!month)return;const items=(await getAll()).filter(i=>i.month===month).sort((a,b)=>a.date.localeCompare(b.date));if(!items.length)return;const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4"});items.forEach((item,idx)=>{if(idx)doc.addPage();doc.setFontSize(14);doc.text("Faturas pela TCAP",14,16);doc.setFontSize(11);doc.text(monthLabel(item.month)+" · "+(CATS[item.category]||item.category),14,24);doc.text(item.date+(item.note?" · "+item.note:""),14,30);const p=doc.getImageProperties(item.image);let w=182,h=p.height*w/p.width;if(h>240){h=240;w=p.width*h/p.height;}doc.addImage(item.image,"JPEG",14,36,w,h);});doc.save("faturas-tcap-"+month+".pdf");};
-    tabScan.onclick=showScan;tabList.onclick=showList;
-    (async()=>{dateInput.value=todayISO();db=await openDb();scanStatus.textContent="Toca em Abrir câmara.";})();
-  </script>
+<header>
+<svg class="logo" viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="46" ry="22" fill="none" stroke="#EB0A1E" stroke-width="7" transform="rotate(-30 50 50)"/><ellipse cx="50" cy="50" rx="46" ry="22" fill="none" stroke="#EB0A1E" stroke-width="7"/><ellipse cx="50" cy="50" rx="46" ry="22" fill="none" stroke="#EB0A1E" stroke-width="7" transform="rotate(30 50 50)"/></svg>
+<div><h1>Faturas pela TCAP</h1><div class="sub">Scanner de faturas</div></div>
+</header>
+<nav>
+<button id="tabScan">Câmara</button>
+<button id="tabList" class="ghost">Arquivo</button>
+</nav>
+<section id="scanPage" class="page active">
+<video id="video" autoplay playsinline webkit-playsinline muted></video>
+<canvas id="canvas" style="display:none"></canvas>
+<canvas id="procCanvas" style="display:none"></canvas>
+<img id="shot" class="shot" style="display:none" alt="">
+<div class="row">
+<button class="btn" id="startCamBtn">Abrir câmara</button>
+<button class="btn" id="captureBtn" style="display:none">Tirar foto</button>
+<button class="btn ghost" id="retakeBtn" style="display:none">Tirar outra</button>
+</div>
+<div id="form" class="row" style="display:none">
+<label>Data <input type="date" id="dateInput"></label>
+<label>Categoria
+<select id="catInput">
+<option value="combustivel">Combustível</option>
+<option value="alimentacao">Alimentação</option>
+<option value="estadias">Estadias</option>
+<option value="outros">Outros</option>
+</select>
+</label>
+<label>Total (€) <input type="number" step="0.01" id="amountInput" placeholder="0,00"></label>
+<label>Notas <input type="text" id="noteInput" placeholder="Ex.: Galp, hotel"></label>
+<button class="btn" id="saveBtn">Guardar fatura</button>
+</div>
+<div class="status" id="scanStatus"></div>
+</section>
+<section id="listPage" class="page">
+<label>Mês para imprimir <select id="monthSelect"></select></label>
+<div class="row"><button class="btn" id="pdfBtn">Descarregar PDF do mês</button></div>
+<div id="list"></div>
+</section>
+<script src="https://docs.opencv.org/4.x/opencv.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script>
+const CATS={combustivel:"Combustível",alimentacao:"Alimentação",estadias:"Estadias",outros:"Outros"};
+const CAT_RULES={
+ combustivel:["combustivel","combustível","gasolina","gasoleo","gasóleo","diesel","adblue","galp","repsol","bp ","shell","prr","combust"],
+ alimentacao:["aliment","supermercado","mercearia","restaurante","cafe","café","padaria","talho","peixaria","lanche","mcdonald","burger","pizza","sushi","continente","auchan","pingo doce","intermarche","lidl","aldi","jumbo","froiz","minipreco","mini preço","snack","pastelaria","pastel","doces","frutas","legumes","pao","pão","leite","iogurte","queijo","carne","peixe","arroz","massa","bebida","agua","água","sumo","cerveja","vinho","refrigerante","fanta","coca"],
+ estadias:["hotel","hostel","albergue","motel","resort","pousada","estalagem","apartamento","airbnb","booking","expedia","hospedagem","alojamento","pernoite","quarto","suite","check-in","checkin","checkout","pensao","pensão","guest house","bnb","turistico","turístico","camping"]
+};
+const video=document.getElementById("video");
+const canvas=document.getElementById("canvas");
+const procCanvas=document.getElementById("procCanvas");
+const shot=document.getElementById("shot");
+const startCamBtn=document.getElementById("startCamBtn");
+const captureBtn=document.getElementById("captureBtn");
+const retakeBtn=document.getElementById("retakeBtn");
+const form=document.getElementById("form");
+const dateInput=document.getElementById("dateInput");
+const catInput=document.getElementById("catInput");
+const amountInput=document.getElementById("amountInput");
+const noteInput=document.getElementById("noteInput");
+const scanStatus=document.getElementById("scanStatus");
+const list=document.getElementById("list");
+const monthSelect=document.getElementById("monthSelect");
+const scanPage=document.getElementById("scanPage");
+const listPage=document.getElementById("listPage");
+const tabScan=document.getElementById("tabScan");
+const tabList=document.getElementById("tabList");
+let currentImage=null,db=null,cvReady=false,ocrWorker=null;
+function todayISO(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function monthKey(iso){return iso.slice(0,7);}
+function monthLabel(key){const n=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];const p=key.split("-");return n[Number(p[1])-1]+" "+p[0];}
+function money(v){return (Math.round((v||0)*100)/100).toLocaleString("pt-PT",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";}
+function openDb(){return new Promise(function(res,rej){const r=indexedDB.open("faturas-tcap-v2",2);r.onupgradeneeded=function(){if(!r.result.objectStoreNames.contains("faturas")){r.result.createObjectStore("faturas",{keyPath:"id"}).createIndex("month","month");}};r.onsuccess=function(){res(r.result);};r.onerror=function(){rej(r.error);};});}
+function addFatura(item){return new Promise(function(res,rej){const tx=db.transaction("faturas","readwrite");tx.objectStore("faturas").add(item);tx.oncomplete=res;tx.onerror=function(){rej(tx.error);};});}
+function getAll(){return new Promise(function(res,rej){const tx=db.transaction("faturas","readonly");const r=tx.objectStore("faturas").getAll();r.onsuccess=function(){res(r.result||[]);};r.onerror=function(){rej(r.error);};});}
+function deleteFatura(id){return new Promise(function(res,rej){const tx=db.transaction("faturas","readwrite");tx.objectStore("faturas").delete(id);tx.oncomplete=res;tx.onerror=function(){rej(tx.error);};});}
+function orderPts(pts){const s=pts.map(function(p){return p.x+p.y;});const d=pts.map(function(p){return p.y-p.x;});return[pts[s.indexOf(Math.min.apply(null,s))],pts[d.indexOf(Math.min.apply(null,d))],pts[s.indexOf(Math.max.apply(null,s))],pts[d.indexOf(Math.max.apply(null,d))]];}
+function detectAndCrop(img){
+ if(!cvReady||!window.cv)return null;
+ const cv=window.cv;
+ const src=cv.imread(img);
+ const gray=new cv.Mat(),blur=new cv.Mat(),edges=new cv.Mat(),dilated=new cv.Mat();
+ const contours=new cv.MatVector(),hierarchy=new cv.Mat();
+ cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY);
+ cv.GaussianBlur(gray,blur,new cv.Size(5,5),0);
+ cv.Canny(blur,edges,50,150);
+ const k=cv.Mat.ones(3,3,cv.CV_8U);
+ cv.dilate(edges,dilated,k,new cv.Point(-1,-1),1);
+ cv.findContours(dilated,contours,hierarchy,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE);
+ let best=null,bestArea=0;
+ for(let i=0;i<contours.size();i++){
+  const c=contours.get(i);
+  const peri=cv.arcLength(c,true);
+  const approx=new cv.Mat();
+  cv.approxPolyDP(c,approx,0.02*peri,true);
+  if(approx.rows===4){
+   const a=cv.contourArea(approx);
+   if(a>bestArea && a>src.cols*src.rows*0.12){if(best)best.delete();bestArea=a;best=approx;}
+   else approx.delete();
+  } else approx.delete();
+  c.delete();
+ }
+ if(!best){src.delete();gray.delete();blur.delete();edges.delete();dilated.delete();contours.delete();hierarchy.delete();k.delete();return null;}
+ const pts=[];
+ for(let i=0;i<4;i++)pts.push({x:best.intPtr(i,0)[0],y:best.intPtr(i,0)[1]});
+ const o=orderPts(pts);
+ const w=Math.max(Math.hypot(o[1].x-o[0].x,o[1].y-o[0].y),Math.hypot(o[2].x-o[3].x,o[2].y-o[3].y));
+ const h=Math.max(Math.hypot(o[3].x-o[0].x,o[3].y-o[0].y),Math.hypot(o[2].x-o[1].x,o[2].y-o[1].y));
+ const srcM=cv.matFromArray(4,1,cv.CV_32FC2,[o[0].x,o[0].y,o[1].x,o[1].y,o[2].x,o[2].y,o[3].x,o[3].y]);
+ const dstM=cv.matFromArray(4,1,cv.CV_32FC2,[0,0,w,0,w,h,0,h]);
+ const M=cv.getPerspectiveTransform(srcM,dstM);
+ const dst=new cv.Mat();
+ cv.warpPerspective(src,dst,M,new cv.Size(w,h),cv.INTER_LINEAR,cv.BORDER_CONSTANT,new cv.Scalar());
+ procCanvas.width=w;procCanvas.height=h;cv.imshow(procCanvas,dst);
+ const out=procCanvas.toDataURL("image/jpeg",0.9);
+ src.delete();gray.delete();blur.delete();edges.delete();dilated.delete();contours.delete();hierarchy.delete();k.delete();srcM.delete();dstM.delete();M.delete();dst.delete();best.delete();
+ return out;
+}
+function parseInvoice(text){
+ const t=(text||"").toLowerCase();
+ let cat="outros";
+ const keys=Object.keys(CAT_RULES);
+ for(let i=0;i<keys.length;i++){
+  const listK=CAT_RULES[keys[i]];
+  for(let j=0;j<listK.length;j++){if(t.indexOf(listK[j])!==-1){cat=keys[i];i=keys.length;break;}}
+ }
+ let date=null;
+ const dm=t.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+ if(dm){let d=dm[1].padStart(2,"0"),m=dm[2].padStart(2,"0"),y=dm[3];if(y.length===2)y="20"+y;date=y+"-"+m+"-"+d;}
+ let amount=null;
+ const am=t.match(/(?:total|tot\.|€|eur|euros?)[^\d]{0,8}(\d+[.,]\d{2})/i)||t.match(/(\d+[.,]\d{2})\s*(?:€|eur|euros?)/i);
+ if(am)amount=parseFloat(am[1].replace(",","."));
+ return{cat:cat,date:date,amount:amount};
+}
+async function ensureOcr(){
+ if(ocrWorker)return ocrWorker;
+ scanStatus.innerHTML='<span class="spin"></span>A preparar leitura do texto...';
+ ocrWorker=await Tesseract.createWorker("por+eng",1,{logger:function(){}});
+ return ocrWorker;
+}
+async function startCamera(){
+ try{
+  const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+  video.srcObject=stream;await video.play();
+  startCamBtn.style.display="none";captureBtn.style.display="block";
+  scanStatus.textContent="Câmara pronta. Enquadra a fatura e tira a foto.";
+ }catch(e){scanStatus.textContent="Erro da câmara: "+e.message;}
+}
+function showScan(){scanPage.classList.add("active");listPage.classList.remove("active");tabScan.classList.remove("ghost");tabList.classList.add("ghost");}
+function showList(){scanPage.classList.remove("active");listPage.classList.add("active");tabScan.classList.add("ghost");tabList.classList.remove("ghost");renderList();}
+function resetCapture(){currentImage=null;shot.style.display="none";video.style.display="block";captureBtn.style.display="block";retakeBtn.style.display="none";form.style.display="none";scanStatus.textContent="Toca em Tirar foto.";}
+startCamBtn.onclick=startCamera;tabScan.onclick=showScan;tabList.onclick=showList;retakeBtn.onclick=resetCapture;
+captureBtn.onclick=async function(){
+ if(!video.videoWidth){scanStatus.textContent="A câmara ainda não está pronta.";return;}
+ canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+ canvas.getContext("2d").drawImage(video,0,0);
+ const raw=canvas.toDataURL("image/jpeg",0.9);
+ scanStatus.innerHTML='<span class="spin"></span>A recortar a fatura...';
+ let cropped=null;
+ try{cropped=detectAndCrop(canvas);}catch(e){cropped=null;}
+ if(!cropped){scanStatus.textContent="Não encontrei bordas nítidas. A usar a foto inteira.";cropped=raw;}
+ currentImage=cropped;shot.src=cropped;shot.style.display="block";video.style.display="none";
+ captureBtn.style.display="none";retakeBtn.style.display="block";form.style.display="grid";
+ dateInput.value=todayISO();catInput.value="outros";amountInput.value="";noteInput.value="";
+ scanStatus.innerHTML='<span class="spin"></span>A ler o texto da fatura...';
+ try{
+  const w=await ensureOcr();
+  const result=await w.recognize(cropped);
+  const p=parseInvoice(result.data.text);
+  if(p.date)dateInput.value=p.date;
+  if(p.cat)catInput.value=p.cat;
+  if(p.amount)amountInput.value=p.amount.toFixed(2);
+  const lines=(result.data.text||"").split("\n").map(function(s){return s.trim();}).filter(Boolean).slice(0,2).join(" · ");
+  noteInput.value=lines.slice(0,60);
+  scanStatus.textContent="Lido. Confirma data, categoria e total, e guarda.";
+ }catch(e){scanStatus.textContent="Não consegui ler o texto. Preenche manualmente.";}
+};
+document.getElementById("saveBtn").onclick=async function(){
+ if(!currentImage)return;
+ const date=dateInput.value||todayISO();
+ await addFatura({id:Date.now().toString(),date:date,month:monthKey(date),category:catInput.value,amount:parseFloat(amountInput.value)||0,note:noteInput.value.trim(),image:currentImage});
+ noteInput.value="";amountInput.value="";resetCapture();scanStatus.textContent="Fatura guardada.";
+};
+async function renderList(){
+ const items=(await getAll()).sort(function(a,b){return b.date.localeCompare(a.date);});
+ const months=[];
+ for(let i=0;i<items.length;i++){if(months.indexOf(items[i].month)===-1)months.push(items[i].month);}
+ months.sort().reverse();
+ monthSelect.innerHTML=months.length?months.map(function(m){return '<option value="'+m+'">'+monthLabel(m)+"</option>";}).join(""):'<option value="">Sem faturas</option>';
+ if(!items.length){list.innerHTML='<div class="empty">Ainda não há faturas. Tira a primeira foto.</div>';return;}
+ let html="";
+ for(let mi=0;mi<months.length;mi++){
+  const m=months[mi];
+  const group=items.filter(function(i){return i.month===m;});
+  let total=0;const byCat={};
+  for(let g=0;g<group.length;g++){const amt=group[g].amount||0;total+=amt;byCat[group[g].category]=(byCat[group[g].category]||0)+amt;}
+  html+='<div class="month">'+monthLabel(m)+' <span class="month-total">· Total: '+money(total)+"</span></div>";
+  const catKeys=Object.keys(byCat);
+  for(let c=0;c<catKeys.length;c++)html+='<div class="cat-sub">'+(CATS[catKeys[c]]||catKeys[c])+": "+money(byCat[catKeys[c]])+"</div>";
+  for(let g=0;g<group.length;g++){
+   const item=group[g];
+   html+='<div class="card"><img src="'+item.image+'"><div><strong>'+(CATS[item.category]||item.category)+"</strong><small>"+item.date+(item.amount?" · "+money(item.amount):"")+(item.note?" · "+item.note:"")+'</small></div><button class="btn ghost" data-del="'+item.id+'">Apagar</button></div>';
+  }
+ }
+ list.innerHTML=html;
+ const dels=list.querySelectorAll("[data-del]");
+ for(let i=0;i<dels.length;i++){
+  dels[i].onclick=async function(){if(!confirm("Apagar esta fatura?"))return;await deleteFatura(this.getAttribute("data-del"));renderList();};
+ }
+}
+document.getElementById("pdfBtn").onclick=async function(){
+ const month=monthSelect.value;if(!month)return;
+ const items=(await getAll()).filter(function(i){return i.month===month;}).sort(function(a,b){return a.date.localeCompare(b.date);});
+ if(!items.length)return;
+ const doc=new window.jspdf.jsPDF({unit:"mm",format:"a4"});
+ let total=0;const byCat={};const rows=[];
+ for(let i=0;i<items.length;i++){const amt=items[i].amount||0;total+=amt;byCat[items[i].category]=(byCat[items[i].category]||0)+amt;rows.push([items[i].date,CATS[items[i].category]||items[i].category,items[i].note||"",money(amt)]);}
+ doc.setFontSize(16);doc.setTextColor(235,10,30);doc.text("Faturas pela TCAP",14,16);
+ doc.setTextColor(0,0,0);doc.setFontSize(11);doc.text(monthLabel(month)+"  ·  Total: "+money(total),14,24);
+ const catRows=Object.keys(byCat).map(function(c){return[CATS[c]||c,money(byCat[c])];});
+ doc.autoTable({startY:30,head:[["Categoria","Subtotal"]],body:catRows,theme:"grid",headStyles:{fillColor:[235,10,30]}});
+ doc.autoTable({startY:doc.lastAutoTable.finalY+8,head:[["Data","Categoria","Notas","Total"]],body:rows,theme:"grid",headStyles:{fillColor:[235,10,30]}});
+ let y=doc.lastAutoTable.finalY+10;
+ for(let i=0;i<items.length;i++){
+  if(y>250){doc.addPage();y=16;}
+  doc.setFontSize(10);doc.text(items[i].date+" · "+(CATS[items[i].category]||items[i].category),14,y);y+=4;
+  try{
+   const props=doc.getImageProperties(items[i].image);
+   let w=182,h=(props.height*w)/props.width;
+   if(h>90){h=90;w=(props.width*h)/props.height;}
+   if(y+h>280){doc.addPage();y=16;}
+   doc.addImage(items[i].image,"JPEG",14,y,w,h);y+=h+8;
+  }catch(e){}
+ }
+ doc.save("faturas-tcap-"+month+".pdf");
+};
+if(window.cv){window.cv["onRuntimeInitialized"]=function(){cvReady=true;scanStatus.textContent="Pronto. Toca em Abrir câmara.";};}
+(async function(){dateInput.value=todayISO();db=await openDb();if(!cvReady)scanStatus.textContent="A carregar o motor de imagem...";})();
+</script>
 </body>
 </html>
