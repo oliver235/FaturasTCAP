@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#EB0A1E">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Faturas TCAP">
+  <title>Faturas pela TCAP</title>
+  <style>
+    :root { --red:#EB0A1E; --black:#111; --white:#fff; --card:#1c1c1c; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,sans-serif; background:var(--black); color:var(--white); }
+    header { display:flex; align-items:center; gap:10px; padding:14px 16px; }
+    .logo { width:40px; height:40px; }
+    h1 { font-size:18px; margin:0; color:var(--red); }
+    .sub { font-size:12px; color:#9a9a9a; }
+    nav { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:0 16px 12px; }
+    nav button, .btn { border:0; border-radius:10px; padding:12px; font-size:15px; font-weight:600; color:#fff; background:var(--red); }
+    .ghost { background:#2a2a2a !important; }
+    .page { display:none; padding:0 16px 24px; }
+    .page.active { display:block; }
+    video, canvas, img.shot { width:100%; border-radius:12px; background:#000; display:block; }
+    .row { display:grid; gap:8px; margin-top:12px; }
+    label { font-size:13px; color:#bdbdbd; }
+    input, select { width:100%; padding:10px; border-radius:8px; border:1px solid #3a3a3a; background:#1a1a1a; color:#fff; font-size:16px; }
+    .month { margin:18px 0 8px; color:var(--red); }
+    .card { background:var(--card); border-radius:12px; padding:10px; margin-bottom:10px; display:grid; grid-template-columns:72px 1fr auto; gap:10px; align-items:center; }
+    .card img { width:72px; height:72px; object-fit:cover; border-radius:8px; }
+    .card small { color:#9a9a9a; display:block; }
+    .empty, .status { color:#8a8a8a; }
+  </style>
+</head>
+<body>
+  <header>
+    <svg class="logo" viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="46" ry="22" fill="none" stroke="#EB0A1E" stroke-width="7" transform="rotate(-30 50 50)"/><ellipse cx="50" cy="50" rx="46" ry="22" fill="none" stroke="#EB0A1E" stroke-width="7"/><ellipse cx="50" cy="50" rx="46" ry="22" fill="none" stroke="#EB0A1E" stroke-width="7" transform="rotate(30 50 50)"/></svg>
+    <div><h1>Faturas pela TCAP</h1><div class="sub">Scanner de faturas</div></div>
+  </header>
+  <nav>
+    <button id="tabScan">Câmara</button>
+    <button id="tabList" class="ghost">Arquivo</button>
+  </nav>
+  <section id="scanPage" class="page active">
+    <video id="video" autoplay playsinline webkit-playsinline muted></video>
+    <canvas id="canvas" style="display:none"></canvas>
+    <img id="shot" class="shot" style="display:none">
+    <div class="row">
+      <button class="btn" id="startCamBtn">Abrir câmara</button>
+      <button class="btn" id="captureBtn" style="display:none">Tirar foto</button>
+      <button class="btn ghost" id="retakeBtn" style="display:none">Tirar outra</button>
+    </div>
+    <div id="form" class="row" style="display:none">
+      <label>Data <input type="date" id="dateInput"></label>
+      <label>Categoria
+        <select id="catInput">
+          <option value="combustivel">Combustível</option>
+          <option value="alimentacao">Alimentação</option>
+          <option value="estadias">Estadias</option>
+          <option value="outros">Outros</option>
+        </select>
+      </label>
+      <label>Notas <input type="text" id="noteInput" placeholder="Ex.: Galp, hotel"></label>
+      <button class="btn" id="saveBtn">Guardar fatura</button>
+    </div>
+    <div class="status" id="scanStatus"></div>
+  </section>
+  <section id="listPage" class="page">
+    <label>Mês para imprimir <select id="monthSelect"></select></label>
+    <div class="row"><button class="btn" id="pdfBtn">Descarregar PDF do mês</button></div>
+    <div id="list"></div>
+  </section>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <script>
+    const CATS={combustivel:"Combustível",alimentacao:"Alimentação",estadias:"Estadias",outros:"Outros"};
+    const video=document.getElementById("video"),canvas=document.getElementById("canvas"),shot=document.getElementById("shot");
+    const startCamBtn=document.getElementById("startCamBtn"),captureBtn=document.getElementById("captureBtn"),retakeBtn=document.getElementById("retakeBtn");
+    const form=document.getElementById("form"),dateInput=document.getElementById("dateInput"),catInput=document.getElementById("catInput");
+    const noteInput=document.getElementById("noteInput"),scanStatus=document.getElementById("scanStatus"),list=document.getElementById("list"),monthSelect=document.getElementById("monthSelect");
+    let currentImage=null,db=null;
+    function todayISO(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+    function monthKey(iso){return iso.slice(0,7);}
+    function monthLabel(key){const n=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];const [y,m]=key.split("-");return n[Number(m)-1]+" "+y;}
+    function openDb(){return new Promise((res,rej)=>{const r=indexedDB.open("faturas-tcap",1);r.onupgradeneeded=()=>{r.result.createObjectStore("faturas",{keyPath:"id"}).createIndex("month","month");};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+    function addFatura(item){return new Promise((res,rej)=>{const tx=db.transaction("faturas","readwrite");tx.objectStore("faturas").add(item);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}
+    function getAll(){return new Promise((res,rej)=>{const tx=db.transaction("faturas","readonly");const r=tx.objectStore("faturas").getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error);});}
+    function deleteFatura(id){return new Promise((res,rej)=>{const tx=db.transaction("faturas","readwrite");tx.objectStore("faturas").delete(id);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}
+    async function startCamera(){try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});video.srcObject=stream;await video.play();startCamBtn.style.display="none";captureBtn.style.display="block";scanStatus.textContent="Câmara pronta.";}catch(e){scanStatus.textContent="Erro da câmara: "+e.message;}}
+    function showScan(){scanPage.classList.add("active");listPage.classList.remove("active");tabScan.classList.remove("ghost");tabList.classList.add("ghost");}
+    function showList(){scanPage.classList.remove("active");listPage.classList.add("active");tabScan.classList.add("ghost");tabList.classList.remove("ghost");renderList();}
+    const scanPage=document.getElementById("scanPage"),listPage=document.getElementById("listPage"),tabScan=document.getElementById("tabScan"),tabList=document.getElementById("tabList");
+    function resetCapture(){currentImage=null;shot.style.display="none";video.style.display="block";captureBtn.style.display="block";retakeBtn.style.display="none";form.style.display="none";}
+    startCamBtn.onclick=startCamera;
+    captureBtn.onclick=()=>{if(!video.videoWidth)return;canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext("2d").drawImage(video,0,0);currentImage=canvas.toDataURL("image/jpeg",0.85);shot.src=currentImage;shot.style.display="block";video.style.display="none";captureBtn.style.display="none";retakeBtn.style.display="block";form.style.display="grid";dateInput.value=todayISO();};
+    retakeBtn.onclick=resetCapture;
+    document.getElementById("saveBtn").onclick=async()=>{if(!currentImage)return;await addFatura({id:Date.now().toString(),date:dateInput.value||todayISO(),month:monthKey(dateInput.value||todayISO()),category:catInput.value,note:noteInput.value.trim(),image:currentImage});noteInput.value="";resetCapture();scanStatus.textContent="Fatura guardada.";};
+    async function renderList(){const items=(await getAll()).sort((a,b)=>b.date.localeCompare(a.date));const months=[...new Set(items.map(i=>i.month))].sort().reverse();monthSelect.innerHTML=months.length?months.map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join(""):`<option value="">Sem faturas</option>`;if(!items.length){list.innerHTML='<div class="empty">Ainda não há faturas.</div>';return;}let html="",last="";for(const item of items){if(item.month!==last){last=item.month;html+=`<div class="month">${monthLabel(item.month)}</div>`;}html+=`<div class="card"><img src="${item.image}"><div><strong>${CATS[item.category]||item.category}</strong><small>${item.date}${item.note?" · "+item.note:""}</small></div><button class="btn ghost" data-del="${item.id}">Apagar</button></div>`;}list.innerHTML=html;list.querySelectorAll("[data-del]").forEach(btn=>btn.onclick=async()=>{if(confirm("Apagar?")){await deleteFatura(btn.dataset.del);renderList();}});}
+    document.getElementById("pdfBtn").onclick=async()=>{const month=monthSelect.value;if(!month)return;const items=(await getAll()).filter(i=>i.month===month).sort((a,b)=>a.date.localeCompare(b.date));if(!items.length)return;const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4"});items.forEach((item,idx)=>{if(idx)doc.addPage();doc.setFontSize(14);doc.text("Faturas pela TCAP",14,16);doc.setFontSize(11);doc.text(monthLabel(item.month)+" · "+(CATS[item.category]||item.category),14,24);doc.text(item.date+(item.note?" · "+item.note:""),14,30);const p=doc.getImageProperties(item.image);let w=182,h=p.height*w/p.width;if(h>240){h=240;w=p.width*h/p.height;}doc.addImage(item.image,"JPEG",14,36,w,h);});doc.save("faturas-tcap-"+month+".pdf");};
+    tabScan.onclick=showScan;tabList.onclick=showList;
+    (async()=>{dateInput.value=todayISO();db=await openDb();scanStatus.textContent="Toca em Abrir câmara.";})();
+  </script>
+</body>
+</html>
