@@ -1,206 +1,1674 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#EB0A1E">
+<meta name="theme-color" content="#111111">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Faturas TCAP">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Faturas pela TCAP</title>
-<style>
-:root{--red:#EB0A1E}
-*{box-sizing:border-box}
-body{margin:0;font-family:-apple-system,sans-serif;background:#111;color:#fff}
-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #2a2a2a;position:sticky;top:0;background:#111;z-index:5}
-.logo{width:40px;height:40px}
-h1{font-size:18px;margin:0;color:var(--red)}
-.sub{font-size:12px;color:#9a9a9a}
-nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px}
-nav button,.btn{border:0;border-radius:10px;padding:12px;font-size:15px;font-weight:600;color:#fff;background:var(--red)}
-.ghost{background:#2a2a2a!important}
-.page{display:none;padding:0 16px 24px}
-.page.active{display:block}
-video,canvas,img.shot{width:100%;border-radius:12px;background:#fff;display:block}
-.row{display:grid;gap:8px;margin-top:12px}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-label{font-size:13px;color:#bdbdbd}
-input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #3a3a3a;background:#1a1a1a;color:#fff;font-size:16px}
-textarea{min-height:80px;font-size:12px}
-.month{margin:18px 0 8px;color:var(--red);font-weight:700}
-.month-total,.cat-sub,.empty,.status,.card small{color:#9a9a9a}
-.card{background:#1c1c1c;border-radius:12px;padding:10px;margin-bottom:10px;display:grid;grid-template-columns:72px 1fr auto;gap:10px;align-items:center}
-.card img{width:72px;height:72px;object-fit:cover;border-radius:8px;background:#fff}
-.spin{display:inline-block;width:14px;height:14px;border:2px solid #555;border-top-color:var(--red);border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle;margin-right:6px}
-@keyframes sp{to{transform:rotate(360deg)}}
-</style>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2086%2056%22%3E%0A%20%20%3Crect%20width%3D%2286%22%20height%3D%2256%22%20rx%3D%2210%22%20fill%3D%22%23111%22%2F%3E%0A%20%20%3Cg%20fill%3D%22none%22%20stroke%3D%22%23EB0A1E%22%20stroke-width%3D%225%22%3E%0A%20%20%20%20%3Cellipse%20cx%3D%2230%22%20cy%3D%2228%22%20rx%3D%2222%22%20ry%3D%2213%22%20transform%3D%22rotate(-52%2030%2028)%22%2F%3E%0A%20%20%20%20%3Cellipse%20cx%3D%2243%22%20cy%3D%2228%22%20rx%3D%2222%22%20ry%3D%2213%22%2F%3E%0A%20%20%20%20%3Cellipse%20cx%3D%2256%22%20cy%3D%2228%22%20rx%3D%2222%22%20ry%3D%2213%22%20transform%3D%22rotate(52%2056%2028)%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E%0A">
 </head>
 <body>
-<header>
-<svg class="logo" viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="46" ry="22" fill="none" stroke="#EB0A1E" stroke-width="7" transform="rotate(-30 50 50)"/><ellipse cx="50" cy="50" rx="46" ry="22" fill="none" stroke="#EB0A1E" stroke-width="7"/><ellipse cx="50" cy="50" rx="46" ry="22" fill="none" stroke="#EB0A1E" stroke-width="7" transform="rotate(30 50 50)"/></svg>
-<div><h1>Faturas pela TCAP</h1><div class="sub">Scanner de faturas</div></div>
-</header>
-<nav>
-<button id="tabScan">Câmara</button>
-<button id="tabList" class="ghost">Arquivo</button>
-</nav>
-<section id="scanPage" class="page active">
-<video id="video" autoplay playsinline webkit-playsinline muted></video>
-<canvas id="canvas" style="display:none"></canvas>
-<canvas id="procCanvas" style="display:none"></canvas>
-<img id="shot" class="shot" style="display:none" alt="">
-<div class="row">
-<button class="btn" id="startCamBtn">Abrir câmara</button>
-<button class="btn" id="captureBtn" style="display:none">Tirar foto</button>
-</div>
-<div id="cropBtns" class="row" style="display:none">
-<div class="row2">
-<button class="btn ghost" id="tightenBtn">Apertar bordas</button>
-<button class="btn ghost" id="loosenBtn">Alargar bordas</button>
-</div>
-<button class="btn ghost" id="retakeBtn">Tirar outra</button>
-</div>
-<div id="form" class="row" style="display:none">
-<label>Data de emissão <input type="date" id="dateInput"></label>
-<label>Categoria
-<select id="catInput">
-<option value="combustivel">Combustível</option>
-<option value="alimentacao">Alimentação</option>
-<option value="estadias">Estadias</option>
-<option value="outros">Outros</option>
-</select>
-</label>
-<label>Total (€) <input type="number" step="0.01" id="amountInput"></label>
-<label>Notas <input type="text" id="noteInput"></label>
-<label>Texto lido<textarea id="ocrBox" readonly></textarea></label>
-<button class="btn" id="saveBtn">Guardar fatura</button>
-</div>
-<div class="status" id="scanStatus"></div>
-</section>
-<section id="listPage" class="page">
-<label>Mês para imprimir <select id="monthSelect"></select></label>
-<div class="row"><button class="btn" id="pdfBtn">Descarregar PDF do mês</button></div>
-<div id="list"></div>
-</section>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<div id="app"></div>
 <script>
-const CATS={combustivel:"Combustível",alimentacao:"Alimentação",estadias:"Estadias",outros:"Outros"};
-const CAT_RULES={combustivel:["combustivel","combustível","gasolina","gasoleo","gasóleo","diesel","adblue","galp","repsol","bp ","shell","prr","combust"],alimentacao:["aliment","supermercado","mercearia","restaurante","cafe","café","padaria","continente","auchan","pingo doce","intermarche","lidl","aldi","jumbo","minipreco"],estadias:["hotel","hostel","motel","resort","pousada","airbnb","booking","hospedagem","alojamento","quarto","suite","pensão","pensao","bnb"]};
-const video=document.getElementById("video"),canvas=document.getElementById("canvas"),proc=document.getElementById("procCanvas"),shot=document.getElementById("shot");
-const startCamBtn=document.getElementById("startCamBtn"),captureBtn=document.getElementById("captureBtn"),retakeBtn=document.getElementById("retakeBtn");
-const cropBtns=document.getElementById("cropBtns"),tightenBtn=document.getElementById("tightenBtn"),loosenBtn=document.getElementById("loosenBtn");
-const form=document.getElementById("form"),dateInput=document.getElementById("dateInput"),catInput=document.getElementById("catInput"),amountInput=document.getElementById("amountInput"),noteInput=document.getElementById("noteInput"),ocrBox=document.getElementById("ocrBox"),scanStatus=document.getElementById("scanStatus"),list=document.getElementById("list"),monthSelect=document.getElementById("monthSelect");
-const scanPage=document.getElementById("scanPage"),listPage=document.getElementById("listPage"),tabScan=document.getElementById("tabScan"),tabList=document.getElementById("tabList");
-let currentImage=null,db=null,ocrWorker=null,fullFrame=null,cropBox=null,inset=0.02;
-function todayISO(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
-function monthKey(iso){return iso.slice(0,7);}
-function monthLabel(key){const n=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];const p=key.split("-");return n[Number(p[1])-1]+" "+p[0];}
-function money(v){return (Math.round((v||0)*100)/100).toLocaleString("pt-PT",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";}
-function openDb(){return new Promise(function(res,rej){const r=indexedDB.open("faturas-tcap-v2",2);r.onupgradeneeded=function(){if(!r.result.objectStoreNames.contains("faturas")){r.result.createObjectStore("faturas",{keyPath:"id"}).createIndex("month","month");}};r.onsuccess=function(){res(r.result);};r.onerror=function(){rej(r.error);};});}
-function addFatura(item){return new Promise(function(res,rej){const tx=db.transaction("faturas","readwrite");tx.objectStore("faturas").add(item);tx.oncomplete=res;tx.onerror=function(){rej(tx.error);};});}
-function getAll(){return new Promise(function(res,rej){const tx=db.transaction("faturas","readonly");const r=tx.objectStore("faturas").getAll();r.onsuccess=function(){res(r.result||[]);};r.onerror=function(){rej(r.error);};});}
-function deleteFatura(id){return new Promise(function(res,rej){const tx=db.transaction("faturas","readwrite");tx.objectStore("faturas").delete(id);tx.oncomplete=res;tx.onerror=function(){rej(tx.error);};});}
-function findWhiteBox(srcCanvas){
- const ctx=srcCanvas.getContext("2d"), w=srcCanvas.width, h=srcCanvas.height, data=ctx.getImageData(0,0,w,h).data;
- let minX=w,minY=h,maxX=0,maxY=0,hits=0, step=Math.max(1,Math.floor(Math.min(w,h)/400));
- for(let y=0;y<h;y+=step){for(let x=0;x<w;x+=step){const i=(y*w+x)*4,r=data[i],g=data[i+1],b=data[i+2],bright=(r+g+b)/3,sat=Math.max(r,g,b)-Math.min(r,g,b);if(bright>155&&sat<48){hits++;if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}}}
- if(hits<80) return {x:Math.floor(w*0.08),y:Math.floor(h*0.06),w:Math.floor(w*0.84),h:Math.floor(h*0.88)};
- const pad=Math.floor(Math.min(w,h)*0.012);
- minX=Math.max(0,minX-pad);minY=Math.max(0,minY-pad);maxX=Math.min(w-1,maxX+pad);maxY=Math.min(h-1,maxY+pad);
- return {x:minX,y:minY,w:Math.max(20,maxX-minX),h:Math.max(20,maxY-minY)};
+"use strict";
+(() => {
+  function luma(r, g, b) {
+    return 77 * r + 150 * g + 29 * b >> 8;
+  }
+  function sat(r, g, b) {
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    return max === 0 ? 0 : (max - min) / max;
+  }
+  function dilate(src, w, h, r) {
+    const dst = new Uint8Array(src.length);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let on = 0;
+        for (let dy = -r; dy <= r && !on; dy++) {
+          const yy = y + dy;
+          if (yy < 0 || yy >= h) continue;
+          const row = yy * w;
+          for (let dx = -r; dx <= r; dx++) {
+            const xx = x + dx;
+            if (xx < 0 || xx >= w) continue;
+            if (src[row + xx]) {
+              on = 1;
+              break;
+            }
+          }
+        }
+        dst[y * w + x] = on;
+      }
+    }
+    return dst;
+  }
+  function erode(src, w, h, r) {
+    const dst = new Uint8Array(src.length);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let on = 1;
+        for (let dy = -r; dy <= r && on; dy++) {
+          const yy = y + dy;
+          if (yy < 0 || yy >= h) {
+            on = 0;
+            break;
+          }
+          const row = yy * w;
+          for (let dx = -r; dx <= r; dx++) {
+            const xx = x + dx;
+            if (xx < 0 || xx >= w || !src[row + xx]) {
+              on = 0;
+              break;
+            }
+          }
+        }
+        dst[y * w + x] = on;
+      }
+    }
+    return dst;
+  }
+  function downsample(rgba, w, h, nw, nh) {
+    const out = new Uint8ClampedArray(nw * nh * 4);
+    for (let y = 0; y < nh; y++) {
+      const sy = Math.min(h - 1, Math.floor((y + 0.5) * h / nh));
+      for (let x = 0; x < nw; x++) {
+        const sx = Math.min(w - 1, Math.floor((x + 0.5) * w / nw));
+        const si = (sy * w + sx) * 4;
+        const di = (y * nw + x) * 4;
+        out[di] = rgba[si];
+        out[di + 1] = rgba[si + 1];
+        out[di + 2] = rgba[si + 2];
+        out[di + 3] = 255;
+      }
+    }
+    return out;
+  }
+  function bestPaperComponent(paper, ink, w, h) {
+    const seen = new Uint8Array(w * h);
+    let best = null;
+    const stack = new Int32Array(w * h);
+    for (let start = 0; start < paper.length; start++) {
+      if (!paper[start] || seen[start]) continue;
+      let sp = 0;
+      stack[sp++] = start;
+      seen[start] = 1;
+      let x0 = w;
+      let y0 = h;
+      let x1 = 0;
+      let y1 = 0;
+      let inkCount = 0;
+      let inkY0 = h;
+      let inkY1 = 0;
+      let area = 0;
+      while (sp) {
+        const i = stack[--sp];
+        const x = i % w;
+        const y = (i - x) / w;
+        area++;
+        if (x < x0) x0 = x;
+        if (y < y0) y0 = y;
+        if (x > x1) x1 = x;
+        if (y > y1) y1 = y;
+        if (ink[i]) {
+          inkCount++;
+          if (y < inkY0) inkY0 = y;
+          if (y > inkY1) inkY1 = y;
+        }
+        if (x > 0) {
+          const n = i - 1;
+          if (paper[n] && !seen[n]) {
+            seen[n] = 1;
+            stack[sp++] = n;
+          }
+        }
+        if (x + 1 < w) {
+          const n = i + 1;
+          if (paper[n] && !seen[n]) {
+            seen[n] = 1;
+            stack[sp++] = n;
+          }
+        }
+        if (y > 0) {
+          const n = i - w;
+          if (paper[n] && !seen[n]) {
+            seen[n] = 1;
+            stack[sp++] = n;
+          }
+        }
+        if (y + 1 < h) {
+          const n = i + w;
+          if (paper[n] && !seen[n]) {
+            seen[n] = 1;
+            stack[sp++] = n;
+          }
+        }
+      }
+      if (!best || inkCount > best.ink) {
+        best = { x0, y0, x1, y1, ink: inkCount, inkY0, inkY1, area };
+      }
+    }
+    return best && best.ink > 0 ? best : null;
+  }
+  function inkBounds(ink, w, h) {
+    let x0 = w;
+    let y0 = h;
+    let x1 = 0;
+    let y1 = 0;
+    let count = 0;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (!ink[y * w + x]) continue;
+        count++;
+        if (x < x0) x0 = x;
+        if (y < y0) y0 = y;
+        if (x > x1) x1 = x;
+        if (y > y1) y1 = y;
+      }
+    }
+    if (count < 12) return null;
+    return { x0, y0, x1, y1, ink: count, inkY0: y0, inkY1: y1, area: count };
+  }
+  function clampRect(x, y, w, h, iw, ih) {
+    const x0 = Math.max(0, Math.min(iw - 1, Math.floor(x)));
+    const y0 = Math.max(0, Math.min(ih - 1, Math.floor(y)));
+    const x1 = Math.max(x0 + 1, Math.min(iw, Math.ceil(x + w)));
+    const y1 = Math.max(y0 + 1, Math.min(ih, Math.ceil(y + h)));
+    const rw = x1 - x0;
+    const rh = y1 - y0;
+    if (rw < 8 || rh < 8) return null;
+    return { x: x0, y: y0, w: rw, h: rh };
+  }
+  function detectSmall(rgba, w, h) {
+    const n = w * h;
+    const ink = new Uint8Array(n);
+    const paper = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      const o = i * 4;
+      const r = rgba[o];
+      const g = rgba[o + 1];
+      const b = rgba[o + 2];
+      const y = luma(r, g, b);
+      const s = sat(r, g, b);
+      if (y < 118 && s < 0.38) ink[i] = 1;
+      if (y > 168 && s < 0.28) paper[i] = 1;
+    }
+    let inkCount = 0;
+    for (let i = 0; i < n; i++) inkCount += ink[i];
+    if (inkCount < 12) return null;
+    const closed = erode(dilate(paper, w, h, 4), w, h, 4);
+    for (let i = 0; i < n; i++) {
+      if (ink[i]) closed[i] = 1;
+    }
+    const comp = bestPaperComponent(closed, ink, w, h);
+    const inkBox = inkBounds(ink, w, h);
+    if (!comp && !inkBox) return null;
+    let x0;
+    let y0;
+    let x1;
+    let y1;
+    const compH = comp ? comp.y1 - comp.y0 + 1 : 0;
+    const compW = comp ? comp.x1 - comp.x0 + 1 : 0;
+    const inkSpan = comp && comp.ink > 0 ? comp.inkY1 - comp.inkY0 + 1 : 0;
+    const thinStrip = compH > 0 && compH < compW * 0.28 && compH < h * 0.22;
+    const paperSwallowedTable = !!comp && comp.area > n * 0.62 && inkSpan < compH * 0.42;
+    if (comp && !thinStrip && !paperSwallowedTable) {
+      x0 = comp.x0;
+      y0 = comp.y0;
+      x1 = comp.x1;
+      y1 = comp.y1;
+      const pad2 = 3;
+      x0 -= pad2;
+      y0 -= pad2;
+      x1 += pad2;
+      y1 += pad2;
+    } else if (inkBox) {
+      const bw = inkBox.x1 - inkBox.x0 + 1;
+      const bh = inkBox.y1 - inkBox.y0 + 1;
+      x0 = inkBox.x0 - Math.round(bw * 0.1);
+      x1 = inkBox.x1 + Math.round(bw * 0.1);
+      y0 = inkBox.y0 - Math.round(bh * 0.22);
+      y1 = inkBox.y1 + Math.round(bh * 0.16);
+    } else {
+      return null;
+    }
+    const rect = clampRect(x0, y0, x1 - x0 + 1, y1 - y0 + 1, w, h);
+    if (!rect) return null;
+    if (rect.h < rect.w * 0.28 && rect.h < h * 0.22) return null;
+    return rect;
+  }
+  function detectReceiptCropFromRGBA(rgba, width, height) {
+    if (width < 8 || height < 8) return null;
+    const maxW = 360;
+    if (width > maxW) {
+      const s = maxW / width;
+      const nw = maxW;
+      const nh = Math.max(1, Math.round(height * s));
+      const small = downsample(rgba, width, height, nw, nh);
+      const rect = detectSmall(small, nw, nh);
+      if (!rect) return null;
+      return clampRect(rect.x / s, rect.y / s, rect.w / s, rect.h / s, width, height);
+    }
+    return detectSmall(rgba, width, height);
+  }
+  function expandRect(rect, iw, ih, frac) {
+    const dx = rect.w * frac;
+    const dy = rect.h * frac;
+    return clampRect(rect.x - dx, rect.y - dy, rect.w + dx * 2, rect.h + dy * 2, iw, ih) ?? rect;
+  }
+  function shrinkRect(rect, iw, ih, frac) {
+    const dx = rect.w * frac;
+    const dy = rect.h * frac;
+    const next = clampRect(rect.x + dx, rect.y + dy, rect.w - dx * 2, rect.h - dy * 2, iw, ih);
+    if (!next || next.w < 24 || next.h < 24) return rect;
+    return next;
+  }
+  function percentile(hist, total, p) {
+    if (total <= 0) return 0;
+    const target = total * p;
+    let acc = 0;
+    for (let i = 0; i < 256; i++) {
+      acc += hist[i];
+      if (acc >= target) return i;
+    }
+    return 255;
+  }
+  function scanWhitenRGBA(rgba, w, h) {
+    const out = new Uint8ClampedArray(rgba.length);
+    const hist = new Uint32Array(256);
+    let n = 0;
+    for (let i = 0; i < w * h; i++) {
+      const o = i * 4;
+      const r = rgba[o];
+      const g = rgba[o + 1];
+      const b = rgba[o + 2];
+      if (sat(r, g, b) < 0.35) {
+        hist[luma(r, g, b)]++;
+        n++;
+      }
+    }
+    const paper = percentile(hist, n, 0.86);
+    const ink = percentile(hist, n, 0.02);
+    const black = Math.min(ink, Math.max(0, paper - 48));
+    const span = Math.max(32, paper - black);
+    for (let i = 0; i < w * h; i++) {
+      const o = i * 4;
+      const r = rgba[o];
+      const g = rgba[o + 1];
+      const b = rgba[o + 2];
+      const y = luma(r, g, b);
+      const s = sat(r, g, b);
+      let v = 255;
+      if (!(s > 0.34 && y > 45)) {
+        const t = (y - black) / span;
+        v = t > 0.62 ? 255 : Math.round(Math.max(0, Math.min(1, t)) * 210);
+        if (v < 150) v = Math.round(v * 0.65);
+      }
+      out[o] = v;
+      out[o + 1] = v;
+      out[o + 2] = v;
+      out[o + 3] = 255;
+    }
+    return out;
+  }
+
+  var MONTHS = {
+    janeiro: 1,
+    fevereiro: 2,
+    marco: 3,
+    abril: 4,
+    maio: 5,
+    junho: 6,
+    julho: 7,
+    agosto: 8,
+    setembro: 9,
+    outubro: 10,
+    novembro: 11,
+    dezembro: 12,
+    jan: 1,
+    fev: 2,
+    mar: 3,
+    abr: 4,
+    mai: 5,
+    jun: 6,
+    jul: 7,
+    ago: 8,
+    set: 9,
+    out: 10,
+    nov: 11,
+    dez: 12
+  };
+  var MONTH_RE = "janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez";
+  function fold(s) {
+    return s.normalize("NFD").replace(new RegExp("\\p{M}", "gu"), "").toLowerCase();
+  }
+  function pad(n) {
+    return String(n).padStart(2, "0");
+  }
+  function validDate(y, m, d) {
+    if (y < 1990 || y > 2099 || m < 1 || m > 12 || d < 1 || d > 31) return false;
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+  }
+  function expandYear(y) {
+    if (y >= 100) return y;
+    return y >= 70 ? 1900 + y : 2000 + y;
+  }
+  function foldDateGlyphs(s) {
+    return s.replace(
+      /[0-9oOlI|/.\-\s]{4,}/gi,
+      (m) => m.replace(/o/gi, "0").replace(/[l|I]/g, "1")
+    );
+  }
+  function pushDate(into, y, m, d, index, score, raw) {
+    const year = expandYear(y);
+    if (!validDate(year, m, d)) return;
+    const iso = `${year}-${pad(m)}-${pad(d)}`;
+    const prev = into.find((c) => c.iso === iso && Math.abs(c.index - index) < 8);
+    if (prev) {
+      if (score > prev.score) {
+        prev.score = score;
+        prev.raw = raw;
+        prev.index = index;
+      }
+      return;
+    }
+    into.push({
+      iso,
+      display: `${pad(d)}/${pad(m)}/${year}`,
+      score,
+      index,
+      raw
+    });
+  }
+  function collectDates(text, baseScore, indexBias) {
+    const folded = fold(foldDateGlyphs(text));
+    const found = [];
+    const ymd = /(\d{4})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{1,2})/g;
+    for (const match of folded.matchAll(ymd)) {
+      const y = Number(match[1]);
+      const m = Number(match[2]);
+      const d = Number(match[3]);
+      pushDate(found, y, m, d, indexBias + (match.index ?? 0), baseScore + 2, match[0]);
+    }
+    const dmy = /(\d{1,2})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{2,4})/g;
+    for (const match of folded.matchAll(dmy)) {
+      const a = Number(match[1]);
+      const b = Number(match[2]);
+      const y = Number(match[3]);
+      if (a > 31) continue;
+      let day = a;
+      let month = b;
+      if (month > 12 && day <= 12) {
+        day = b;
+        month = a;
+      }
+      pushDate(found, y, month, day, indexBias + (match.index ?? 0), baseScore, match[0]);
+    }
+    const written = new RegExp(
+      `(\\d{1,2})\\s+de\\s+(${MONTH_RE})\\.?\\s+de\\s+(\\d{4})`,
+      "g"
+    );
+    for (const match of folded.matchAll(written)) {
+      const month = MONTHS[match[2]] ?? 0;
+      pushDate(
+        found,
+        Number(match[3]),
+        month,
+        Number(match[1]),
+        indexBias + (match.index ?? 0),
+        baseScore + 3,
+        match[0]
+      );
+    }
+    const shortWritten = new RegExp(
+      `(\\d{1,2})\\s+(${MONTH_RE})\\.?\\s+(?:de\\s+)?(\\d{4})`,
+      "g"
+    );
+    for (const match of folded.matchAll(shortWritten)) {
+      const month = MONTHS[match[2]] ?? 0;
+      pushDate(
+        found,
+        Number(match[3]),
+        month,
+        Number(match[1]),
+        indexBias + (match.index ?? 0),
+        baseScore + 1,
+        match[0]
+      );
+    }
+    if (baseScore >= 70) {
+      const loose = /(\d{1,2})\s+(\d{1,2})\s+(\d{4})/g;
+      for (const match of folded.matchAll(loose)) {
+        pushDate(
+          found,
+          Number(match[3]),
+          Number(match[2]),
+          Number(match[1]),
+          indexBias + (match.index ?? 0),
+          baseScore - 5,
+          match[0]
+        );
+      }
+    }
+    return found;
+  }
+  function lineScore(blob) {
+    const s = fold(blob);
+    if (/validad|venciment|nascenc|entrega prevista|data de entrega/.test(s)) return 8;
+    if (/data\s+de\s+emiss|emissao|data\s+emiss/.test(s)) return 100;
+    if (/\bemiss/.test(s)) return 92;
+    if (/\bdata\b/.test(s)) return 74;
+    return 18;
+  }
+  function parseEmissionDate(text) {
+    if (!text || !text.trim()) return null;
+    const lines = text.split(/\r?\n/);
+    const all = [];
+    for (let i = 0; i < lines.length; i++) {
+      const blob = `${lines[i]} ${lines[i + 1] ?? ""}`;
+      const score = lineScore(blob);
+      const chunk = score >= 70 ? blob : lines[i];
+      all.push(...collectDates(chunk, score, i * 1000));
+    }
+    all.push(...collectDates(text, 18, 0));
+    if (!all.length) return null;
+    all.sort((a, b) => b.score - a.score || a.index - b.index);
+    return all[0];
+  }
+  function parseEuroAmount(token) {
+    const t = token.replace(/\s/g, "").replace(/€/g, "");
+    if (!t) return null;
+    if (/^\d{1,3}(\.\d{3})+,\d{2}$/.test(t)) {
+      return Number(t.replace(/\./g, "").replace(",", "."));
+    }
+    if (/^\d+,\d{2}$/.test(t)) return Number(t.replace(",", "."));
+    if (/^\d+\.\d{2}$/.test(t) && !/^\d{1,3}(\.\d{3})+$/.test(t)) return Number(t);
+    return null;
+  }
+  function parseUserTotal(raw) {
+    const s = raw.trim();
+    if (!s) return null;
+    const prep = s.replace(/\s/g, "").replace(/€|eur/gi, "").replace(/\.(?=\d{3}\b)/g, "");
+    if (/^\d{1,3}(\.\d{3})+,\d{2}$/.test(s.replace(/\s/g, ""))) return parseEuroAmount(s);
+    if (prep.includes(",") && prep.includes(".")) {
+      return parseEuroAmount(s);
+    }
+    if (/^\d+,\d{1,2}$/.test(prep)) {
+      const [a, b] = prep.split(",");
+      return Number(`${a}.${b.padEnd(2, "0")}`);
+    }
+    if (/^\d+\.\d{1,2}$/.test(prep)) {
+      const [a, b] = prep.split(".");
+      return Number(`${a}.${b.padEnd(2, "0")}`);
+    }
+    if (/^\d+$/.test(prep)) return Number(prep);
+    return parseEuroAmount(s);
+  }
+  function prepTotalLine(line) {
+    let x = fold(line).replace(/t[o0]ta[l1]/g, "total").replace(/dep[o0]s[i1l]to/g, "deposito");
+    x = x.replace(/(\d)\s*[,.]\s*(\d{2})\b/g, "$1,$2");
+    x = x.replace(/\b(\d{1,6})\.(\d{2})\b(?!\d)/g, "$1,$2");
+    x = x.replace(/(\d)\s+(\d{2})\b(?=\s*(eur|€|$))/g, "$1,$2");
+    return x;
+  }
+  function ignoredTotalLine(line) {
+    const s = prepTotalLine(line);
+    if (/deposito/.test(s)) return true;
+    if (/sub\s*total/.test(s)) return true;
+    if (/total\s+(de\s+)?(iva|imposto)/.test(s)) return true;
+    if (/total\s+s\/?\s*iva/.test(s)) return true;
+    if (/total\s+sem\s+iva/.test(s)) return true;
+    if (/total\s+liquido/.test(s)) return true;
+    return false;
+  }
+  var TOTAL_RE = /\b(valor a pagar|total a pagar|valor pago|total pago|total)\b\s*[:.\-]*\s*(?:eur|euros?|€)?\s*[:.\-]*\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/g;
+  function scoreLabel(label) {
+    if (label === "valor a pagar" || label === "total a pagar" || label === "valor pago" || label === "total pago") {
+      return 100;
+    }
+    return 50;
+  }
+  function parseTotal(text) {
+    if (!text || !text.trim()) return null;
+    const lines = text.split(/\r?\n/);
+    const found = [];
+    const consider = (rawLine, index) => {
+      if (ignoredTotalLine(rawLine)) return;
+      const line = prepTotalLine(rawLine);
+      for (const match of line.matchAll(TOTAL_RE)) {
+        const euros = parseEuroAmount(match[2]);
+        if (euros == null || !Number.isFinite(euros)) continue;
+        found.push({
+          euros,
+          score: scoreLabel(match[1]),
+          index,
+          raw: match[0]
+        });
+      }
+    };
+    for (let i = 0; i < lines.length; i++) {
+      consider(lines[i], i);
+      if (i + 1 < lines.length) consider(`${lines[i]} ${lines[i + 1]}`, i);
+    }
+    if (!found.length) return null;
+    found.sort((a, b) => b.score - a.score || b.index - a.index);
+    return found[0];
+  }
+  var CATEGORY_RULES = [
+    {
+      cat: "Combustível",
+      re: /\b(galp|repsol|cepsa|prio|gasoleo|gasolina|combustivel|diesel|q8|plenitude|posto)\b|\bbp\b/
+    },
+    {
+      cat: "Estadias",
+      re: /\b(hotel|hostel|airbnb|pousada|residencial|alojamento|dormida|pensao|ibis|pestana|marriott|booking|resort)\b|\binn\b/
+    },
+    {
+      cat: "Alimentação",
+      re: /\b(continente|pingo doce|pingodoce|auchan|lidl|mercadona|minipreco|mini preco|intermarche|padaria|pastelaria|restaurante|cafe|mcdonald|burger|pizza|supermercado|talho|peixaria|mercearia|recheio|aldi|spar)\b/
+    }
+  ];
+  function categorize(text) {
+    const s = fold(text);
+    let best = "Outros";
+    let hits = 0;
+    for (const rule of CATEGORY_RULES) {
+      const n = s.match(new RegExp(rule.re.source, "g"))?.length ?? 0;
+      if (n > hits) {
+        hits = n;
+        best = rule.cat;
+      }
+    }
+    return best;
+  }
+  function monthKeyFromIso(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "sem-data";
+    return iso.slice(0, 7);
+  }
+  var MONTH_LABELS = [
+    "janeiro",
+    "fevereiro",
+    "março",
+    "abril",
+    "maio",
+    "junho",
+    "julho",
+    "agosto",
+    "setembro",
+    "outubro",
+    "novembro",
+    "dezembro"
+  ];
+  function formatMonthKey(key) {
+    if (key === "sem-data") return "Sem data";
+    const [y, m] = key.split("-");
+    const name = MONTH_LABELS[Number(m) - 1];
+    if (!name || !y) return key;
+    return `${name} ${y}`;
+  }
+  function formatEuros(value) {
+    if (value == null || !Number.isFinite(value)) return "—";
+    return value.toLocaleString("pt-PT", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }) + " €";
+  }
+
+  var TESS_SRC = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+  var workerPromise = null;
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const prev = document.querySelector(`script[data-ft-src="${src}"]`);
+      if (prev) {
+        if (prev.getAttribute("data-loaded") === "1") {
+          resolve();
+          return;
+        }
+        prev.addEventListener("load", () => resolve(), { once: true });
+        prev.addEventListener(
+          "error",
+          () => reject(new Error("falha ao carregar leitor")),
+          { once: true }
+        );
+        return;
+      }
+      const s = document.createElement("script");
+      s.src = src;
+      s.async = true;
+      s.dataset.ftSrc = src;
+      s.onload = () => {
+        s.dataset.loaded = "1";
+        resolve();
+      };
+      s.onerror = () => reject(new Error("Não foi possível carregar o leitor de texto."));
+      document.head.appendChild(s);
+    });
+  }
+  async function makeWorker(lang, onStatus) {
+    await loadScript(TESS_SRC);
+    const Tesseract = window.Tesseract;
+    if (!Tesseract) throw new Error("Leitor de texto indisponível neste browser.");
+    onStatus(lang === "por" ? "A preparar leitura em português…" : "A preparar leitura…");
+    const worker = await Tesseract.createWorker(lang, 1, {
+      workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
+      corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1",
+      langPath: "https://tessdata.projectnaptha.com/4.0.0",
+      logger: (m) => {
+        if (m.status === "recognizing text" && typeof m.progress === "number") {
+          onStatus(`A ler o talão… ${Math.round(m.progress * 100)}%`);
+        }
+      }
+    });
+    await worker.setParameters({
+      tessedit_pageseg_mode: "6",
+      preserve_interword_spaces: "1"
+    });
+    return worker;
+  }
+  async function getWorker(onStatus) {
+    if (!workerPromise) {
+      workerPromise = makeWorker("por", onStatus).catch(() => {
+        onStatus("Português indisponível. A tentar leitura simples…");
+        workerPromise = makeWorker("eng", onStatus);
+        return workerPromise;
+      });
+    }
+    return workerPromise;
+  }
+  function sliceCanvas(src, y0, y1, scale) {
+    const h = Math.max(1, y1 - y0);
+    const c = document.createElement("canvas");
+    c.width = Math.round(src.width * scale);
+    c.height = Math.round(h * scale);
+    const ctx = c.getContext("2d");
+    if (!ctx) return src;
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(src, 0, y0, src.width, h, 0, 0, c.width, c.height);
+    return c;
+  }
+  async function recognize(worker, canvas) {
+    const res = await worker.recognize(canvas);
+    return res.data.text ?? "";
+  }
+  async function readReceipt(canvas, onStatus) {
+    const worker = await getWorker(onStatus);
+    onStatus("A ler o talão…");
+    let text = await recognize(worker, canvas);
+    if (!parseEmissionDate(text) || (parseEmissionDate(text)?.score ?? 0) < 70) {
+      onStatus("A reler o topo (data de emissão)…");
+      const top = sliceCanvas(
+        canvas,
+        0,
+        Math.round(canvas.height * 0.42),
+        canvas.width < 1200 ? 1.8 : 1.25
+      );
+      text = `${await recognize(worker, top)}\n${text}`;
+    }
+    if (!parseTotal(text)) {
+      onStatus("A reler o fundo (total)…");
+      const y0 = Math.round(canvas.height * 0.55);
+      text = `${text}\n${await recognize(worker, sliceCanvas(canvas, y0, canvas.height, 1.35))}`;
+    }
+    return text;
+  }
+
+  var PDF_SRC = "https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js";
+  function loadScript2(src) {
+    return new Promise((resolve, reject) => {
+      const prev = document.querySelector(`script[data-ft-src="${src}"]`);
+      if (prev && prev.getAttribute("data-loaded") === "1") {
+        resolve();
+        return;
+      }
+      const s = document.createElement("script");
+      s.src = src;
+      s.async = true;
+      s.dataset.ftSrc = src;
+      s.onload = () => {
+        s.dataset.loaded = "1";
+        resolve();
+      };
+      s.onerror = () => reject(new Error("Não foi possível carregar o gerador de PDF."));
+      document.head.appendChild(s);
+    });
+  }
+  function blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error ?? new Error("imagem"));
+      reader.readAsDataURL(blob);
+    });
+  }
+  function imageSize(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = () => reject(new Error("imagem"));
+      img.src = dataUrl;
+    });
+  }
+  var ORDER = ["Combustível", "Alimentação", "Estadias", "Outros"];
+  async function exportMonthPdf(month, items) {
+    await loadScript2(PDF_SRC);
+    const Ctor = window.jspdf?.jsPDF;
+    if (!Ctor) throw new Error("PDF indisponível neste browser.");
+    const doc = new Ctor({ unit: "mm", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 14;
+    let y = 16;
+    const need = (h) => {
+      if (y + h > pageH - 12) {
+        doc.addPage();
+        y = 16;
+      }
+    };
+    doc.setFillColor(17, 17, 17);
+    doc.rect(0, 0, pageW, 18, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("Faturas pela TCAP", margin, 11.5);
+    doc.setFontSize(10);
+    doc.text(formatMonthKey(month), pageW - margin, 11.5, { align: "right" });
+    y = 28;
+    doc.setTextColor(17, 17, 17);
+    const sums = new Map();
+    for (const cat of ORDER) sums.set(cat, 0);
+    let grand = 0;
+    let missing = 0;
+    for (const item of items) {
+      if (item.total == null) {
+        missing++;
+        continue;
+      }
+      sums.set(item.category, (sums.get(item.category) ?? 0) + item.total);
+      grand += item.total;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Totais por categoria", margin, y);
+    y += 6;
+    doc.setFontSize(11);
+    for (const cat of ORDER) {
+      const value = sums.get(cat) ?? 0;
+      if (value === 0 && !items.some((i) => i.category === cat)) continue;
+      need(7);
+      doc.setFont("helvetica", "normal");
+      doc.text(cat, margin, y);
+      doc.setFont("helvetica", "bold");
+      doc.text(formatEuros(value), pageW - margin, y, { align: "right" });
+      y += 6;
+    }
+    need(10);
+    doc.setDrawColor(235, 10, 30);
+    doc.line(margin, y - 2, pageW - margin, y - 2);
+    y += 4;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Total do mês", margin, y);
+    doc.setTextColor(235, 10, 30);
+    doc.text(formatEuros(grand), pageW - margin, y, { align: "right" });
+    doc.setTextColor(17, 17, 17);
+    y += 8;
+    if (missing) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(88, 89, 91);
+      doc.text(`${missing} fatura(s) sem total — não entram na soma.`, margin, y);
+      doc.setTextColor(17, 17, 17);
+      y += 8;
+    }
+    const sorted = [...items].sort((a2, b) => {
+      const da = a2.issuedDate ?? "";
+      const db = b.issuedDate ?? "";
+      return da < db ? -1 : da > db ? 1 : a2.createdAt - b.createdAt;
+    });
+    for (const item of sorted) {
+      const dataUrl = await blobToDataUrl(item.image);
+      const size = await imageSize(dataUrl).catch(() => ({ w: 600, h: 800 }));
+      const note = item.notes.trim();
+      const head = 18 + (note ? 10 : 0);
+      need(head + 20);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      const when = item.issuedDate ? item.issuedDate.split("-").reverse().join("/") : "Sem data de emissão";
+      doc.text(`${when}  ·  ${item.category}`, margin, y);
+      doc.text(formatEuros(item.total), pageW - margin, y, { align: "right" });
+      y += 5;
+      if (note) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(88, 89, 91);
+        const lines = doc.splitTextToSize(note, pageW - margin * 2);
+        doc.text(lines, margin, y);
+        y += lines.length * 4 + 2;
+        doc.setTextColor(17, 17, 17);
+      }
+      const maxW = pageW - margin * 2;
+      const drawH = Math.min(120, size.h / size.w * maxW);
+      need(drawH + 8);
+      doc.addImage(dataUrl, "JPEG", margin, y, maxW, drawH);
+      y += drawH + 8;
+    }
+    const blob = doc.output("blob");
+    const filename = `faturas-${month}.pdf`;
+    const file = new File([blob], filename, { type: "application/pdf" });
+    const nav = navigator;
+    if (nav.canShare?.({ files: [file] }) && nav.share) {
+      try {
+        await nav.share({ files: [file], title: `Faturas ${formatMonthKey(month)}` });
+        return;
+      } catch (err) {
+        if (err.name === "AbortError") return;
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  var DB_NAME = "faturas-tcap";
+  var STORE = "faturas";
+  function openDb() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          db.createObjectStore(STORE, { keyPath: "id" });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error ?? new Error("IndexedDB"));
+    });
+  }
+  function txDone(tx) {
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error("IndexedDB"));
+      tx.onabort = () => reject(tx.error ?? new Error("IndexedDB abortado"));
+    });
+  }
+  async function saveFatura(fatura) {
+    const db = await openDb();
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).put(fatura);
+    await txDone(tx);
+    db.close();
+  }
+  async function listFaturas() {
+    const db = await openDb();
+    const tx = db.transaction(STORE, "readonly");
+    const req = tx.objectStore(STORE).getAll();
+    const rows = await new Promise((resolve, reject) => {
+      req.onsuccess = () => resolve(req.result ?? []);
+      req.onerror = () => reject(req.error ?? new Error("IndexedDB"));
+    });
+    await txDone(tx);
+    db.close();
+    return rows.sort((a, b) => b.createdAt - a.createdAt);
+  }
+  async function deleteFatura(id) {
+    const db = await openDb();
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).delete(id);
+    await txDone(tx);
+    db.close();
+  }
+
+  var CATEGORIES = ["Combustível", "Alimentação", "Estadias", "Outros"];
+  var CSS = `
+.ft, .ft * { box-sizing: border-box; }
+.ft {
+  min-height: 100dvh;
+  background: #f2f2f3;
+  color: #111;
+  font-family: "Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom));
 }
-function applyCrop(){
- if(!fullFrame||!cropBox) return;
- const x=Math.floor(cropBox.x+cropBox.w*inset), y=Math.floor(cropBox.y+cropBox.h*inset), cw=Math.floor(cropBox.w*(1-inset*2)), ch=Math.floor(cropBox.h*(1-inset*2));
- if(cw<10||ch<10) return;
- proc.width=cw; proc.height=ch;
- const pctx=proc.getContext("2d"); pctx.fillStyle="#fff"; pctx.fillRect(0,0,cw,ch); pctx.drawImage(fullFrame,x,y,cw,ch,0,0,cw,ch);
- const img=pctx.getImageData(0,0,cw,ch), d=img.data;
- for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2],bright=(r+g+b)/3,sat=Math.max(r,g,b)-Math.min(r,g,b);if(bright>175&&sat<55){d[i]=d[i+1]=d[i+2]=255;}else if(bright>210){d[i]=d[i+1]=d[i+2]=255;}}
- pctx.putImageData(img,0,0); currentImage=proc.toDataURL("image/jpeg",0.92); shot.src=currentImage;
+.ft button, .ft input, .ft select, .ft textarea { font: inherit; color: inherit; }
+.ft-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: calc(14px + env(safe-area-inset-top)) 16px 14px;
+  background: #111;
+  color: #fff;
 }
-function validISO(y,m,d){y=Number(y);m=Number(m);d=Number(d);if(y<100)y+=2000;if(y<2000||y>2100||m<1||m>12||d<1||d>31)return null;return y+"-"+String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0");}
-function parseDateFromText(raw){
- const t=(raw||"").toLowerCase().replace(/\u00a0/g," "); let found=null;
- function keep(iso,score){if(iso&&(!found||score>=found.score))found={iso:iso,score:score};} let m;
- const r1=/(\d{1,2})\s*[\/\-\.]\s*(\d{1,2})\s*[\/\-\.]\s*(\d{2,4})/g;
- while((m=r1.exec(t))){const iso=validISO(m[3],m[2],m[1]);const near=t.slice(Math.max(0,m.index-28),m.index+24);keep(iso,/data|emiss|emitid|hora|fatura/.test(near)?8:2);}
- const r1b=/(\d{1,2})\s+(\d{1,2})\s+(\d{4})/g; while((m=r1b.exec(t))) keep(validISO(m[3],m[2],m[1]),2);
- const r2=/(\d{4})\s*[\/\-\.]\s*(\d{1,2})\s*[\/\-\.]\s*(\d{1,2})/g; while((m=r2.exec(t))) keep(validISO(m[1],m[2],m[3]),3);
- return found?found.iso:null;
+.ft-logo { width: 64px; height: 42px; flex: none; }
+.ft-kicker {
+  margin: 0;
+  color: #EB0A1E;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
 }
-function parseInvoice(text){
- const raw=text||"", t=raw.toLowerCase().replace(/\u00a0/g," ").replace(/t0tal/g,"total");
- let cat="outros"; const keys=Object.keys(CAT_RULES);
- for(let i=0;i<keys.length;i++){const listK=CAT_RULES[keys[i]];for(let j=0;j<listK.length;j++){if(t.indexOf(listK[j])!==-1){cat=keys[i];i=keys.length;break;}}}
- const date=parseDateFromText(raw); let amount=null;
- let m=t.match(/total(?![a-z]{0,10}dep)[\s\S]{0,60}?(\d{1,4}[.,]\d{2})\s*(?:€|eur|e\b)/i);
- if(!m) m=t.match(/(\d{1,4}[.,]\d{2})\s*(?:€|eur)\b/i);
- if(m) amount=parseFloat(m[1].replace(",","."));
- return{cat:cat,date:date,amount:amount};
+.ft-top h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
+.ft-main { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.ft-card {
+  background: #fff;
+  border: 1px solid #e4e4e6;
+  border-radius: 18px;
+  padding: 16px;
 }
-async function ensureOcr(){if(ocrWorker)return ocrWorker;ocrWorker=await Tesseract.createWorker("por+eng",1,{logger:function(){}});return ocrWorker;}
-async function startCamera(){try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});video.srcObject=stream;await video.play();startCamBtn.style.display="none";captureBtn.style.display="block";scanStatus.textContent="Tira a foto do talão inteiro. Depois usa Apertar bordas.";}catch(e){scanStatus.textContent="Erro da câmara: "+e.message;}}
-function showScan(){scanPage.classList.add("active");listPage.classList.remove("active");tabScan.classList.remove("ghost");tabList.classList.add("ghost");}
-function showList(){scanPage.classList.remove("active");listPage.classList.add("active");tabScan.classList.add("ghost");tabList.classList.remove("ghost");renderList();}
-function resetCapture(){currentImage=null;fullFrame=null;cropBox=null;inset=0.02;shot.style.display="none";video.style.display="block";captureBtn.style.display="block";cropBtns.style.display="none";form.style.display="none";}
-startCamBtn.onclick=startCamera;tabScan.onclick=showScan;tabList.onclick=showList;retakeBtn.onclick=resetCapture;
-tightenBtn.onclick=function(){inset=Math.min(0.22,inset+0.03);applyCrop();};
-loosenBtn.onclick=function(){inset=Math.max(0,inset-0.03);applyCrop();};
-captureBtn.onclick=async function(){
- if(!video.videoWidth){scanStatus.textContent="A câmara ainda não está pronta.";return;}
- canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext("2d").drawImage(video,0,0);
- fullFrame=document.createElement("canvas");fullFrame.width=canvas.width;fullFrame.height=canvas.height;fullFrame.getContext("2d").drawImage(canvas,0,0);
- cropBox=findWhiteBox(canvas);inset=0.03;applyCrop();
- shot.style.display="block";video.style.display="none";captureBtn.style.display="none";cropBtns.style.display="grid";form.style.display="grid";
- dateInput.value=todayISO();catInput.value="outros";amountInput.value="";noteInput.value="";ocrBox.value="";
- scanStatus.innerHTML='<span class="spin"></span>A ler data e total...';
- try{
-  const w=await ensureOcr(); const text=(await w.recognize(currentImage)).data.text||""; ocrBox.value=text;
-  const p=parseInvoice(text); if(p.date) dateInput.value=p.date; if(p.cat) catInput.value=p.cat; if(p.amount!=null&&!isNaN(p.amount)) amountInput.value=p.amount.toFixed(2);
-  scanStatus.textContent=(p.date?"Data: "+p.date:"Data não lida")+" · "+(p.amount!=null?"Total: "+money(p.amount):"Total não lido")+" · Aperta as bordas se ainda se vir a mesa.";
- }catch(e){scanStatus.textContent="Não li o texto. Aperta as bordas e preenche data/total.";}
-};
-document.getElementById("saveBtn").onclick=async function(){
- if(!currentImage) return; const date=dateInput.value||todayISO();
- await addFatura({id:Date.now().toString(),date:date,month:monthKey(date),category:catInput.value,amount:parseFloat(amountInput.value)||0,note:noteInput.value.trim(),image:currentImage});
- resetCapture();scanStatus.textContent="Fatura guardada.";
-};
-async function renderList(){
- const items=(await getAll()).sort(function(a,b){return b.date.localeCompare(a.date);});
- const months=[]; for(let i=0;i<items.length;i++){if(months.indexOf(items[i].month)===-1)months.push(items[i].month);} months.sort().reverse();
- monthSelect.innerHTML=months.length?months.map(function(m){return '<option value="'+m+'">'+monthLabel(m)+"</option>";}).join(""):'<option value="">Sem faturas</option>';
- if(!items.length){list.innerHTML='<div class="empty">Ainda não há faturas.</div>';return;}
- let html="";
- for(let mi=0;mi<months.length;mi++){
-  const m=months[mi], group=items.filter(function(i){return i.month===m;}); let total=0; const byCat={};
-  for(let g=0;g<group.length;g++){const amt=group[g].amount||0;total+=amt;byCat[group[g].category]=(byCat[group[g].category]||0)+amt;}
-  html+='<div class="month">'+monthLabel(m)+' <span class="month-total">· Total: '+money(total)+"</span></div>";
-  const catKeys=Object.keys(byCat); for(let c=0;c<catKeys.length;c++) html+='<div class="cat-sub">'+(CATS[catKeys[c]]||catKeys[c])+": "+money(byCat[catKeys[c]])+"</div>";
-  for(let g=0;g<group.length;g++){const item=group[g]; html+='<div class="card"><img src="'+item.image+'"><div><strong>'+(CATS[item.category]||item.category)+"</strong><small>"+item.date+(item.amount?" · "+money(item.amount):"")+(item.note?" · "+item.note:"")+'</small></div><button class="btn ghost" data-del="'+item.id+'">Apagar</button></div>';}
- }
- list.innerHTML=html;
- const dels=list.querySelectorAll("[data-del]");
- for(let i=0;i<dels.length;i++){dels[i].onclick=async function(){if(!confirm("Apagar esta fatura?"))return;await deleteFatura(this.getAttribute("data-del"));renderList();};}
+.ft-lead { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.03em; line-height: 1.2; }
+.ft-muted { color: #58595B; margin: 0; }
+.ft-steps { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.ft-steps li { display: flex; gap: 10px; align-items: flex-start; }
+.ft-num {
+  flex: none;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: #111;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: grid; place-items: center;
 }
-document.getElementById("pdfBtn").onclick=async function(){
- const month=monthSelect.value; if(!month) return;
- const items=(await getAll()).filter(function(i){return i.month===month;}).sort(function(a,b){return a.date.localeCompare(b.date);});
- if(!items.length) return;
- const doc=new window.jspdf.jsPDF({unit:"mm",format:"a4"});
- let total=0; const byCat={}; const rows=[];
- for(let i=0;i<items.length;i++){const amt=items[i].amount||0;total+=amt;byCat[items[i].category]=(byCat[items[i].category]||0)+amt;rows.push([items[i].date,CATS[items[i].category]||items[i].category,items[i].note||"",money(amt)]);}
- doc.setFontSize(16);doc.setTextColor(235,10,30);doc.text("Faturas pela TCAP",14,16);
- doc.setTextColor(0,0,0);doc.setFontSize(11);doc.text(monthLabel(month)+"  ·  Total: "+money(total),14,24);
- doc.autoTable({startY:30,head:[["Categoria","Subtotal"]],body:Object.keys(byCat).map(function(c){return[CATS[c]||c,money(byCat[c])];}),theme:"grid",headStyles:{fillColor:[235,10,30]}});
- doc.autoTable({startY:doc.lastAutoTable.finalY+8,head:[["Data","Categoria","Notas","Total"]],body:rows,theme:"grid",headStyles:{fillColor:[235,10,30]}});
- let y=doc.lastAutoTable.finalY+10;
- for(let i=0;i<items.length;i++){if(y>250){doc.addPage();y=16;} doc.setFontSize(10);doc.text(items[i].date+" · "+(CATS[items[i].category]||items[i].category),14,y);y+=4;
-  try{const props=doc.getImageProperties(items[i].image);let w=182,h=(props.height*w)/props.width;if(h>90){h=90;w=(props.width*h)/props.height;}if(y+h>280){doc.addPage();y=16;}doc.addImage(items[i].image,"JPEG",14,y,w,h);y+=h+8;}catch(e){}}
- doc.save("faturas-tcap-"+month+".pdf");
-};
-(async function(){dateInput.value=todayISO();db=await openDb();scanStatus.textContent="Toca em Abrir câmara.";}());
+.ft-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  border-radius: 14px;
+  border: 0;
+  background: #EB0A1E;
+  color: #fff;
+  font-weight: 700;
+  padding: 12px 16px;
+}
+.ft-btn:disabled { opacity: 0.55; }
+.ft-btn.secondary {
+  background: #fff;
+  color: #111;
+  border: 1px solid #cfcfd2;
+}
+.ft-btn.ghost {
+  background: transparent;
+  color: #111;
+  border: 1px solid #cfcfd2;
+  min-height: 44px;
+}
+.ft-btn.danger { background: #111; }
+.ft-row { display: flex; gap: 8px; }
+.ft-row > * { flex: 1; }
+.ft-nav {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.94);
+  border-top: 1px solid #e4e4e6;
+  backdrop-filter: blur(10px);
+  z-index: 5;
+}
+.ft-nav button {
+  flex: 1;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 0;
+  background: transparent;
+  color: #58595B;
+  font-weight: 700;
+}
+.ft-nav button[aria-current="page"] { background: #111; color: #fff; }
+.ft-cam {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
+.ft-cam video { flex: 1; width: 100%; object-fit: cover; background: #000; }
+.ft-cam-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px calc(18px + env(safe-area-inset-bottom));
+  background: #111;
+}
+.ft-shutter {
+  width: 68px; height: 68px; border-radius: 50%;
+  border: 4px solid #fff;
+  background: #EB0A1E;
+  padding: 0;
+}
+.ft-cam-bar button.link {
+  background: none; border: 0; color: #fff; min-height: 48px; min-width: 72px; font-weight: 700;
+}
+.ft-scan {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e4e4e6;
+  display: block;
+}
+.ft label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: #58595B; }
+.ft input, .ft select, .ft textarea {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid #d0d0d3;
+  background: #fff;
+  padding: 10px 12px;
+  font-weight: 600;
+  color: #111;
+}
+.ft textarea { min-height: 120px; font-weight: 500; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.ft-warn {
+  background: #fff4f4;
+  border: 1px solid #f3b7bd;
+  color: #111;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 0;
+}
+.ft-month { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ft-month h2 { margin: 0; font-size: 20px; letter-spacing: -0.03em; }
+.ft-sum { margin: 0; font-size: 18px; font-weight: 800; color: #EB0A1E; }
+.ft-sub { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.ft-item {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+.ft-item img { width: 72px; height: 96px; object-fit: cover; border-radius: 8px; background: #fff; border: 1px solid #e4e4e6; }
+.ft-item h3 { margin: 0; font-size: 16px; }
+.ft-item p { margin: 2px 0 0; }
+.ft-status { min-height: 1.2em; }
+.ft-hidden { display: none !important; }
+`;
+  function logo() {
+    return `<svg class="ft-logo" viewBox="0 0 86 56" aria-hidden="true">
+    <g fill="none" stroke="#EB0A1E" stroke-width="5">
+      <ellipse cx="30" cy="28" rx="22" ry="13" transform="rotate(-52 30 28)"/>
+      <ellipse cx="43" cy="28" rx="22" ry="13"/>
+      <ellipse cx="56" cy="28" rx="22" ry="13" transform="rotate(52 56 28)"/>
+    </g>
+  </svg>`;
+  }
+  function ensureStyle() {
+    if (document.getElementById("ft-style")) return;
+    const style = document.createElement("style");
+    style.id = "ft-style";
+    style.textContent = CSS;
+    document.head.appendChild(style);
+  }
+  function el(tag, attrs = {}, html) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    if (html != null) node.innerHTML = html;
+    return node;
+  }
+  function limitCanvas(src, maxSide) {
+    const scale = Math.min(1, maxSide / Math.max(src.width, src.height));
+    if (scale === 1) return src;
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(src.width * scale));
+    c.height = Math.max(1, Math.round(src.height * scale));
+    const ctx = c.getContext("2d");
+    if (!ctx) return src;
+    ctx.drawImage(src, 0, 0, c.width, c.height);
+    return c;
+  }
+  function renderScan(src, rect) {
+    const maxW = 1400;
+    const scale = Math.min(1, maxW / rect.w);
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(rect.w * scale));
+    c.height = Math.max(1, Math.round(rect.h * scale));
+    const ctx = c.getContext("2d");
+    if (!ctx) return c;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(src, rect.x, rect.y, rect.w, rect.h, 0, 0, c.width, c.height);
+    const img = ctx.getImageData(0, 0, c.width, c.height);
+    const white = Uint8ClampedArray.from(scanWhitenRGBA(img.data, c.width, c.height));
+    ctx.putImageData(new ImageData(white, c.width, c.height), 0, 0);
+    return c;
+  }
+  async function canvasFromFile(file) {
+    const c = document.createElement("canvas");
+    try {
+      const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+      c.width = bmp.width;
+      c.height = bmp.height;
+      c.getContext("2d")?.drawImage(bmp, 0, 0);
+      bmp.close();
+      return limitCanvas(c, 1800);
+    } catch {
+      const url = URL.createObjectURL(file);
+      try {
+        const img = await new Promise((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = () => reject(new Error("imagem"));
+          image.src = url;
+        });
+        c.width = img.naturalWidth;
+        c.height = img.naturalHeight;
+        c.getContext("2d")?.drawImage(img, 0, 0);
+        return limitCanvas(c, 1800);
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    }
+  }
+  function canvasToBlob(canvas) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error("sem imagem")),
+        "image/jpeg",
+        0.82
+      );
+    });
+  }
+  function mountFaturas(root2) {
+    ensureStyle();
+    root2.replaceChildren();
+    root2.className = "ft";
+    const header = el("header", { class: "ft-top" });
+    header.innerHTML = `${logo()}<div><p class="ft-kicker">PELA TCAP</p><h1>Faturas</h1></div>`;
+    const main = el("main", { class: "ft-main" });
+    const nav = el("nav", { class: "ft-nav" });
+    nav.innerHTML = `<button type="button" data-tab="nova">Nova</button><button type="button" data-tab="arquivo">Arquivo</button>`;
+    const fileCam = el("input", {
+      type: "file",
+      accept: "image/*",
+      capture: "environment",
+      class: "ft-hidden",
+      "aria-label": "Fotografar talão"
+    });
+    const fileLib = el("input", {
+      type: "file",
+      accept: "image/*",
+      class: "ft-hidden",
+      "aria-label": "Escolher da galeria"
+    });
+    root2.append(header, main, nav, fileCam, fileLib);
+    let source = null;
+    let rect = null;
+    let cropFailed = false;
+    let scan = null;
+    let busy = false;
+    let reading = false;
+    const urls = [];
+    const revoke = () => {
+      for (const u of urls) URL.revokeObjectURL(u);
+      urls.length = 0;
+    };
+    const setTab = (next) => {
+      for (const btn of nav.querySelectorAll("button")) {
+        const on = btn.getAttribute("data-tab") === next;
+        if (on) btn.setAttribute("aria-current", "page");
+        else btn.removeAttribute("aria-current");
+      }
+    };
+    function showHome() {
+      setTab("nova");
+      nav.classList.remove("ft-hidden");
+      main.replaceChildren();
+      const card = el("section", { class: "ft-card" });
+      card.innerHTML = `
+      <h2 class="ft-lead">O talão inteiro, fundo branco.</h2>
+      <p class="ft-muted">A data está no topo. O total e o QR estão em baixo. Enquadra o papel todo, em cima da mesa.</p>
+      <ol class="ft-steps">
+        <li><span class="ft-num">1</span><span>Fotografa com a câmara traseira.</span></li>
+        <li><span class="ft-num">2</span><span>Confirma a data de emissão e o total. Se não ler, escreve tu — a app não inventa.</span></li>
+        <li><span class="ft-num">3</span><span>No arquivo, exporta o PDF do mês.</span></li>
+      </ol>`;
+      const shoot = el("button", { class: "ft-btn", type: "button" });
+      shoot.textContent = "Fotografar talão";
+      const gallery = el("button", { class: "ft-btn secondary", type: "button" });
+      gallery.textContent = "Escolher da galeria";
+      shoot.addEventListener("click", () => void openCamera());
+      gallery.addEventListener("click", () => fileLib.click());
+      main.append(card, shoot, gallery);
+    }
+    async function openCamera() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        fileCam.click();
+        return;
+      }
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920 },
+            height: { ideal: 2560 }
+          }
+        });
+      } catch {
+        fileCam.click();
+        return;
+      }
+      nav.classList.add("ft-hidden");
+      const wrap = el("div", { class: "ft-cam" });
+      const video = el("video", { playsinline: "true", autoplay: "true", muted: "true" });
+      video.playsInline = true;
+      video.muted = true;
+      video.autoplay = true;
+      video.srcObject = stream;
+      const bar = el("div", { class: "ft-cam-bar" });
+      const cancel = el("button", { class: "link", type: "button" });
+      cancel.textContent = "Fechar";
+      const shutter = el("button", { class: "ft-shutter", type: "button", "aria-label": "Disparar" });
+      const spacer = el("button", { class: "link", type: "button" });
+      spacer.textContent = "Galeria";
+      bar.append(cancel, shutter, spacer);
+      wrap.append(video, bar);
+      root2.append(wrap);
+      await video.play().catch(() => undefined);
+      const close = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        wrap.remove();
+        nav.classList.remove("ft-hidden");
+      };
+      cancel.addEventListener("click", close);
+      spacer.addEventListener("click", () => {
+        close();
+        fileLib.click();
+      });
+      shutter.addEventListener("click", () => {
+        const w = video.videoWidth;
+        const h = video.videoHeight;
+        if (!w || !h) return;
+        const shot = document.createElement("canvas");
+        shot.width = w;
+        shot.height = h;
+        shot.getContext("2d")?.drawImage(video, 0, 0);
+        close();
+        void beginReview(limitCanvas(shot, 1800));
+      });
+    }
+    async function beginReview(full) {
+      source = full;
+      const ctx = full.getContext("2d", { willReadFrequently: true });
+      const data = ctx?.getImageData(0, 0, full.width, full.height);
+      const found = data ? detectReceiptCropFromRGBA(data.data, full.width, full.height) : null;
+      cropFailed = !found;
+      rect = found ?? { x: 0, y: 0, w: full.width, h: full.height };
+      scan = renderScan(full, rect);
+      setTab("nova");
+      nav.classList.remove("ft-hidden");
+      paintReview();
+      void runOcr();
+    }
+    function paintReview() {
+      if (!scan || !rect || !source) return;
+      main.replaceChildren();
+      const figure = el("section", { class: "ft-card" });
+      const view = el("canvas", { class: "ft-scan" });
+      view.width = scan.width;
+      view.height = scan.height;
+      view.getContext("2d")?.drawImage(scan, 0, 0);
+      const tools = el("div", { class: "ft-row" });
+      const tighter = el("button", { class: "ft-btn ghost", type: "button" });
+      tighter.textContent = "Apertar bordas";
+      const wider = el("button", { class: "ft-btn ghost", type: "button" });
+      wider.textContent = "Alargar bordas";
+      const whole = el("button", { class: "ft-btn ghost", type: "button" });
+      whole.textContent = "Usar foto inteira";
+      tools.append(tighter, wider);
+      figure.append(view, tools, whole);
+      if (cropFailed) {
+        const warn = el("p", { class: "ft-warn" });
+        warn.textContent = "Não isolei o talão com segurança. Está a foto inteira — aperta ou alarga as bordas se precisares.";
+        figure.append(warn);
+      }
+      const again = el("button", { class: "ft-btn secondary", type: "button" });
+      again.textContent = "Repetir foto";
+      const form = el("section", { class: "ft-card" });
+      form.innerHTML = `
+      <p class="ft-status ft-muted" data-status>A preparar a leitura…</p>
+      <label>Data de emissão
+        <input data-date type="date" inputmode="numeric" />
+      </label>
+      <p class="ft-muted" data-date-hint>Tem de ser a data impressa no talão, não a de hoje.</p>
+      <label>Total pago (€)
+        <input data-total inputmode="decimal" placeholder="ex.: 6,69" autocomplete="off" />
+      </label>
+      <label>Categoria
+        <select data-cat>${CATEGORIES.map((c) => `<option${c === "Outros" ? " selected" : ""}>${c}</option>`).join("")}</select>
+      </label>
+      <label>Notas
+        <input data-notes maxlength="180" placeholder="opcional" />
+      </label>
+      <label>Texto lido
+        <textarea data-ocr readonly placeholder="O texto cru do OCR aparece aqui."></textarea>
+      </label>`;
+      const reread = el("button", { class: "ft-btn secondary", type: "button" });
+      reread.textContent = "Ler outra vez";
+      const save = el("button", { class: "ft-btn", type: "button" });
+      save.textContent = "Guardar no telemóvel";
+      main.append(figure, again, form, reread, save);
+      const apply = () => {
+        if (!source || !rect) return;
+        scan = renderScan(source, rect);
+        view.width = scan.width;
+        view.height = scan.height;
+        view.getContext("2d")?.drawImage(scan, 0, 0);
+      };
+      tighter.addEventListener("click", () => {
+        if (!source || !rect) return;
+        rect = shrinkRect(rect, source.width, source.height, 0.04);
+        cropFailed = false;
+        apply();
+      });
+      wider.addEventListener("click", () => {
+        if (!source || !rect) return;
+        rect = expandRect(rect, source.width, source.height, 0.06);
+        apply();
+      });
+      whole.addEventListener("click", () => {
+        if (!source) return;
+        rect = { x: 0, y: 0, w: source.width, h: source.height };
+        cropFailed = false;
+        apply();
+      });
+      again.addEventListener("click", () => void openCamera());
+      reread.addEventListener("click", () => {
+        if (fieldsBusy()) return;
+        const f = reviewFields();
+        if (f.date) f.date.value = "";
+        if (f.total) f.total.value = "";
+        if (f.ocr) f.ocr.value = "";
+        void runOcr();
+      });
+      save.addEventListener("click", () => void onSave());
+    }
+    function reviewFields() {
+      return {
+        status: main.querySelector("[data-status]"),
+        date: main.querySelector("[data-date]"),
+        dateHint: main.querySelector("[data-date-hint]"),
+        total: main.querySelector("[data-total]"),
+        cat: main.querySelector("[data-cat]"),
+        notes: main.querySelector("[data-notes]"),
+        ocr: main.querySelector("[data-ocr]")
+      };
+    }
+    function fieldsBusy() {
+      return reading;
+    }
+    async function runOcr() {
+      if (!scan || reading) return;
+      reading = true;
+      const fields = reviewFields();
+      const setStatus = (s) => {
+        if (fields.status) fields.status.textContent = s;
+      };
+      try {
+        const text = await readReceipt(scan, setStatus);
+        if (fields.ocr) fields.ocr.value = text.trim();
+        const date = parseEmissionDate(text);
+        const total = parseTotal(text);
+        const cat = categorize(text);
+        if (date && fields.date && !fields.date.value) {
+          fields.date.value = date.iso;
+          if (fields.dateHint) fields.dateHint.textContent = `Lida no talão: ${date.display}`;
+        } else if (!date && fields.dateHint) {
+          fields.dateHint.textContent = "Não li a data de emissão. Preenche à mão — não uso a data de hoje.";
+        }
+        if (total && fields.total && !fields.total.value) {
+          fields.total.value = total.euros.toLocaleString("pt-PT", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
+        }
+        if (fields.cat && cat !== "Outros") fields.cat.value = cat;
+        const bits = [
+          date ? `Data ${date.display}` : "Data não lida",
+          total ? `Total ${formatEuros(total.euros)}` : "Total não lido",
+          cat
+        ];
+        setStatus(bits.join(" · ") + ". Confirma antes de guardar.");
+      } catch {
+        setStatus("Não consegui ler o talão. Preenche a data e o total à mão — não invento valores.");
+      } finally {
+        reading = false;
+      }
+    }
+    async function onSave() {
+      if (busy || !scan) return;
+      const fields = reviewFields();
+      const iso = fields.date?.value ?? "";
+      const issuedDate = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : null;
+      const total = parseUserTotal(fields.total?.value ?? "");
+      if ((fields.total?.value ?? "").trim() && total == null) {
+        if (fields.status) fields.status.textContent = "Total inválido. Usa 6,69 ou deixa vazio.";
+        return;
+      }
+      busy = true;
+      try {
+        const image = await canvasToBlob(scan);
+        const fatura = {
+          id: crypto.randomUUID(),
+          createdAt: Date.now(),
+          issuedDate,
+          month: monthKeyFromIso(issuedDate),
+          category: fields.cat?.value || "Outros",
+          total,
+          notes: fields.notes?.value.trim() ?? "",
+          ocrText: fields.ocr?.value ?? "",
+          image
+        };
+        await saveFatura(fatura);
+        source = null;
+        scan = null;
+        rect = null;
+        await showArchive();
+      } catch {
+        if (fields.status) {
+          fields.status.textContent = "Não consegui guardar no telemóvel. Tenta outra vez.";
+        }
+      } finally {
+        busy = false;
+      }
+    }
+    async function showArchive() {
+      setTab("arquivo");
+      nav.classList.remove("ft-hidden");
+      revoke();
+      main.replaceChildren();
+      let rows = [];
+      try {
+        rows = await listFaturas();
+      } catch {
+        const p = el("p", { class: "ft-warn" });
+        p.textContent = "Não consegui abrir o arquivo neste browser.";
+        main.append(p);
+        return;
+      }
+      if (!rows.length) {
+        const card = el("section", { class: "ft-card" });
+        card.innerHTML = `<h2 class="ft-lead">Ainda não há faturas.</h2><p class="ft-muted">Fotografa um talão. Fica só neste iPhone, sem conta.</p>`;
+        main.append(card);
+        return;
+      }
+      const groups = new Map();
+      for (const row of rows) {
+        const key = row.month || "sem-data";
+        const list = groups.get(key) ?? [];
+        list.push(row);
+        groups.set(key, list);
+      }
+      const keys = [...groups.keys()].sort((a, b) => {
+        if (a === "sem-data") return 1;
+        if (b === "sem-data") return -1;
+        return a < b ? 1 : -1;
+      });
+      for (const key of keys) {
+        const items = groups.get(key) ?? [];
+        const card = el("section", { class: "ft-card" });
+        const sums = new Map();
+        let grand = 0;
+        for (const item of items) {
+          if (item.total == null) continue;
+          sums.set(item.category, (sums.get(item.category) ?? 0) + item.total);
+          grand += item.total;
+        }
+        const head = el("div", { class: "ft-month" });
+        head.innerHTML = `<h2>${formatMonthKey(key)}</h2><p class="ft-sum">${formatEuros(grand)}</p>`;
+        card.append(head);
+        for (const cat of CATEGORIES) {
+          if (!sums.has(cat)) continue;
+          const line = el("div", { class: "ft-sub" });
+          line.innerHTML = `<span>${cat}</span><strong>${formatEuros(sums.get(cat) ?? 0)}</strong>`;
+          card.append(line);
+        }
+        const pdfBtn = el("button", { class: "ft-btn", type: "button" });
+        pdfBtn.textContent = "PDF deste mês";
+        pdfBtn.addEventListener("click", () => {
+          pdfBtn.disabled = true;
+          pdfBtn.textContent = "A criar PDF…";
+          void exportMonthPdf(key, items).catch(() => {
+            pdfBtn.textContent = "Falhou. Tentar outra vez";
+          }).finally(() => {
+            pdfBtn.disabled = false;
+            if (pdfBtn.textContent === "A criar PDF…") pdfBtn.textContent = "PDF deste mês";
+          });
+        });
+        card.append(pdfBtn);
+        for (const item of items) {
+          const url = URL.createObjectURL(item.image);
+          urls.push(url);
+          const box = el("article", { class: "ft-item" });
+          const when = item.issuedDate ? item.issuedDate.split("-").reverse().join("/") : "Sem data";
+          box.innerHTML = `
+          <img alt="Talão" src="${url}" />
+          <div>
+            <h3>${when}</h3>
+            <p>${item.category} · ${formatEuros(item.total)}</p>
+            ${item.notes ? `<p class="ft-muted">${escapeHtml(item.notes)}</p>` : ""}
+            <div class="ft-row" style="margin-top:8px">
+              <button type="button" class="ft-btn ghost" data-edit="${item.id}">Corrigir</button>
+              <button type="button" class="ft-btn danger" data-del="${item.id}">Apagar</button>
+            </div>
+          </div>`;
+          card.append(box);
+        }
+        main.append(card);
+      }
+      main.querySelectorAll("[data-del]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-del");
+          if (!id || !confirm("Apagar esta fatura deste iPhone?")) return;
+          void deleteFatura(id).then(() => showArchive());
+        });
+      });
+      main.querySelectorAll("[data-edit]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-edit");
+          const item = rows.find((r) => r.id === id);
+          if (!item) return;
+          openEdit(item);
+        });
+      });
+    }
+    function openEdit(item) {
+      main.replaceChildren();
+      const card = el("section", { class: "ft-card" });
+      const url = URL.createObjectURL(item.image);
+      urls.push(url);
+      card.innerHTML = `
+      <img class="ft-scan" alt="Talão" src="${url}" />
+      <label>Data de emissão
+        <input data-date type="date" value="${item.issuedDate ?? ""}" />
+      </label>
+      <label>Total pago (€)
+        <input data-total inputmode="decimal" value="${item.total == null ? "" : item.total.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}" />
+      </label>
+      <label>Categoria
+        <select data-cat>${CATEGORIES.map((c) => `<option ${c === item.category ? "selected" : ""}>${c}</option>`).join("")}</select>
+      </label>
+      <label>Notas
+        <input data-notes maxlength="180" value="${escapeAttr(item.notes)}" />
+      </label>
+      <label>Texto lido
+        <textarea readonly>${escapeHtml(item.ocrText)}</textarea>
+      </label>`;
+      const save = el("button", { class: "ft-btn", type: "button" });
+      save.textContent = "Atualizar";
+      const back = el("button", { class: "ft-btn secondary", type: "button" });
+      back.textContent = "Voltar ao arquivo";
+      const status = el("p", { class: "ft-muted" });
+      main.append(card, save, back, status);
+      back.addEventListener("click", () => void showArchive());
+      save.addEventListener("click", () => {
+        const date = card.querySelector("[data-date]").value;
+        const totalRaw = card.querySelector("[data-total]").value;
+        const total = parseUserTotal(totalRaw);
+        if (totalRaw.trim() && total == null) {
+          status.textContent = "Total inválido. Usa 6,69 ou deixa vazio.";
+          return;
+        }
+        const issuedDate = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
+        const next = {
+          ...item,
+          issuedDate,
+          month: monthKeyFromIso(issuedDate),
+          total,
+          category: card.querySelector("[data-cat]").value,
+          notes: card.querySelector("[data-notes]").value.trim()
+        };
+        void saveFatura(next).then(() => showArchive()).catch(() => {
+          status.textContent = "Não consegui atualizar.";
+        });
+      });
+    }
+    nav.addEventListener("click", (ev) => {
+      const btn = ev.target.closest("button");
+      const next = btn?.getAttribute("data-tab");
+      if (next === "nova") showHome();
+      if (next === "arquivo") void showArchive();
+    });
+    fileCam.addEventListener("change", () => {
+      const file = fileCam.files?.[0];
+      fileCam.value = "";
+      if (file) void canvasFromFile(file).then((c) => beginReview(c));
+    });
+    fileLib.addEventListener("change", () => {
+      const file = fileLib.files?.[0];
+      fileLib.value = "";
+      if (file) void canvasFromFile(file).then((c) => beginReview(c));
+    });
+    showHome();
+  }
+  function escapeHtml(s) {
+    return s.replace(/\u0026/g, "&amp;").replace(/\u003c/g, "&lt;").replace(/\u003e/g, "&gt;");
+  }
+  function escapeAttr(s) {
+    return escapeHtml(s).replace(/\u0022/g, "&quot;");
+  }
+
+  var root = document.getElementById("app");
+  if (root) mountFaturas(root);
+})();
 </script>
 </body>
 </html>
