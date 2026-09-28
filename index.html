@@ -9,1642 +9,5190 @@
 <meta name="apple-mobile-web-app-title" content="Faturas TCAP">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Faturas pela TCAP</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2086%2056%22%3E%0A%20%20%3Crect%20width%3D%2286%22%20height%3D%2256%22%20rx%3D%2210%22%20fill%3D%22%23111%22%2F%3E%0A%20%20%3Cg%20fill%3D%22none%22%20stroke%3D%22%23EB0A1E%22%20stroke-width%3D%225%22%3E%0A%20%20%20%20%3Cellipse%20cx%3D%2230%22%20cy%3D%2228%22%20rx%3D%2222%22%20ry%3D%2213%22%20transform%3D%22rotate(-52%2030%2028)%22%2F%3E%0A%20%20%20%20%3Cellipse%20cx%3D%2243%22%20cy%3D%2228%22%20rx%3D%2222%22%20ry%3D%2213%22%2F%3E%0A%20%20%20%20%3Cellipse%20cx%3D%2256%22%20cy%3D%2228%22%20rx%3D%2222%22%20ry%3D%2213%22%20transform%3D%22rotate(52%2056%2028)%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E%0A">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 86 56'%3E%3Crect width='86' height='56' rx='10' fill='%23111'/%3E%3Cg fill='none' stroke='%23EB0A1E' stroke-width='5'%3E%3Cellipse cx='30' cy='28' rx='22' ry='13' transform='rotate(-52 30 28)'/%3E%3Cellipse cx='43' cy='28' rx='22' ry='13'/%3E%3Cellipse cx='56' cy='28' rx='22' ry='13' transform='rotate(52 56 28)'/%3E%3C/g%3E%3C/svg%3E">
 </head>
+
 <body>
 <div id="app"></div>
+
 <script>
 "use strict";
+
 (() => {
-  function luma(r, g, b) {
-    return 77 * r + 150 * g + 29 * b >> 8;
-  }
-  function sat(r, g, b) {
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    return max === 0 ? 0 : (max - min) / max;
-  }
-  function dilate(src, w, h, r) {
-    const dst = new Uint8Array(src.length);
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        let on = 0;
-        for (let dy = -r; dy <= r && !on; dy++) {
-          const yy = y + dy;
-          if (yy < 0 || yy >= h) continue;
-          const row = yy * w;
-          for (let dx = -r; dx <= r; dx++) {
-            const xx = x + dx;
-            if (xx < 0 || xx >= w) continue;
-            if (src[row + xx]) {
-              on = 1;
-              break;
-            }
-          }
-        }
-        dst[y * w + x] = on;
-      }
-    }
-    return dst;
-  }
-  function erode(src, w, h, r) {
-    const dst = new Uint8Array(src.length);
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        let on = 1;
-        for (let dy = -r; dy <= r && on; dy++) {
-          const yy = y + dy;
-          if (yy < 0 || yy >= h) {
-            on = 0;
-            break;
-          }
-          const row = yy * w;
-          for (let dx = -r; dx <= r; dx++) {
-            const xx = x + dx;
-            if (xx < 0 || xx >= w || !src[row + xx]) {
-              on = 0;
-              break;
-            }
-          }
-        }
-        dst[y * w + x] = on;
-      }
-    }
-    return dst;
-  }
-  function downsample(rgba, w, h, nw, nh) {
-    const out = new Uint8ClampedArray(nw * nh * 4);
-    for (let y = 0; y < nh; y++) {
-      const sy = Math.min(h - 1, Math.floor((y + 0.5) * h / nh));
-      for (let x = 0; x < nw; x++) {
-        const sx = Math.min(w - 1, Math.floor((x + 0.5) * w / nw));
-        const si = (sy * w + sx) * 4;
-        const di = (y * nw + x) * 4;
-        out[di] = rgba[si];
-        out[di + 1] = rgba[si + 1];
-        out[di + 2] = rgba[si + 2];
-        out[di + 3] = 255;
-      }
-    }
-    return out;
-  }
-  function paperComponents(paper, ink, w, h) {
-    const seen = new Uint8Array(w * h);
-    const labels = new Int32Array(w * h);
-    const found = [];
-    const stack = new Int32Array(w * h);
-    for (let start = 0; start < paper.length; start++) {
-      if (!paper[start] || seen[start]) continue;
-      const id = found.length + 1;
-      let sp = 0;
-      stack[sp++] = start;
-      seen[start] = 1;
-      labels[start] = id;
-      let x0 = w;
-      let y0 = h;
-      let x1 = 0;
-      let y1 = 0;
-      let inkCount = 0;
-      let inkY0 = h;
-      let inkY1 = 0;
-      let area = 0;
-      while (sp) {
-        const i = stack[--sp];
-        const x = i % w;
-        const y = (i - x) / w;
-        area++;
-        if (x < x0) x0 = x;
-        if (y < y0) y0 = y;
-        if (x > x1) x1 = x;
-        if (y > y1) y1 = y;
-        if (ink[i]) {
-          inkCount++;
-          if (y < inkY0) inkY0 = y;
-          if (y > inkY1) inkY1 = y;
-        }
-        if (x > 0) {
-          const n = i - 1;
-          if (paper[n] && !seen[n]) {
-            seen[n] = 1;
-            labels[n] = id;
-            stack[sp++] = n;
-          }
-        }
-        if (x + 1 < w) {
-          const n = i + 1;
-          if (paper[n] && !seen[n]) {
-            seen[n] = 1;
-            labels[n] = id;
-            stack[sp++] = n;
-          }
-        }
-        if (y > 0) {
-          const n = i - w;
-          if (paper[n] && !seen[n]) {
-            seen[n] = 1;
-            labels[n] = id;
-            stack[sp++] = n;
-          }
-        }
-        if (y + 1 < h) {
-          const n = i + w;
-          if (paper[n] && !seen[n]) {
-            seen[n] = 1;
-            labels[n] = id;
-            stack[sp++] = n;
-          }
-        }
-      }
-      if (inkCount > 0) {
-        found.push({ x0, y0, x1, y1, ink: inkCount, inkY0, inkY1, area, ids: [id] });
-      }
-    }
-    return { comps: found, labels };
-  }
-  function mergeSheet(comps) {
-    if (!comps.length) return null;
-    const list = comps.slice().sort((a, b) => b.ink - a.ink || b.area - a.area);
-    const box = { ...list[0], ids: list[0].ids.slice() };
-    const used = new Set([0]);
-    let grew = true;
-    while (grew) {
-      grew = false;
-      for (let i = 1; i < list.length; i++) {
-        if (used.has(i)) continue;
-        const c = list[i];
-        const overlapX = Math.min(box.x1, c.x1) - Math.max(box.x0, c.x0);
-        const overlapY = Math.min(box.y1, c.y1) - Math.max(box.y0, c.y0);
-        const gapX = Math.max(0, -overlapX);
-        const gapY = Math.max(0, -overlapY);
-        const bw = box.x1 - box.x0 + 1;
-        const bh = box.y1 - box.y0 + 1;
-        const cw = c.x1 - c.x0 + 1;
-        const ch = c.y1 - c.y0 + 1;
-        const xAligned = overlapX > Math.min(bw, cw) * 0.4;
-        const yAligned = overlapY > Math.min(bh, ch) * 0.4;
-        const close = gapX <= Math.max(10, bw * 0.15) && gapY <= Math.max(10, bh * 0.22);
-        if (close && (xAligned || yAligned)) {
-          box.x0 = Math.min(box.x0, c.x0);
-          box.y0 = Math.min(box.y0, c.y0);
-          box.x1 = Math.max(box.x1, c.x1);
-          box.y1 = Math.max(box.y1, c.y1);
-          box.ink += c.ink;
-          box.area += c.area;
-          box.inkY0 = Math.min(box.inkY0, c.inkY0);
-          box.inkY1 = Math.max(box.inkY1, c.inkY1);
-          box.ids = box.ids.concat(c.ids);
-          used.add(i);
-          grew = true;
-        }
-      }
-    }
-    return box.ink > 0 ? box : null;
-  }
-  function inkBounds(ink, w, h) {
-    let x0 = w;
-    let y0 = h;
-    let x1 = 0;
-    let y1 = 0;
-    let count = 0;
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        if (!ink[y * w + x]) continue;
-        count++;
-        if (x < x0) x0 = x;
-        if (y < y0) y0 = y;
-        if (x > x1) x1 = x;
-        if (y > y1) y1 = y;
-      }
-    }
-    if (count < 12) return null;
-    return { x0, y0, x1, y1, ink: count, inkY0: y0, inkY1: y1, area: count, ids: [] };
-  }
-  function clampRect(x, y, w, h, iw, ih) {
-    const x0 = Math.max(0, Math.min(iw - 1, Math.floor(x)));
-    const y0 = Math.max(0, Math.min(ih - 1, Math.floor(y)));
-    const x1 = Math.max(x0 + 1, Math.min(iw, Math.ceil(x + w)));
-    const y1 = Math.max(y0 + 1, Math.min(ih, Math.ceil(y + h)));
-    const rw = x1 - x0;
-    const rh = y1 - y0;
-    if (rw < 8 || rh < 8) return null;
-    return { x: x0, y: y0, w: rw, h: rh };
-  }
-  function detectPage(rgba, w, h) {
-    // Recorte físico: não aplica filtros à fotografia. Apenas procura os limites
-    // da folha e usa esses limites no drawImage final.
-    if (w < 40 || h < 40) return null;
 
-    const gray = new Uint8Array(w * h);
-    const satMap = new Uint8Array(w * h);
-    for (let i = 0; i < gray.length; i++) {
-      const o = i * 4;
-      const r = rgba[o], g = rgba[o + 1], b = rgba[o + 2];
-      gray[i] = luma(r, g, b);
-      satMap[i] = Math.round(sat(r, g, b) * 255);
-    }
+  /* =========================================================
+     CONFIGURAÇÃO
+  ========================================================= */
 
-    // 1) Primeiro tenta encontrar uma grande área de papel claro. O limiar é
-    // relativo ao fundo dos cantos para funcionar com mesas escuras ou médias.
-    const patch = Math.max(3, Math.round(Math.min(w, h) * 0.08));
-    const cornerMean = (x0, y0, x1, y1) => {
-      let sum = 0, n = 0;
-      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
-        sum += gray[y * w + x]; n++;
-      }
-      return n ? sum / n : 0;
-    };
-    const bg = (cornerMean(0, 0, patch, patch) +
-      cornerMean(w - patch, 0, w, patch) +
-      cornerMean(0, h - patch, patch, h) +
-      cornerMean(w - patch, h - patch, w, h)) / 4;
-    const threshold = Math.max(155, Math.min(225, bg + 22));
-    const paper = new Uint8Array(w * h);
-    for (let i = 0; i < paper.length; i++) {
-      // Permite papel branco ligeiramente quente/cinzento, sem exigir branco puro.
-      paper[i] = gray[i] >= threshold && satMap[i] <= 115 ? 1 : 0;
-    }
+  const DB_NAME = "faturas-tcap";
+  const STORE = "faturas";
 
-    // Pequena limpeza da máscara, sem tocar na fotografia original.
-    const cleaned = dilate(erode(paper, w, h, 1), w, h, 2);
-    const comps = paperComponents(cleaned, null, w, h).comps;
-    const imageArea = w * h;
-    const candidates = comps
-      .map(c => ({ ...c, bw: c.x1 - c.x0 + 1, bh: c.y1 - c.y0 + 1 }))
-      .filter(c => c.area > imageArea * 0.025 && c.bw > w * 0.18 && c.bh > h * 0.18)
-      .filter(c => c.bw < w * 0.995 && c.bh < h * 0.995);
+  const TESS_SRC =
+    "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
 
-    function scoreCandidate(c) {
-      const border = Math.max(2, Math.round(Math.min(w, h) * 0.012));
-      let inside = 0, insideN = 0, outside = 0, outsideN = 0;
-      const x0 = Math.max(0, c.x0), x1 = Math.min(w - 1, c.x1);
-      const y0 = Math.max(0, c.y0), y1 = Math.min(h - 1, c.y1);
-      const sx = Math.max(1, Math.floor((x1 - x0 + 1) / 80));
-      const sy = Math.max(1, Math.floor((y1 - y0 + 1) / 80));
-      for (let y = y0 + border; y <= y1 - border; y += sy) {
-        for (let x = x0 + border; x <= x1 - border; x += sx) {
-          inside += gray[y * w + x]; insideN++;
-        }
-      }
-      // Verifica se há contraste junto às quatro bordas.
-      const sampleEdge = (horizontal, fixed, from, to, inner) => {
-        let a = 0, b = 0, n = 0;
-        const step = Math.max(1, Math.floor((to - from) / 100));
-        for (let q = from; q <= to; q += step) {
-          const x = horizontal ? q : fixed;
-          const y = horizontal ? fixed : q;
-          const x2 = horizontal ? q : fixed + inner;
-          const y2 = horizontal ? fixed + inner : q;
-          if (x < 0 || x >= w || y < 0 || y >= h || x2 < 0 || x2 >= w || y2 < 0 || y2 >= h) continue;
-          a += gray[y * w + x];
-          b += gray[y2 * w + x2];
-          n++;
-        }
-        return n ? Math.abs(a / n - b / n) : 0;
-      };
-      const contrast = (
-        sampleEdge(true, y0, x0, x1, Math.max(2, Math.round(h * 0.012))) +
-        sampleEdge(true, y1, x0, x1, -Math.max(2, Math.round(h * 0.012))) +
-        sampleEdge(false, x0, y0, y1, Math.max(2, Math.round(w * 0.012))) +
-        sampleEdge(false, x1, y0, y1, -Math.max(2, Math.round(w * 0.012)))
-      ) / 4;
-      const coverage = c.area / Math.max(1, (c.bw * c.bh));
-      const aspect = c.bw / Math.max(1, c.bh);
-      const plausible = (aspect > 0.35 && aspect < 3.2) ? 1 : 0.4;
-      return (insideN ? inside / insideN : 0) + contrast * 1.8 + coverage * 80 + plausible * 8;
-    }
+  const PDF_SRC =
+    "https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js";
 
-    candidates.sort((a, b) => scoreCandidate(b) - scoreCandidate(a));
-    if (candidates[0]) {
-      const c = candidates[0];
-      // Só acrescenta 1-2 pixels para não cortar a própria folha.
-      const pad = Math.max(1, Math.round(Math.min(w, h) * 0.002));
-      return clampRect(c.x0 - pad, c.y0 - pad, c.bw + pad * 2, c.bh + pad * 2, w, h);
-    }
-
-    // 2) Fallback por perfis de contraste. Útil quando a folha tem fundo branco
-    // e texto/cores suficientes para destruir a máscara de papel.
-    const row = new Float32Array(h), col = new Float32Array(w);
-    const step = Math.max(1, Math.floor(Math.min(w, h) / 700));
-    for (let y = step; y < h - step; y += step) {
-      let sum = 0, n = 0;
-      for (let x = step; x < w - step; x += step) {
-        sum += Math.abs(gray[y * w + x] - gray[(y - step) * w + x]); n++;
-      }
-      row[y] = n ? sum / n : 0;
-    }
-    for (let x = step; x < w - step; x += step) {
-      let sum = 0, n = 0;
-      for (let y = step; y < h - step; y += step) {
-        sum += Math.abs(gray[y * w + x] - gray[y * w + x - step]); n++;
-      }
-      col[x] = n ? sum / n : 0;
-    }
-    const peak = (arr, lo, hi) => {
-      let bi = -1, bs = -1;
-      const a = Math.floor(arr.length * lo), b = Math.ceil(arr.length * hi);
-      for (let i = a; i <= b; i++) if (arr[i] > bs) { bs = arr[i]; bi = i; }
-      return bi >= 0 ? { i: bi, score: bs } : null;
-    };
-    const top = peak(row, .03, .45), bottom = peak(row, .55, .97);
-    const left = peak(col, .03, .45), right = peak(col, .55, .97);
-    if (top && bottom && left && right) {
-      const rw = right.i - left.i, rh = bottom.i - top.i;
-      if (rw > w * .20 && rh > h * .20 && rw < w * .99 && rh < h * .99) {
-        return clampRect(left.i, top.i, rw, rh, w, h);
-      }
-    }
-    return null;
-  }
-  function findPage(rgba, width, height) {
-    if (width < 8 || height < 8) return null;
-    const maxW = 360;
-    if (width > maxW) {
-      const s = maxW / width;
-      const nh = Math.max(1, Math.round(height * s));
-      const small = downsample(rgba, width, height, maxW, nh);
-      const hit = detectPage(small, maxW, nh);
-      if (!hit) return null;
-      return clampRect(hit.x / s, hit.y / s, hit.w / s, hit.h / s, width, height);
-    }
-    return detectPage(rgba, width, height);
-  }
-  function expandRect(rect, iw, ih, frac) {
-    const dx = rect.w * frac;
-    const dy = rect.h * frac;
-    return clampRect(rect.x - dx, rect.y - dy, rect.w + dx * 2, rect.h + dy * 2, iw, ih) ?? rect;
-  }
-  function shrinkRect(rect, iw, ih, frac) {
-    const dx = rect.w * frac;
-    const dy = rect.h * frac;
-    const next = clampRect(rect.x + dx, rect.y + dy, rect.w - dx * 2, rect.h - dy * 2, iw, ih);
-    if (!next || next.w < 24 || next.h < 24) return rect;
-    return next;
-  }
-  var MONTHS = {
-    janeiro: 1, fevereiro: 2, marco: 3, abril: 4, maio: 5, junho: 6,
-    julho: 7, agosto: 8, setembro: 9, outubro: 10, novembro: 11, dezembro: 12,
-    jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6, jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12
-  };
-  var MONTH_RE = "janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez";
-  function fold(s) {
-    return s.normalize("NFD").replace(new RegExp("\\p{M}", "gu"), "").toLowerCase();
-  }
-  function pad(n) {
-    return String(n).padStart(2, "0");
-  }
-  function validDate(y, m, d) {
-    if (y < 1990 || y > 2099 || m < 1 || m > 12 || d < 1 || d > 31) return false;
-    const dt = new Date(Date.UTC(y, m - 1, d));
-    return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
-  }
-  function expandYear(y) {
-    if (y >= 100) return y;
-    return y >= 70 ? 1900 + y : 2000 + y;
-  }
-  function foldDateGlyphs(s) {
-    return s.replace(/[0-9oOlI|/.\-\s]{4,}/gi, (m) => m.replace(/o/gi, "0").replace(/[l|I]/g, "1"));
-  }
-  function pushDate(into, y, m, d, index, score, raw) {
-    const year = expandYear(y);
-    if (!validDate(year, m, d)) return;
-    const iso = year + "-" + pad(m) + "-" + pad(d);
-    const prev = into.find((c) => c.iso === iso && Math.abs(c.index - index) < 8);
-    if (prev) {
-      if (score > prev.score) {
-        prev.score = score;
-        prev.raw = raw;
-        prev.index = index;
-      }
-      return;
-    }
-    into.push({ iso, display: pad(d) + "/" + pad(m) + "/" + year, score, index, raw });
-  }
-  function collectDates(text, baseScore, indexBias) {
-    const folded = fold(foldDateGlyphs(text));
-    const found = [];
-    const ymd = /(\d{4})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{1,2})/g;
-    for (const match of folded.matchAll(ymd)) {
-      pushDate(found, Number(match[1]), Number(match[2]), Number(match[3]), indexBias + (match.index ?? 0), baseScore + 2, match[0]);
-    }
-    const dmy = /(\d{1,2})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{2,4})/g;
-    for (const match of folded.matchAll(dmy)) {
-      const a = Number(match[1]);
-      const b = Number(match[2]);
-      const y = Number(match[3]);
-      if (a > 31) continue;
-      let day = a;
-      let month = b;
-      if (month > 12 && day <= 12) {
-        day = b;
-        month = a;
-      }
-      pushDate(found, y, month, day, indexBias + (match.index ?? 0), baseScore, match[0]);
-    }
-    const written = new RegExp("(\\d{1,2})\\s+de\\s+(" + MONTH_RE + ")\\.?\\s+de\\s+(\\d{4})", "g");
-    for (const match of folded.matchAll(written)) {
-      pushDate(found, Number(match[3]), MONTHS[match[2]] ?? 0, Number(match[1]), indexBias + (match.index ?? 0), baseScore + 3, match[0]);
-    }
-    const shortWritten = new RegExp("(\\d{1,2})\\s+(" + MONTH_RE + ")\\.?\\s+(?:de\\s+)?(\\d{4})", "g");
-    for (const match of folded.matchAll(shortWritten)) {
-      pushDate(found, Number(match[3]), MONTHS[match[2]] ?? 0, Number(match[1]), indexBias + (match.index ?? 0), baseScore + 1, match[0]);
-    }
-    if (baseScore >= 70) {
-      const loose = /(\d{1,2})\s+(\d{1,2})\s+(\d{4})/g;
-      for (const match of folded.matchAll(loose)) {
-        pushDate(found, Number(match[3]), Number(match[2]), Number(match[1]), indexBias + (match.index ?? 0), baseScore - 5, match[0]);
-      }
-    }
-    return found;
-  }
-  function lineScore(blob) {
-    const s = fold(blob);
-    // Emissão tem prioridade. Não deixar "validade" ganhar quando as duas
-    // palavras aparecem na mesma linha.
-    if (/data\s+de\s+emiss|data\s+emissao|emissao|emiss[aãa]o/.test(s)) return 100;
-    if (/\bemiss/.test(s)) return 92;
-    if (/data\s+(?:do\s+)?documento|documento\s+fiscal|fatura|tal[aãa]o|recibo/.test(s)) return 82;
-    if (/\bdata\b/.test(s)) return 74;
-    if (/validad|venciment|nascenc|entrega prevista|data de entrega/.test(s)) return 8;
-    return 18;
-  }
-  function parseEmissionDate(text) {
-    if (!text || !text.trim()) return null;
-    const lines = text.split(/\r?\n/);
-    const all = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const score = lineScore(line);
-      const dates = collectDates(line, score, i * 1000);
-      all.push(...dates);
-
-      // Alguns OCR separam "Data de emissão" e a data na linha seguinte.
-      // Só fazemos a junção quando a própria linha ainda não deu uma data.
-      if (!dates.length && i + 1 < lines.length) {
-        const next = lines[i + 1];
-        const joined = line + " " + next;
-        const joinedScore = Math.max(score, lineScore(joined) - 8);
-        all.push(...collectDates(joined, joinedScore, i * 1000 + 500));
-      }
-    }
-
-    // Último recurso para datas sem qualquer etiqueta.
-    all.push(...collectDates(text, 22, 0));
-
-    if (!all.length) return null;
-
-    // Penaliza explicitamente datas em linhas de validade/vencimento.
-    for (const candidate of all) {
-      const lineIndex = Math.floor(candidate.index / 1000);
-      const sourceLine = lines[lineIndex] ?? "";
-      const fs = fold(sourceLine);
-      if (/validad|venciment|data de entrega|entrega prevista/.test(fs) &&
-          !/emiss/.test(fs)) {
-        candidate.score -= 45;
-      }
-    }
-
-    all.sort((a, b) => b.score - a.score || a.index - b.index);
-    return all[0];
-  }
-  function parseEuroAmount(token) {
-    let t = String(token ?? "")
-      .replace(/\s/g, "")
-      .replace(/€/g, "")
-      .replace(/\b(?:eur|euros?)\b/gi, "");
-
-    if (!t) return null;
-
-    // Formato PT: 1.234,56 / 1234,56 / 12,5 / 12
-    if (/^\d{1,3}(?:\.\d{3})+,\d{1,2}$/.test(t)) {
-      return Number(t.replace(/\./g, "").replace(",", "."));
-    }
-    if (/^\d+,\d{1,2}$/.test(t)) {
-      return Number(t.replace(",", "."));
-    }
-
-    // Alguns OCR leem o separador decimal como ponto.
-    if (/^\d{1,3}(?:\.\d{3})+\.\d{1,2}$/.test(t)) {
-      const parts = t.split(".");
-      const dec = parts.pop();
-      return Number(parts.join("") + "." + dec);
-    }
-    if (/^\d+\.\d{1,2}$/.test(t)) return Number(t);
-
-    // Total inteiro, por exemplo "TOTAL 12".
-    if (/^\d+$/.test(t)) return Number(t);
-
-    return null;
-  }
-  function parseUserTotal(raw) {
-    const s = raw.trim();
-    if (!s) return null;
-    const prep = s.replace(/\s/g, "").replace(/€|eur/gi, "").replace(/\.(?=\d{3}\b)/g, "");
-    if (/^\d{1,3}(\.\d{3})+,\d{2}$/.test(s.replace(/\s/g, ""))) return parseEuroAmount(s);
-    if (prep.includes(",") && prep.includes(".")) return parseEuroAmount(s);
-    if (/^\d+,\d{1,2}$/.test(prep)) {
-      const parts = prep.split(",");
-      return Number(parts[0] + "." + parts[1].padEnd(2, "0"));
-    }
-    if (/^\d+\.\d{1,2}$/.test(prep)) {
-      const parts = prep.split(".");
-      return Number(parts[0] + "." + parts[1].padEnd(2, "0"));
-    }
-    if (/^\d+$/.test(prep)) return Number(prep);
-    return parseEuroAmount(s);
-  }
-  function prepTotalLine(line) {
-    let x = fold(line)
-      .replace(/t[o0]ta[l1]/g, "total")
-      .replace(/v[a4]lor/g, "valor")
-      .replace(/p[a4]gar/g, "pagar")
-      .replace(/dep[o0]s[i1l]to/g, "deposito");
-
-    // Corrige OCR de separadores: "6 . 69", "6, 69", "6 69".
-    x = x.replace(/(\d)\s*[,.]\s*(\d{1,2})\b/g, "$1,$2");
-    x = x.replace(/\b(\d{1,6})\.(\d{1,2})\b(?!\d)/g, "$1,$2");
-    x = x.replace(/(\d)\s+(\d{2})\b(?=\s*(?:eur|euros?|€|$))/g, "$1,$2");
-    return x;
-  }
-  function ignoredTotalLine(line) {
-    const s = prepTotalLine(line);
-    if (/deposito/.test(s)) return true;
-    if (/sub\s*total/.test(s)) return true;
-    if (/total\s+(de\s+)?(iva|imposto)/.test(s)) return true;
-    if (/total\s+s\/?\s*iva/.test(s)) return true;
-    if (/total\s+sem\s+iva/.test(s)) return true;
-    if (/total\s+liquido/.test(s)) return true;
-    return false;
-  }
-  // Aceita os formatos que aparecem com frequência em talões:
-  // 6,69 · 6.69 · 6,6 · 6 · 1.234,56 · 1234,56.
-  var TOTAL_RE = /\b(valor\s+a\s+pagar|total\s+a\s+pagar|valor\s+pago|total\s+pago|total\s+geral|total|a\s+pagar|importe|montante|pago)\b[^\d]{0,18}(\d{1,3}(?:[.,]\d{3})+[.,]\d{1,2}|\d+[.,]\d{1,2}|\d+)\b/gi;
-
-  function scoreLabel(label) {
-    const s = fold(label);
-    if (/valor\s+a\s+pagar|total\s+a\s+pagar|total\s+geral|valor\s+pago|total\s+pago/.test(s)) return 120;
-    if (/a\s+pagar|importe|montante|pago/.test(s)) return 90;
-    return 70;
-  }
-
-  function parseTotal(text) {
-    if (!text || !text.trim()) return null;
-    const lines = text.split(/\r?\n/);
-    const found = [];
-
-    const consider = (rawLine, index) => {
-      if (ignoredTotalLine(rawLine)) return;
-      const line = prepTotalLine(rawLine);
-
-      for (const match of line.matchAll(TOTAL_RE)) {
-        const euros = parseEuroAmount(match[2]);
-        if (euros == null || !Number.isFinite(euros)) continue;
-
-        // Evita confundir datas/horas com dinheiro.
-        if (euros > 1000000) continue;
-
-        found.push({
-          euros,
-          score: scoreLabel(match[1]),
-          index,
-          raw: match[0]
-        });
-      }
-    };
-
-    for (let i = 0; i < lines.length; i++) {
-      consider(lines[i], i);
-
-      // OCR pode devolver:
-      // TOTAL
-      // 6,69
-      if (i + 1 < lines.length && /\b(total|pagar|importe|montante|pago)\b/i.test(lines[i])) {
-        consider(lines[i] + " " + lines[i + 1], i);
-      }
-    }
-
-    // Último recurso: procurar "€ 6,69" ou "6,69 €" perto do fim do texto.
-    if (!found.length) {
-      const tail = prepTotalLine(lines.slice(-12).join(" "));
-      const amounts = tail.match(/\b\d{1,3}(?:[.,]\d{3})*[.,]\d{1,2}\b/g) ?? [];
-      for (const raw of amounts) {
-        const euros = parseEuroAmount(raw);
-        if (euros != null && euros >= 0 && euros <= 1000000) {
-          found.push({ euros, score: 35, index: lines.length, raw });
-        }
-      }
-    }
-
-    if (!found.length) return null;
-    found.sort((a, b) => b.score - a.score || b.index - a.index);
-    return found[0];
-  }
-
-  var CATEGORY_RULES = [
-    { cat: "Combustível", re: /\b(galp|repsol|cepsa|prio|gasoleo|gasolina|combustivel|diesel|q8|plenitude|posto)\b|\bbp\b/ },
-    { cat: "Estadias", re: /\b(hotel|hostel|airbnb|pousada|residencial|alojamento|dormida|pensao|ibis|pestana|marriott|booking|resort|campanile|hospede|hospedaria)\b|\binn\b/ },
-    { cat: "Alimentação", re: /\b(continente|pingo doce|pingodoce|auchan|lidl|mercadona|minipreco|mini preco|intermarche|padaria|pastelaria|restaurante|cafe|mcdonald|burger|pizza|supermercado|talho|peixaria|mercearia|recheio|aldi|spar)\b/ }
+  const CATEGORIES = [
+    "Combustível",
+    "Alimentação",
+    "Estadias",
+    "Outros"
   ];
-  function categorize(text) {
-    const s = fold(text);
-    let best = "Outros";
-    let hits = 0;
-    for (const rule of CATEGORY_RULES) {
-      const n = s.match(new RegExp(rule.re.source, "g"))?.length ?? 0;
-      if (n > hits) {
-        hits = n;
-        best = rule.cat;
-      }
+
+  const MONTHS = {
+    janeiro: 1,
+    fevereiro: 2,
+    marco: 3,
+    abril: 4,
+    maio: 5,
+    junho: 6,
+    julho: 7,
+    agosto: 8,
+    setembro: 9,
+    outubro: 10,
+    novembro: 11,
+    dezembro: 12,
+    jan: 1,
+    fev: 2,
+    mar: 3,
+    abr: 4,
+    mai: 5,
+    jun: 6,
+    jul: 7,
+    ago: 8,
+    set: 9,
+    out: 10,
+    nov: 11,
+    dez: 12
+  };
+
+  const MONTH_LABELS = [
+    "janeiro",
+    "fevereiro",
+    "março",
+    "abril",
+    "maio",
+    "junho",
+    "julho",
+    "agosto",
+    "setembro",
+    "outubro",
+    "novembro",
+    "dezembro"
+  ];
+
+  /* =========================================================
+     CSS
+  ========================================================= */
+
+  const CSS = `
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #f2f2f3;
+  }
+
+  body {
+    min-height: 100vh;
+  }
+
+  .ft,
+  .ft * {
+    box-sizing: border-box;
+  }
+
+  .ft {
+    min-height: 100dvh;
+    background: #f2f2f3;
+    color: #111;
+    font-family:
+      "Avenir Next",
+      "Helvetica Neue",
+      "Segoe UI",
+      Arial,
+      sans-serif;
+    font-size: 16px;
+    line-height: 1.45;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+
+  .ft button,
+  .ft input,
+  .ft select,
+  .ft textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  .ft-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding:
+      calc(14px + env(safe-area-inset-top))
+      16px
+      14px;
+    background: #111;
+    color: #fff;
+  }
+
+  .ft-logo {
+    width: 64px;
+    height: 42px;
+    flex: none;
+  }
+
+  .ft-kicker {
+    margin: 0;
+    color: #EB0A1E;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .16em;
+  }
+
+  .ft-top h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.03em;
+  }
+
+  .ft-main {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ft-card {
+    background: #fff;
+    border: 1px solid #e4e4e6;
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .ft-lead {
+    margin: 0 0 8px;
+    font-size: 22px;
+    letter-spacing: -.03em;
+    line-height: 1.2;
+  }
+
+  .ft-muted {
+    color: #58595B;
+    margin: 0;
+  }
+
+  .ft-steps {
+    display: grid;
+    gap: 8px;
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .ft-steps li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .ft-num {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #111;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+  }
+
+  .ft-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 52px;
+    border-radius: 14px;
+    border: 0;
+    background: #EB0A1E;
+    color: #fff;
+    font-weight: 700;
+    padding: 12px 16px;
+    cursor: pointer;
+  }
+
+  .ft-btn:disabled {
+    opacity: .55;
+  }
+
+  .ft-btn.secondary {
+    background: #fff;
+    color: #111;
+    border: 1px solid #cfcfd2;
+  }
+
+  .ft-btn.ghost {
+    background: transparent;
+    color: #111;
+    border: 1px solid #cfcfd2;
+    min-height: 44px;
+  }
+
+  .ft-btn.danger {
+    background: #111;
+  }
+
+  .ft-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .ft-row > * {
+    flex: 1;
+  }
+
+  .ft-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    gap: 8px;
+    padding:
+      10px
+      16px
+      calc(10px + env(safe-area-inset-bottom));
+    background: rgba(255,255,255,.96);
+    border-top: 1px solid #e4e4e6;
+    backdrop-filter: blur(10px);
+    z-index: 50;
+  }
+
+  .ft-nav button {
+    flex: 1;
+    min-height: 48px;
+    border-radius: 12px;
+    border: 0;
+    background: transparent;
+    color: #58595B;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .ft-nav button[aria-current="page"] {
+    background: #111;
+    color: #fff;
+  }
+
+  .ft input,
+  .ft select,
+  .ft textarea {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 12px;
+    border: 1px solid #d0d0d3;
+    background: #fff;
+    padding: 10px 12px;
+    font-weight: 600;
+  }
+
+  .ft textarea {
+    min-height: 120px;
+    font-weight: 500;
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      monospace;
+    font-size: 12px;
+  }
+
+  .ft label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #58595B;
+  }
+
+  .ft-warn {
+    background: #fff4f4;
+    border: 1px solid #f3b7bd;
+    color: #111;
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin: 0;
+  }
+
+  .ft-month {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .ft-month h2 {
+    margin: 0;
+    font-size: 20px;
+    letter-spacing: -.03em;
+  }
+
+  .ft-sum {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #EB0A1E;
+  }
+
+  .ft-sub {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 14px;
+    margin-top: 5px;
+  }
+
+  .ft-item {
+    display: grid;
+    grid-template-columns: 84px 1fr;
+    gap: 12px;
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid #eee;
+  }
+
+  .ft-item img {
+    width: 84px;
+    height: 112px;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 8px;
+    background: #fff;
+    border: 1px solid #e4e4e6;
+  }
+
+  .ft-item h3 {
+    margin: 0;
+    font-size: 16px;
+  }
+
+  .ft-item p {
+    margin: 2px 0 0;
+  }
+
+  .ft-status {
+    min-height: 1.2em;
+  }
+
+  .ft-hidden {
+    display: none !important;
+  }
+
+  .ft-scan {
+    width: 100%;
+    height: auto;
+    max-height: 65vh;
+    object-fit: contain;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e4e4e6;
+    display: block;
+  }
+
+  .ft-pdf-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    align-items: end;
+    margin-top: 12px;
+  }
+
+  .ft-pdf-controls label {
+    margin: 0;
+    font-size: 12px;
+  }
+
+  .ft-trim {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .ft-trim-row {
+    display: grid;
+    grid-template-columns: 72px 1fr 52px;
+    gap: 8px;
+    align-items: center;
+    font-size: 12px;
+  }
+
+  .ft-trim-row input[type=range] {
+    width: 100%;
+    min-height: 36px;
+    accent-color: #EB0A1E;
+    padding: 0;
+  }
+
+  .ft-trim-row output {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ft-trim-help {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: #666;
+  }
+
+  @media (min-width: 700px) {
+    .ft-main {
+      max-width: 760px;
+      margin: 0 auto;
     }
-    return best;
-  }
-  function monthKeyFromIso(iso) {
-    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "sem-data";
-    return iso.slice(0, 7);
-  }
-  var MONTH_LABELS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-  function formatMonthKey(key) {
-    if (key === "sem-data") return "Sem data";
-    const parts = key.split("-");
-    const name = MONTH_LABELS[Number(parts[1]) - 1];
-    if (!name || !parts[0]) return key;
-    return name + " " + parts[0];
-  }
-  function formatEuros(value) {
-    if (value == null || !Number.isFinite(value)) return "—";
-    return value.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
-  }
-  var TESS_SRC = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
-  var workerPromise = null;
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const prev = document.querySelector('script[data-ft-src="' + src + '"]');
-      if (prev) {
-        if (prev.getAttribute("data-loaded") === "1") {
-          resolve();
-          return;
-        }
-        prev.addEventListener("load", () => resolve(), { once: true });
-        prev.addEventListener("error", () => reject(new Error("falha ao carregar leitor")), { once: true });
-        return;
-      }
-      const s = document.createElement("script");
-      s.src = src;
-      s.async = true;
-      s.dataset.ftSrc = src;
-      s.onload = () => {
-        s.dataset.loaded = "1";
-        resolve();
-      };
-      s.onerror = () => reject(new Error("Não foi possível carregar o leitor de texto."));
-      document.head.appendChild(s);
-    });
-  }
-  async function makeWorker(lang, onStatus) {
-    await loadScript(TESS_SRC);
-    const Tesseract = window.Tesseract;
-    if (!Tesseract) throw new Error("Leitor de texto indisponível neste browser.");
-    onStatus(lang === "por" ? "A preparar leitura em português…" : "A preparar leitura…");
-    const worker = await Tesseract.createWorker(lang, 1, {
-      workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
-      corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1",
-      langPath: "https://tessdata.projectnaptha.com/4.0.0",
-      logger: (m) => {
-        if (m.status === "recognizing text" && typeof m.progress === "number") {
-          onStatus("A ler o talão… " + Math.round(m.progress * 100) + "%");
-        }
-      }
-    });
-    await worker.setParameters({ tessedit_pageseg_mode: "6", preserve_interword_spaces: "1" });
-    return worker;
-  }
-  async function getWorker(onStatus) {
-    if (!workerPromise) {
-      workerPromise = makeWorker("por", onStatus).catch(() => {
-        onStatus("Português indisponível. A tentar leitura simples…");
-        return makeWorker("eng", onStatus);
-      }).catch((err) => {
-        // Não guardar uma Promise rejeitada para sempre.
-        workerPromise = null;
-        throw err;
-      });
-    }
-    return workerPromise;
-  }
 
-  function prepareOcrCanvas(src, scale = 1.35) {
-    const maxW = 1800;
-    const factor = Math.min(scale, maxW / Math.max(1, src.width));
-    const c = document.createElement("canvas");
-    c.width = Math.max(1, Math.round(src.width * factor));
-    c.height = Math.max(1, Math.round(src.height * factor));
-    const ctx = c.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return src;
-
-    ctx.drawImage(src, 0, 0, c.width, c.height);
-    const image = ctx.getImageData(0, 0, c.width, c.height);
-    const d = image.data;
-
-    // Escala de cinzentos + contraste. É mais robusto para talões térmicos
-    // e fotografias com sombra do que mandar a imagem RGB diretamente.
-    for (let i = 0; i < d.length; i += 4) {
-      const y = (77 * d[i] + 150 * d[i + 1] + 29 * d[i + 2]) >> 8;
-      const v = Math.max(0, Math.min(255, (y - 128) * 1.28 + 128));
-      d[i] = d[i + 1] = d[i + 2] = v;
-      d[i + 3] = 255;
-    }
-    ctx.putImageData(image, 0, 0);
-    return c;
-  }
-  function sliceCanvas(src, y0, y1, scale) {
-    const h = Math.max(1, y1 - y0);
-    const c = document.createElement("canvas");
-    c.width = Math.round(src.width * scale);
-    c.height = Math.round(h * scale);
-    const ctx = c.getContext("2d");
-    if (!ctx) return src;
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(src, 0, y0, src.width, h, 0, 0, c.width, c.height);
-    return c;
-  }
-  async function recognize(worker, canvas) {
-    const res = await worker.recognize(canvas);
-    return res.data.text ?? "";
-  }
-  async function readReceipt(canvas, onStatus) {
-    const worker = await getWorker(onStatus);
-    onStatus("A ler o talão…");
-
-    const prepared = prepareOcrCanvas(limitCanvas(canvas, 1800));
-    let text = await recognize(worker, prepared);
-
-    let date = parseEmissionDate(text);
-    if (!date || date.score < 70) {
-      onStatus("A reler o topo (data de emissão)…");
-      const top = prepareOcrCanvas(
-        sliceCanvas(canvas, 0, Math.round(canvas.height * 0.48), canvas.width < 1200 ? 1.8 : 1.4),
-        1
-      );
-      const topText = await recognize(worker, top);
-      text = topText + "\n" + text;
-      date = parseEmissionDate(text);
+    .ft-top {
+      padding-left: max(16px, calc((100% - 760px) / 2));
+      padding-right: max(16px, calc((100% - 760px) / 2));
     }
 
-    let total = parseTotal(text);
-    if (!total) {
-      onStatus("A reler o fundo (total)…");
-      const y0 = Math.round(canvas.height * 0.48);
-      const bottom = prepareOcrCanvas(
-        sliceCanvas(canvas, y0, canvas.height, canvas.width < 1200 ? 1.7 : 1.3),
-        1
-      );
-      text = text + "\n" + (await recognize(worker, bottom));
-      total = parseTotal(text);
-    }
-
-    // Uma segunda leitura focada no fundo se ainda não houver total.
-    if (!total && canvas.height > 300) {
-      onStatus("A procurar o valor final…");
-      const bottom = prepareOcrCanvas(
-        sliceCanvas(canvas, Math.round(canvas.height * 0.68), canvas.height, 2),
-        1
-      );
-      text = text + "\n" + (await recognize(worker, bottom));
-    }
-
-    return text;
-  }
-  var PDF_SRC = "https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js";
-  function loadScript2(src) {
-    return loadScript(src);
-  }
-  function blobToDataUrl(blob) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(reader.error ?? new Error("imagem"));
-      reader.readAsDataURL(blob);
-    });
-  }
-  function imageSize(dataUrl) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
-      img.onerror = () => reject(new Error("imagem"));
-      img.src = dataUrl;
-    });
-  }
-  async function preparePdfImage(item) {
-    // Registos antigos podem ter sido guardados antes do recorte automático.
-    // Nesse caso, recorta novamente apenas para o PDF; os dados guardados não
-    // são alterados. Registos novos já trazem a imagem recortada.
-    if (item.cropApplied === true) return blobToDataUrl(item.image);
-    const dataUrl = await blobToDataUrl(item.image);
-    const img = new Image();
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = () => reject(new Error("imagem"));
-      img.src = dataUrl;
-    });
-    const full = document.createElement("canvas");
-    full.width = img.naturalWidth;
-    full.height = img.naturalHeight;
-    full.getContext("2d")?.drawImage(img, 0, 0);
-    const ctx = full.getContext("2d", { willReadFrequently: true });
-    const pixels = ctx?.getImageData(0, 0, full.width, full.height);
-    const found = pixels ? findPage(pixels.data, full.width, full.height) : null;
-    if (!found || (found.x === 0 && found.y === 0 && found.w === full.width && found.h === full.height)) {
-      return dataUrl;
-    }
-    return await blobToDataUrl(await canvasToBlob(renderScan(full, found)));
-  }
-  var ORDER = ["Combustível", "Alimentação", "Estadias", "Outros"];
-  async function exportMonthPdf(month, items, perPage = 4) {
-    await loadScript2(PDF_SRC);
-    const Ctor = window.jspdf?.jsPDF;
-    if (!Ctor) throw new Error("PDF indisponível neste browser.");
-
-    const count = [1, 2, 4, 6].includes(Number(perPage)) ? Number(perPage) : 4;
-    const doc = new Ctor({ unit: "mm", format: "a4", orientation: "portrait" });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 8;
-    const gap = 4;
-    const headerH = 13;
-    const usableW = pageW - margin * 2;
-    const usableH = pageH - margin * 2 - headerH;
-    const cols = count === 1 ? 1 : 2;
-    const rows = count === 1 ? 1 : count === 2 ? 2 : count === 4 ? 2 : 3;
-    const cellW = (usableW - gap * (cols - 1)) / cols;
-    const cellH = (usableH - gap * (rows - 1)) / rows;
-
-    const sorted = items.slice().sort((a, b) => {
-      const da = a.issuedDate ?? "";
-      const db = b.issuedDate ?? "";
-      return da < db ? -1 : da > db ? 1 : (a.createdAt ?? 0) - (b.createdAt ?? 0);
-    });
-
-    const addHeader = (pageNo) => {
-      doc.setFillColor(17, 17, 17);
-      doc.rect(0, 0, pageW, headerH, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.text("Faturas pela TCAP", margin, 8.5);
-      doc.setFont("helvetica", "normal");
-      doc.text(formatMonthKey(month) + "  ·  " + count + " por página", pageW - margin, 8.5, { align: "right" });
-      doc.setTextColor(17, 17, 17);
-    };
-
-    let pageIndex = -1;
-    for (let i = 0; i < sorted.length; i++) {
-      if (i % count === 0) {
-        doc.addPage();
-        pageIndex++;
-        addHeader(pageIndex + 1);
-      }
-      const slot = i % count;
-      const col = slot % cols;
-      const row = Math.floor(slot / cols);
-      const x = margin + col * (cellW + gap);
-      const y = margin + headerH + row * (cellH + gap);
-      const item = sorted[i];
-
-      const dataUrl = await preparePdfImage(item);
-      const size = await imageSize(dataUrl).catch(() => ({ w: 600, h: 800 }));
-      const labelH = 8;
-      const maxImgW = cellW;
-      const maxImgH = Math.max(20, cellH - labelH);
-      const ratio = Math.min(maxImgW / Math.max(1, size.w), maxImgH / Math.max(1, size.h));
-      const drawW = Math.max(1, size.w * ratio);
-      const drawH = Math.max(1, size.h * ratio);
-      const ix = x + (cellW - drawW) / 2;
-      const iy = y + (maxImgH - drawH) / 2;
-
-      // Fundo branco e moldura discreta: a imagem é a fatura recortada.
-      doc.setFillColor(255, 255, 255);
-      doc.rect(x, y, cellW, maxImgH, "F");
-      doc.setDrawColor(220, 220, 220);
-      doc.rect(x, y, cellW, maxImgH, "S");
-      const imageFormat = /^data:image\/png/i.test(dataUrl) ? "PNG" : "JPEG";
-      doc.addImage(dataUrl, imageFormat, ix, iy, drawW, drawH, undefined, "FAST");
-
-      const dateText = item.issuedDate ? item.issuedDate.split("-").reverse().join("/") : "Sem data";
-      const totalText = item.total == null ? "Sem total" : formatEuros(item.total);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      doc.setTextColor(45, 45, 45);
-      doc.text(dateText + "  ·  " + item.category, x, y + maxImgH + 5);
-      doc.text(totalText, x + cellW, y + maxImgH + 5, { align: "right" });
-      doc.setTextColor(17, 17, 17);
-    }
-
-    if (!sorted.length) {
-      doc.addPage();
-      addHeader(1);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      doc.text("Não existem faturas neste mês.", margin, margin + headerH + 12);
-    }
-
-    // Remove a página inicial vazia criada pelo construtor.
-    if (doc.getNumberOfPages() > 1) doc.deletePage(1);
-
-    const blob = doc.output("blob");
-    const filename = "faturas-" + month + "-" + count + "por-pagina.pdf";
-    const file = new File([blob], filename, { type: "application/pdf" });
-    if (navigator.canShare?.({ files: [file] }) && navigator.share) {
-      try {
-        await navigator.share({ files: [file], title: "Faturas " + formatMonthKey(month) });
-        return;
-      } catch (err) {
-        if (err?.name === "AbortError") return;
-      }
-    }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-  }
-  var DB_NAME = "faturas-tcap";
-  var STORE = "faturas";
-  function openDb() {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, 1);
-      req.onupgradeneeded = () => {
-        const db = req.result;
-        if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: "id" });
-      };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error ?? new Error("IndexedDB"));
-      req.onblocked = () => reject(new Error("IndexedDB bloqueado por outra janela."));
-    });
-  }
-  function txDone(tx) {
-    return new Promise((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error ?? new Error("IndexedDB"));
-      tx.onabort = () => reject(tx.error ?? new Error("IndexedDB abortado"));
-    });
-  }
-  async function saveFatura(fatura) {
-    const db = await openDb();
-    const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).put(fatura);
-    await txDone(tx);
-    db.close();
-  }
-  async function listFaturas() {
-    const db = await openDb();
-    const tx = db.transaction(STORE, "readonly");
-    const done = txDone(tx);
-    const req = tx.objectStore(STORE).getAll();
-
-    try {
-      const rows = await new Promise((resolve, reject) => {
-        req.onsuccess = () => resolve(req.result ?? []);
-        req.onerror = () => reject(req.error ?? new Error("IndexedDB"));
-      });
-      await done;
-      return rows.sort((a, b) => b.createdAt - a.createdAt);
-    } finally {
-      db.close();
+    .ft-nav {
+      max-width: 760px;
+      margin: 0 auto;
     }
   }
-  async function deleteFatura(id) {
-    const db = await openDb();
-    const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).delete(id);
-    await txDone(tx);
-    db.close();
-  }
-  var CATEGORIES = ["Combustível", "Alimentação", "Estadias", "Outros"];
-  var CSS = `
-.ft, .ft * { box-sizing: border-box; }
-.ft { min-height: 100dvh; background: #f2f2f3; color: #111; font-family: "Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif; font-size: 16px; line-height: 1.45; padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
-.ft button, .ft input, .ft select, .ft textarea { font: inherit; color: inherit; }
-.ft-top { display: flex; align-items: center; gap: 12px; padding: calc(14px + env(safe-area-inset-top)) 16px 14px; background: #111; color: #fff; }
-.ft-logo { width: 64px; height: 42px; flex: none; }
-.ft-kicker { margin: 0; color: #EB0A1E; font-size: 11px; font-weight: 700; letter-spacing: 0.16em; }
-.ft-top h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
-.ft-main { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-.ft-card { background: #fff; border: 1px solid #e4e4e6; border-radius: 18px; padding: 16px; }
-.ft-lead { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.03em; line-height: 1.2; }
-.ft-muted { color: #58595B; margin: 0; }
-.ft-steps { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
-.ft-steps li { display: flex; gap: 10px; align-items: flex-start; }
-.ft-num { flex: none; width: 26px; height: 26px; border-radius: 50%; background: #111; color: #fff; font-size: 13px; font-weight: 700; display: grid; place-items: center; }
-.ft-btn { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; border-radius: 14px; border: 0; background: #EB0A1E; color: #fff; font-weight: 700; padding: 12px 16px; }
-.ft-btn:disabled { opacity: 0.55; }
-.ft-btn.secondary { background: #fff; color: #111; border: 1px solid #cfcfd2; }
-.ft-btn.ghost { background: transparent; color: #111; border: 1px solid #cfcfd2; min-height: 44px; }
-.ft-btn.danger { background: #111; }
-.ft-row { display: flex; gap: 8px; }
-.ft-row > * { flex: 1; }
-.ft-nav { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 8px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.94); border-top: 1px solid #e4e4e6; backdrop-filter: blur(10px); z-index: 5; }
-.ft-nav button { flex: 1; min-height: 48px; border-radius: 12px; border: 0; background: transparent; color: #58595B; font-weight: 700; }
-.ft-nav button[aria-current="page"] { background: #111; color: #fff; }
-.ft-cam { position: fixed; inset: 0; background: #000; z-index: 20; display: flex; flex-direction: column; }
-.ft-cam video { flex: 1; width: 100%; object-fit: cover; background: #000; }
-.ft-cam-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px calc(18px + env(safe-area-inset-bottom)); background: #111; }
-.ft-shutter { width: 68px; height: 68px; border-radius: 50%; border: 4px solid #fff; background: #EB0A1E; padding: 0; }
-.ft-cam-bar button.link { background: none; border: 0; color: #fff; min-height: 48px; min-width: 72px; font-weight: 700; }
-.ft-scan { width: 100%; height: auto; border-radius: 12px; background: #fff; border: 1px solid #e4e4e6; display: block; }
-.ft label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: #58595B; }
-.ft input, .ft select, .ft textarea { width: 100%; min-height: 48px; border-radius: 12px; border: 1px solid #d0d0d3; background: #fff; padding: 10px 12px; font-weight: 600; color: #111; }
-.ft textarea { min-height: 120px; font-weight: 500; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-.ft-warn { background: #fff4f4; border: 1px solid #f3b7bd; color: #111; border-radius: 12px; padding: 10px 12px; margin: 0; }
-.ft-month { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.ft-month h2 { margin: 0; font-size: 20px; letter-spacing: -0.03em; }
-.ft-sum { margin: 0; font-size: 18px; font-weight: 800; color: #EB0A1E; }
-.ft-sub { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
-.ft-item { display: grid; grid-template-columns: 72px 1fr; gap: 10px; padding-top: 10px; border-top: 1px solid #eee; }
-.ft-item img { width: 72px; height: 96px; object-fit: cover; border-radius: 8px; background: #fff; border: 1px solid #e4e4e6; }
-.ft-item h3 { margin: 0; font-size: 16px; }
-.ft-item p { margin: 2px 0 0; }
-.ft-status { min-height: 1.2em; }
-.ft-hidden { display: none !important; }
-.ft-pdf-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; margin-top: 10px; }
-.ft-pdf-controls label { font-size: 12px; }
-.ft-pdf-controls select { min-height: 46px; }
- .ft-trim { display:grid; gap:8px; margin-top:10px; }
-.ft-trim-row { display:grid; grid-template-columns: 72px 1fr 52px; gap:8px; align-items:center; font-size:12px; }
-.ft-trim-row input[type=range] { width:100%; min-height:36px; accent-color:#EB0A1E; }
-.ft-trim-row output { text-align:right; font-variant-numeric:tabular-nums; }
-.ft-trim-help { margin:4px 0 0; font-size:12px; color:#666; }
-`;
-  function logo() {
-    return '<svg class="ft-logo" viewBox="0 0 86 56" aria-hidden="true"><g fill="none" stroke="#EB0A1E" stroke-width="5"><ellipse cx="30" cy="28" rx="22" ry="13" transform="rotate(-52 30 28)"/><ellipse cx="43" cy="28" rx="22" ry="13"/><ellipse cx="56" cy="28" rx="22" ry="13" transform="rotate(52 56 28)"/></g></svg>';
-  }
+  `;
+
+  /* =========================================================
+     UTILITÁRIOS
+  ========================================================= */
+
   function ensureStyle() {
     if (document.getElementById("ft-style")) return;
+
     const style = document.createElement("style");
     style.id = "ft-style";
     style.textContent = CSS;
     document.head.appendChild(style);
   }
-  function el(tag, attrs, html) {
+
+  function el(tag, attrs = {}, html = null) {
     const node = document.createElement(tag);
-    for (const pair of Object.entries(attrs || {})) node.setAttribute(pair[0], pair[1]);
-    if (html != null) node.innerHTML = html;
+
+    for (const [key, value] of Object.entries(attrs)) {
+      node.setAttribute(key, value);
+    }
+
+    if (html !== null) {
+      node.innerHTML = html;
+    }
+
     return node;
   }
-  function limitCanvas(src, maxSide) {
-    const scale = Math.min(1, maxSide / Math.max(src.width, src.height));
-    if (scale === 1) return src;
-    const c = document.createElement("canvas");
-    c.width = Math.max(1, Math.round(src.width * scale));
-    c.height = Math.max(1, Math.round(src.height * scale));
-    const ctx = c.getContext("2d");
-    if (!ctx) return src;
-    ctx.drawImage(src, 0, 0, c.width, c.height);
-    return c;
-  }
-  function renderScan(src, rect) {
-    // Mantém exatamente a resolução do recorte. Não aplica filtro, contraste
-    // nem redução de tamanho. O PNG preserva os pixels do canvas.
-    const c = document.createElement("canvas");
-    c.width = Math.max(1, Math.round(rect.w));
-    c.height = Math.max(1, Math.round(rect.h));
-    const ctx = c.getContext("2d");
-    if (!ctx) return c;
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(src, rect.x, rect.y, rect.w, rect.h, 0, 0, c.width, c.height);
-    return c;
-  }
-  async function canvasFromFile(file) {
-    if (!file || !file.type?.startsWith("image/")) throw new Error("formato");
-    // Safari/iPhone pode não aceitar o segundo argumento de createImageBitmap.
-    // Primeiro tentamos a versão simples, depois o decoder nativo via <img>.
-    let bmp = null;
-    try {
-      if (typeof createImageBitmap === "function") {
-        try {
-          bmp = await createImageBitmap(file);
-        } catch {
-          bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
-        }
-      }
-    } catch {}
 
-    if (bmp) {
-      const c = document.createElement("canvas");
-      c.width = bmp.width;
-      c.height = bmp.height;
-      const ctx = c.getContext("2d", { alpha: false });
-      if (!ctx) { bmp.close?.(); throw new Error("canvas"); }
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(bmp, 0, 0);
-      bmp.close?.();
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value)
+      .replace(/"/g, "&quot;");
+  }
+
+  function fold(s) {
+    return String(s ?? "")
+      .normalize("NFD")
+      .replace(/\p{M}/gu, "")
+      .toLowerCase();
+  }
+
+  function pad(n) {
+    return String(n).padStart(2, "0");
+  }
+
+  function formatEuros(value) {
+    if (value == null || !Number.isFinite(value)) {
+      return "—";
+    }
+
+    return value.toLocaleString("pt-PT", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }) + " €";
+  }
+
+  function monthKeyFromIso(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+      return "sem-data";
+    }
+
+    return iso.slice(0, 7);
+  }
+
+  function formatMonthKey(key) {
+    if (key === "sem-data") {
+      return "Sem data";
+    }
+
+    const parts = key.split("-");
+    const month = MONTH_LABELS[Number(parts[1]) - 1];
+
+    return month
+      ? month + " " + parts[0]
+      : key;
+  }
+
+  /* =========================================================
+     IMAGEM
+  ========================================================= */
+
+  function limitCanvas(src, maxSide) {
+    const scale =
+      Math.min(1, maxSide / Math.max(src.width, src.height));
+
+    if (scale === 1) {
+      return src;
+    }
+
+    const c = document.createElement("canvas");
+
+    c.width = Math.max(
+      1,
+      Math.round(src.width * scale)
+    );
+
+    c.height = Math.max(
+      1,
+      Math.round(src.height * scale)
+    );
+
+    const ctx = c.getContext("2d");
+
+    if (!ctx) {
+      return src;
+    }
+
+    ctx.drawImage(
+      src,
+      0,
+      0,
+      c.width,
+      c.height
+    );
+
+    return c;
+  }
+
+  function renderScan(src, rect) {
+    /*
+      IMPORTANTE:
+      Aqui apenas recortamos a fotografia.
+      Não aplicamos filtro, preto/branco ou contraste.
+    */
+
+    const c = document.createElement("canvas");
+
+    c.width = Math.max(
+      1,
+      Math.round(rect.w)
+    );
+
+    c.height = Math.max(
+      1,
+      Math.round(rect.h)
+    );
+
+    const ctx = c.getContext("2d", {
+      alpha: false
+    });
+
+    if (!ctx) {
       return c;
     }
 
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+
+    ctx.drawImage(
+      src,
+      rect.x,
+      rect.y,
+      rect.w,
+      rect.h,
+      0,
+      0,
+      c.width,
+      c.height
+    );
+
+    return c;
+  }
+
+  /*
+    NOVO:
+    Guardamos JPEG de alta qualidade em vez de PNG.
+    Isto reduz bastante o tamanho e é muito mais compatível
+    com iPhone/Safari + IndexedDB.
+  */
+
+  function canvasToBlob(canvas) {
+    return new Promise((resolve, reject) => {
+
+      if (
+        !canvas ||
+        !canvas.width ||
+        !canvas.height
+      ) {
+        reject(new Error("canvas inválido"));
+        return;
+      }
+
+      canvas.toBlob(
+        blob => {
+
+          if (!blob) {
+            reject(new Error("não foi possível criar a imagem"));
+            return;
+          }
+
+          if (!blob.size) {
+            reject(new Error("imagem vazia"));
+            return;
+          }
+
+          if (!blob.type.startsWith("image/")) {
+            reject(new Error("formato de imagem inválido"));
+            return;
+          }
+
+          resolve(blob);
+        },
+        "image/jpeg",
+        0.94
+      );
+    });
+  }
+
+  async function canvasFromFile(file) {
+
+    if (
+      !file ||
+      !file.type ||
+      !file.type.startsWith("image/")
+    ) {
+      throw new Error("formato");
+    }
+
+    /*
+      Primeiro tenta createImageBitmap.
+      Se Safari não aceitar, usa <img>.
+    */
+
+    if (typeof createImageBitmap === "function") {
+
+      try {
+
+        let bitmap;
+
+        try {
+          bitmap = await createImageBitmap(file);
+        } catch {
+          bitmap = await createImageBitmap(
+            file,
+            {
+              imageOrientation: "from-image"
+            }
+          );
+        }
+
+        const c = document.createElement("canvas");
+
+        c.width = bitmap.width;
+        c.height = bitmap.height;
+
+        const ctx = c.getContext("2d", {
+          alpha: false
+        });
+
+        if (!ctx) {
+          bitmap.close?.();
+          throw new Error("canvas");
+        }
+
+        ctx.drawImage(
+          bitmap,
+          0,
+          0
+        );
+
+        bitmap.close?.();
+
+        return c;
+
+      } catch {
+        /* Continua para o método <img>. */
+      }
+    }
+
+    /*
+      Fallback compatível com Safari.
+    */
+
     const url = URL.createObjectURL(file);
+
     try {
-      const img = await new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = () => reject(new Error("imagem"));
-        image.src = url;
-      });
-      const w = img.naturalWidth || img.width;
-      const h = img.naturalHeight || img.height;
-      if (!w || !h) throw new Error("dimensao");
+
+      const img = await new Promise(
+        (resolve, reject) => {
+
+          const image = new Image();
+
+          image.onload = () => resolve(image);
+
+          image.onerror = () =>
+            reject(new Error("imagem"));
+
+          image.src = url;
+        }
+      );
+
+      const width =
+        img.naturalWidth ||
+        img.width;
+
+      const height =
+        img.naturalHeight ||
+        img.height;
+
+      if (!width || !height) {
+        throw new Error("dimensao");
+      }
+
       const c = document.createElement("canvas");
-      c.width = w;
-      c.height = h;
-      const ctx = c.getContext("2d", { alpha: false });
-      if (!ctx) throw new Error("canvas");
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(img, 0, 0, w, h);
+
+      c.width = width;
+      c.height = height;
+
+      const ctx = c.getContext("2d", {
+        alpha: false
+      });
+
+      if (!ctx) {
+        throw new Error("canvas");
+      }
+
+      ctx.drawImage(
+        img,
+        0,
+        0,
+        width,
+        height
+      );
+
       return c;
+
     } finally {
+
       URL.revokeObjectURL(url);
     }
   }
-  function canvasToBlob(canvas) {
-    return new Promise((resolve, reject) => {
-      // PNG: sem compressão com perdas. A fotografia é apenas recortada.
-      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("sem imagem")), "image/png");
+
+  /* =========================================================
+     DETEÇÃO DA FOLHA
+  ========================================================= */
+
+  function clampRect(
+    x,
+    y,
+    w,
+    h,
+    iw,
+    ih
+  ) {
+
+    const x0 = Math.max(
+      0,
+      Math.min(
+        iw - 1,
+        Math.floor(x)
+      )
+    );
+
+    const y0 = Math.max(
+      0,
+      Math.min(
+        ih - 1,
+        Math.floor(y)
+      )
+    );
+
+    const x1 = Math.max(
+      x0 + 1,
+      Math.min(
+        iw,
+        Math.ceil(x + w)
+      )
+    );
+
+    const y1 = Math.max(
+      y0 + 1,
+      Math.min(
+        ih,
+        Math.ceil(y + h)
+      )
+    );
+
+    const rw = x1 - x0;
+    const rh = y1 - y0;
+
+    if (rw < 8 || rh < 8) {
+      return null;
+    }
+
+    return {
+      x: x0,
+      y: y0,
+      w: rw,
+      h: rh
+    };
+  }
+
+  function findPage(rgba, width, height) {
+
+    if (
+      !rgba ||
+      width < 40 ||
+      height < 40
+    ) {
+      return null;
+    }
+
+    /*
+      Para fotografias enormes usamos uma versão reduzida
+      apenas para detetar as bordas.
+    */
+
+    const maxW = 500;
+
+    if (width > maxW) {
+
+      const scale = maxW / width;
+      const nh = Math.max(
+        1,
+        Math.round(height * scale)
+      );
+
+      const small =
+        document.createElement("canvas");
+
+      small.width = maxW;
+      small.height = nh;
+
+      const ctx =
+        small.getContext("2d");
+
+      if (!ctx) {
+        return null;
+      }
+
+      /*
+        Reconstrói imagem reduzida a partir do RGBA.
+      */
+
+      const source =
+        new ImageData(
+          new Uint8ClampedArray(rgba),
+          width,
+          height
+        );
+
+      const original =
+        document.createElement("canvas");
+
+      original.width = width;
+      original.height = height;
+
+      const originalCtx =
+        original.getContext("2d");
+
+      if (!originalCtx) {
+        return null;
+      }
+
+      originalCtx.putImageData(
+        source,
+        0,
+        0
+      );
+
+      ctx.drawImage(
+        original,
+        0,
+        0,
+        maxW,
+        nh
+      );
+
+      const reduced =
+        ctx.getImageData(
+          0,
+          0,
+          maxW,
+          nh
+        );
+
+      const found =
+        findPage(
+          reduced.data,
+          maxW,
+          nh
+        );
+
+      if (!found) {
+        return null;
+      }
+
+      return clampRect(
+        found.x / scale,
+        found.y / scale,
+        found.w / scale,
+        found.h / scale,
+        width,
+        height
+      );
+    }
+
+    const gray =
+      new Uint8Array(
+        width * height
+      );
+
+    for (
+      let i = 0;
+      i < gray.length;
+      i++
+    ) {
+
+      const o = i * 4;
+
+      gray[i] =
+        (
+          77 * rgba[o] +
+          150 * rgba[o + 1] +
+          29 * rgba[o + 2]
+        ) >> 8;
+    }
+
+    /*
+      Estimamos a luminosidade dos cantos.
+    */
+
+    const patch =
+      Math.max(
+        3,
+        Math.round(
+          Math.min(width, height) * .08
+        )
+      );
+
+    function cornerMean(
+      x0,
+      y0,
+      x1,
+      y1
+    ) {
+
+      let sum = 0;
+      let count = 0;
+
+      for (
+        let y = y0;
+        y < y1;
+        y++
+      ) {
+
+        for (
+          let x = x0;
+          x < x1;
+          x++
+        ) {
+
+          sum +=
+            gray[y * width + x];
+
+          count++;
+        }
+      }
+
+      return count
+        ? sum / count
+        : 0;
+    }
+
+    const bg =
+      (
+        cornerMean(
+          0,
+          0,
+          patch,
+          patch
+        ) +
+        cornerMean(
+          width - patch,
+          0,
+          width,
+          patch
+        ) +
+        cornerMean(
+          0,
+          height - patch,
+          patch,
+          height
+        ) +
+        cornerMean(
+          width - patch,
+          height - patch,
+          width,
+          height
+        )
+      ) / 4;
+
+    /*
+      Procura zonas claras.
+    */
+
+    const threshold =
+      Math.max(
+        155,
+        Math.min(
+          225,
+          bg + 22
+        )
+      );
+
+    const paper =
+      new Uint8Array(
+        width * height
+      );
+
+    for (
+      let i = 0;
+      i < paper.length;
+      i++
+    ) {
+      paper[i] =
+        gray[i] >= threshold
+          ? 1
+          : 0;
+    }
+
+    /*
+      Em vez de algoritmos pesados,
+      procuramos a maior zona clara interior.
+    */
+
+    let minX = width;
+    let minY = height;
+    let maxX = -1;
+    let maxY = -1;
+    let count = 0;
+
+    const step =
+      Math.max(
+        1,
+        Math.floor(
+          Math.min(width, height) / 300
+        )
+      );
+
+    for (
+      let y = 0;
+      y < height;
+      y += step
+    ) {
+
+      for (
+        let x = 0;
+        x < width;
+        x += step
+      ) {
+
+        if (!paper[y * width + x]) {
+          continue;
+        }
+
+        count++;
+
+        minX =
+          Math.min(minX, x);
+
+        minY =
+          Math.min(minY, y);
+
+        maxX =
+          Math.max(maxX, x);
+
+        maxY =
+          Math.max(maxY, y);
+      }
+    }
+
+    if (count < 50) {
+      return null;
+    }
+
+    const rw =
+      maxX - minX + 1;
+
+    const rh =
+      maxY - minY + 1;
+
+    /*
+      Se a zona encontrada ocupa quase a fotografia toda,
+      preferimos a fotografia inteira.
+    */
+
+    if (
+      rw < width * .18 ||
+      rh < height * .18
+    ) {
+      return null;
+    }
+
+    if (
+      rw > width * .995 &&
+      rh > height * .995
+    ) {
+      return null;
+    }
+
+    const pad =
+      Math.max(
+        2,
+        Math.round(
+          Math.min(width, height) * .01
+        )
+      );
+
+    return clampRect(
+      minX - pad,
+      minY - pad,
+      rw + pad * 2,
+      rh + pad * 2,
+      width,
+      height
+    );
+  }
+
+  function expandRect(
+    rect,
+    iw,
+    ih,
+    fraction
+  ) {
+
+    const dx =
+      rect.w * fraction;
+
+    const dy =
+      rect.h * fraction;
+
+    return clampRect(
+      rect.x - dx,
+      rect.y - dy,
+      rect.w + dx * 2,
+      rect.h + dy * 2,
+      iw,
+      ih
+    ) || rect;
+  }
+
+  function shrinkRect(
+    rect,
+    iw,
+    ih,
+    fraction
+  ) {
+
+    const dx =
+      rect.w * fraction;
+
+    const dy =
+      rect.h * fraction;
+
+    return clampRect(
+      rect.x + dx,
+      rect.y + dy,
+      rect.w - dx * 2,
+      rect.h - dy * 2,
+      iw,
+      ih
+    ) || rect;
+  }
+
+  /* =========================================================
+     OCR / DATAS
+  ========================================================= */
+
+  function validDate(
+    year,
+    month,
+    day
+  ) {
+
+    if (
+      year < 1990 ||
+      year > 2099 ||
+      month < 1 ||
+      month > 12 ||
+      day < 1 ||
+      day > 31
+    ) {
+      return false;
+    }
+
+    const d =
+      new Date(
+        Date.UTC(
+          year,
+          month - 1,
+          day
+        )
+      );
+
+    return (
+      d.getUTCFullYear() === year &&
+      d.getUTCMonth() === month - 1 &&
+      d.getUTCDate() === day
+    );
+  }
+
+  function expandYear(year) {
+
+    if (year >= 100) {
+      return year;
+    }
+
+    return year >= 70
+      ? 1900 + year
+      : 2000 + year;
+  }
+
+  function pushDate(
+    list,
+    year,
+    month,
+    day,
+    score
+  ) {
+
+    year = expandYear(year);
+
+    if (
+      !validDate(
+        year,
+        month,
+        day
+      )
+    ) {
+      return;
+    }
+
+    const iso =
+      year +
+      "-" +
+      pad(month) +
+      "-" +
+      pad(day);
+
+    if (
+      list.some(
+        x => x.iso === iso
+      )
+    ) {
+      return;
+    }
+
+    list.push({
+      iso,
+      display:
+        pad(day) +
+        "/" +
+        pad(month) +
+        "/" +
+        year,
+      score
     });
   }
-  function mountFaturas(root2) {
+
+  function parseEmissionDate(text) {
+
+    if (!text) {
+      return null;
+    }
+
+    const source =
+      fold(text);
+
+    const found = [];
+
+    let m;
+
+    /*
+      YYYY-MM-DD
+    */
+
+    const ymd =
+      /(\d{4})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{1,2})/g;
+
+    while ((m = ymd.exec(source))) {
+
+      pushDate(
+        found,
+        Number(m[1]),
+        Number(m[2]),
+        Number(m[3]),
+        100
+      );
+    }
+
+    /*
+      DD/MM/YYYY
+    */
+
+    const dmy =
+      /(\d{1,2})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{2,4})/g;
+
+    while ((m = dmy.exec(source))) {
+
+      const day = Number(m[1]);
+      const month = Number(m[2]);
+      const year = Number(m[3]);
+
+      pushDate(
+        found,
+        year,
+        month,
+        day,
+        source.includes("emiss")
+          ? 100
+          : 70
+      );
+    }
+
+    /*
+      12 de março de 2026
+    */
+
+    const written =
+      new RegExp(
+        "(\\\\d{1,2})\\\\s+de\\\\s+(" +
+        Object.keys(MONTHS).join("|") +
+        ")\\\\.?\\\\s+de\\\\s+(\\\\d{4})",
+        "g"
+      );
+
+    while ((m = written.exec(source))) {
+
+      pushDate(
+        found,
+        Number(m[3]),
+        MONTHS[m[2]],
+        Number(m[1]),
+        105
+      );
+    }
+
+    /*
+      Preferimos datas perto de "emissão".
+    */
+
+    found.sort(
+      (a, b) =>
+        b.score - a.score
+    );
+
+    return found[0] || null;
+  }
+
+  /* =========================================================
+     VALOR
+  ========================================================= */
+
+  function parseEuroAmount(value) {
+
+    let text =
+      String(value ?? "")
+        .replace(/\s/g, "")
+        .replace(/€/g, "")
+        .replace(/eur/gi, "");
+
+    if (!text) {
+      return null;
+    }
+
+    /*
+      1.234,56
+    */
+
+    if (
+      /^\d{1,3}(?:\.\d{3})+,\d{1,2}$/
+        .test(text)
+    ) {
+
+      return Number(
+        text
+          .replace(/\./g, "")
+          .replace(",", ".")
+      );
+    }
+
+    /*
+      1234,56
+    */
+
+    if (
+      /^\d+,\d{1,2}$/.test(text)
+    ) {
+
+      return Number(
+        text.replace(",", ".")
+      );
+    }
+
+    /*
+      1234.56
+    */
+
+    if (
+      /^\d+\.\d{1,2}$/.test(text)
+    ) {
+
+      return Number(text);
+    }
+
+    /*
+      Inteiro.
+    */
+
+    if (/^\d+$/.test(text)) {
+      return Number(text);
+    }
+
+    return null;
+  }
+
+  function parseUserTotal(value) {
+
+    const text =
+      String(value ?? "")
+        .trim()
+        .replace(/\s/g, "")
+        .replace(/€/g, "")
+        .replace(/eur/gi, "");
+
+    if (!text) {
+      return null;
+    }
+
+    return parseEuroAmount(text);
+  }
+
+  function parseTotal(text) {
+
+    if (!text) {
+      return null;
+    }
+
+    const lines =
+      text.split(/\r?\n/);
+
+    const found = [];
+
+    const regex =
+      /\b(total\s+a\s+pagar|valor\s+a\s+pagar|total\s+geral|total\s+pago|valor\s+pago|a\s+pagar|importe|montante|total)\b[^\d]{0,20}(\d{1,3}(?:[.,]\d{3})*[.,]\d{1,2}|\d+[.,]\d{1,2}|\d+)/gi;
+
+    for (let i = 0; i < lines.length; i++) {
+
+      const line =
+        lines[i];
+
+      let match;
+
+      while ((match = regex.exec(line))) {
+
+        const euros =
+          parseEuroAmount(match[2]);
+
+        if (
+          euros == null ||
+          !Number.isFinite(euros) ||
+          euros > 1000000
+        ) {
+          continue;
+        }
+
+        const label =
+          fold(match[1]);
+
+        let score = 60;
+
+        if (
+          /valor\s+a\s+pagar|total\s+a\s+pagar|total\s+geral/
+            .test(label)
+        ) {
+          score = 120;
+        }
+
+        if (
+          /valor\s+pago|total\s+pago|a\s+pagar/
+            .test(label)
+        ) {
+          score = 100;
+        }
+
+        found.push({
+          euros,
+          score,
+          index: i
+        });
+      }
+    }
+
+    /*
+      OCR às vezes devolve:
+
+      TOTAL
+      6,69
+    */
+
+    if (!found.length) {
+
+      for (let i = 0; i < lines.length - 1; i++) {
+
+        if (
+          /\btotal\b|\bpagar\b|\bimporte\b|\bmontante\b/i
+            .test(lines[i])
+        ) {
+
+          const euros =
+            parseEuroAmount(
+              lines[i + 1]
+            );
+
+          if (
+            euros != null &&
+            euros >= 0 &&
+            euros < 1000000
+          ) {
+
+            found.push({
+              euros,
+              score: 80,
+              index: i
+            });
+          }
+        }
+      }
+    }
+
+    found.sort(
+      (a, b) =>
+        b.score - a.score ||
+        b.index - a.index
+    );
+
+    return found[0] || null;
+  }
+
+  /* =========================================================
+     CATEGORIA
+  ========================================================= */
+
+  function categorize(text) {
+
+    const s = fold(text);
+
+    if (
+      /\b(galp|repsol|cepsa|prio|gasoleo|gasolina|combustivel|diesel|q8|posto|bp)\b/
+        .test(s)
+    ) {
+      return "Combustível";
+    }
+
+    if (
+      /\b(hotel|hostel|airbnb|pousada|alojamento|dormida|pensao|ibis|pestana|marriott|booking|resort|campanile)\b/
+        .test(s)
+    ) {
+      return "Estadias";
+    }
+
+    if (
+      /\b(continente|pingo doce|pingodoce|auchan|lidl|mercadona|minipreco|intermarche|padaria|pastelaria|restaurante|cafe|mcdonald|burger|pizza|supermercado|talho|peixaria|mercearia|aldi|spar)\b/
+        .test(s)
+    ) {
+      return "Alimentação";
+    }
+
+    return "Outros";
+  }
+
+  /* =========================================================
+     TESSERACT
+  ========================================================= */
+
+  let workerPromise = null;
+
+  function loadScript(src) {
+
+    return new Promise(
+      (resolve, reject) => {
+
+        const old =
+          document.querySelector(
+            'script[data-ft-src="' +
+            src +
+            '"]'
+          );
+
+        if (old) {
+
+          if (
+            old.dataset.loaded === "1"
+          ) {
+            resolve();
+            return;
+          }
+
+          old.addEventListener(
+            "load",
+            resolve,
+            { once: true }
+          );
+
+          old.addEventListener(
+            "error",
+            () =>
+              reject(
+                new Error(
+                  "falha ao carregar script"
+                )
+              ),
+            { once: true }
+          );
+
+          return;
+        }
+
+        const script =
+          document.createElement("script");
+
+        script.src = src;
+        script.async = true;
+        script.dataset.ftSrc = src;
+
+        script.onload = () => {
+          script.dataset.loaded = "1";
+          resolve();
+        };
+
+        script.onerror = () =>
+          reject(
+            new Error(
+              "Não foi possível carregar o leitor."
+            )
+          );
+
+        document.head.appendChild(script);
+      }
+    );
+  }
+
+  async function makeWorker(
+    language,
+    onStatus
+  ) {
+
+    await loadScript(TESS_SRC);
+
+    if (!window.Tesseract) {
+      throw new Error(
+        "Tesseract indisponível."
+      );
+    }
+
+    onStatus(
+      language === "por"
+        ? "A preparar leitura em português…"
+        : "A preparar leitura…"
+    );
+
+    const worker =
+      await window.Tesseract.createWorker(
+        language,
+        1,
+        {
+          workerPath:
+            "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
+
+          corePath:
+            "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1",
+
+          langPath:
+            "https://tessdata.projectnaptha.com/4.0.0",
+
+          logger: message => {
+
+            if (
+              message.status ===
+                "recognizing text" &&
+              typeof message.progress ===
+                "number"
+            ) {
+
+              onStatus(
+                "A ler o talão… " +
+                Math.round(
+                  message.progress * 100
+                ) +
+                "%"
+              );
+            }
+          }
+        }
+      );
+
+    await worker.setParameters({
+      tessedit_pageseg_mode: "6",
+      preserve_interword_spaces: "1"
+    });
+
+    return worker;
+  }
+
+  async function getWorker(onStatus) {
+
+    if (!workerPromise) {
+
+      workerPromise =
+        makeWorker(
+          "por",
+          onStatus
+        ).catch(() => {
+
+          onStatus(
+            "Português indisponível. A tentar inglês…"
+          );
+
+          return makeWorker(
+            "eng",
+            onStatus
+          );
+
+        }).catch(error => {
+
+          workerPromise = null;
+          throw error;
+        });
+    }
+
+    return workerPromise;
+  }
+
+  function prepareOcrCanvas(
+    src
+  ) {
+
+    const maxWidth = 1800;
+
+    const factor =
+      Math.min(
+        1.5,
+        maxWidth /
+          Math.max(1, src.width)
+      );
+
+    const c =
+      document.createElement(
+        "canvas"
+      );
+
+    c.width =
+      Math.max(
+        1,
+        Math.round(
+          src.width * factor
+        )
+      );
+
+    c.height =
+      Math.max(
+        1,
+        Math.round(
+          src.height * factor
+        )
+      );
+
+    const ctx =
+      c.getContext("2d");
+
+    if (!ctx) {
+      return src;
+    }
+
+    ctx.drawImage(
+      src,
+      0,
+      0,
+      c.width,
+      c.height
+    );
+
+    return c;
+  }
+
+  async function recognize(
+    worker,
+    canvas
+  ) {
+
+    const result =
+      await worker.recognize(
+        canvas
+      );
+
+    return result?.data?.text || "";
+  }
+
+  async function readReceipt(
+    canvas,
+    onStatus
+  ) {
+
+    const worker =
+      await getWorker(
+        onStatus
+      );
+
+    onStatus(
+      "A ler o talão…"
+    );
+
+    const prepared =
+      prepareOcrCanvas(
+        limitCanvas(
+          canvas,
+          1800
+        )
+      );
+
+    let text =
+      await recognize(
+        worker,
+        prepared
+      );
+
+    return text;
+  }
+
+  /* =========================================================
+     INDEXED DB
+  ========================================================= */
+
+  function openDb() {
+
+    return new Promise(
+      (resolve, reject) => {
+
+        const request =
+          indexedDB.open(
+            DB_NAME,
+            1
+          );
+
+        request.onupgradeneeded =
+          () => {
+
+            const db =
+              request.result;
+
+            if (
+              !db.objectStoreNames
+                .contains(STORE)
+            ) {
+
+              db.createObjectStore(
+                STORE,
+                {
+                  keyPath: "id"
+                }
+              );
+            }
+          };
+
+        request.onsuccess =
+          () => resolve(
+            request.result
+          );
+
+        request.onerror =
+          () =>
+            reject(
+              request.error ||
+              new Error(
+                "IndexedDB"
+              )
+            );
+      }
+    );
+  }
+
+  function txDone(tx) {
+
+    return new Promise(
+      (resolve, reject) => {
+
+        tx.oncomplete =
+          () => resolve();
+
+        tx.onerror =
+          () =>
+            reject(
+              tx.error ||
+              new Error(
+                "IndexedDB"
+              )
+            );
+
+        tx.onabort =
+          () =>
+            reject(
+              tx.error ||
+              new Error(
+                "IndexedDB abortado"
+              )
+            );
+      }
+    );
+  }
+
+  async function saveFatura(
+    fatura
+  ) {
+
+    const db =
+      await openDb();
+
+    try {
+
+      const tx =
+        db.transaction(
+          STORE,
+          "readwrite"
+        );
+
+      tx.objectStore(
+        STORE
+      ).put(fatura);
+
+      await txDone(tx);
+
+    } finally {
+
+      db.close();
+    }
+  }
+
+  async function listFaturas() {
+
+    const db =
+      await openDb();
+
+    try {
+
+      const tx =
+        db.transaction(
+          STORE,
+          "readonly"
+        );
+
+      const request =
+        tx.objectStore(
+          STORE
+        ).getAll();
+
+      const rows =
+        await new Promise(
+          (resolve, reject) => {
+
+            request.onsuccess =
+              () =>
+                resolve(
+                  request.result || []
+                );
+
+            request.onerror =
+              () =>
+                reject(
+                  request.error
+                );
+          }
+        );
+
+      return rows.sort(
+        (a, b) =>
+          (b.createdAt || 0) -
+          (a.createdAt || 0)
+      );
+
+    } finally {
+
+      db.close();
+    }
+  }
+
+  async function deleteFatura(
+    id
+  ) {
+
+    const db =
+      await openDb();
+
+    try {
+
+      const tx =
+        db.transaction(
+          STORE,
+          "readwrite"
+        );
+
+      tx.objectStore(
+        STORE
+      ).delete(id);
+
+      await txDone(tx);
+
+    } finally {
+
+      db.close();
+    }
+  }
+
+  /* =========================================================
+     PDF
+  ========================================================= */
+
+  async function exportMonthPdf(
+    month,
+    items,
+    perPage
+  ) {
+
+    await loadScript(
+      PDF_SRC
+    );
+
+    const JsPDF =
+      window.jspdf?.jsPDF;
+
+    if (!JsPDF) {
+      throw new Error(
+        "PDF indisponível."
+      );
+    }
+
+    const count =
+      [1, 2, 4, 6].includes(
+        Number(perPage)
+      )
+        ? Number(perPage)
+        : 4;
+
+    const doc =
+      new JsPDF({
+        unit: "mm",
+        format: "a4",
+        orientation: "portrait"
+      });
+
+    const pageW =
+      doc.internal.pageSize.getWidth();
+
+    const pageH =
+      doc.internal.pageSize.getHeight();
+
+    const margin = 8;
+    const gap = 4;
+    const headerH = 13;
+
+    const usableW =
+      pageW - margin * 2;
+
+    const usableH =
+      pageH -
+      margin * 2 -
+      headerH;
+
+    const cols =
+      count === 1
+        ? 1
+        : 2;
+
+    const rows =
+      count === 1
+        ? 1
+        : count === 2
+          ? 2
+          : count === 4
+            ? 2
+            : 3;
+
+    const cellW =
+      (
+        usableW -
+        gap * (cols - 1)
+      ) / cols;
+
+    const cellH =
+      (
+        usableH -
+        gap * (rows - 1)
+      ) / rows;
+
+    const sorted =
+      items.slice().sort(
+        (a, b) =>
+          String(a.issuedDate || "")
+            .localeCompare(
+              String(b.issuedDate || "")
+            )
+      );
+
+    function header() {
+
+      doc.setFillColor(
+        17,
+        17,
+        17
+      );
+
+      doc.rect(
+        0,
+        0,
+        pageW,
+        headerH,
+        "F"
+      );
+
+      doc.setTextColor(
+        255,
+        255,
+        255
+      );
+
+      doc.setFont(
+        "helvetica",
+        "bold"
+      );
+
+      doc.setFontSize(9);
+
+      doc.text(
+        "Faturas pela TCAP",
+        margin,
+        8.5
+      );
+
+      doc.setFont(
+        "helvetica",
+        "normal"
+      );
+
+      doc.text(
+        formatMonthKey(month) +
+        " · " +
+        count +
+        " por página",
+        pageW - margin,
+        8.5,
+        {
+          align: "right"
+        }
+      );
+
+      doc.setTextColor(
+        17,
+        17,
+        17
+      );
+    }
+
+    for (
+      let i = 0;
+      i < sorted.length;
+      i++
+    ) {
+
+      if (i % count === 0) {
+
+        doc.addPage();
+
+        header();
+      }
+
+      const slot =
+        i % count;
+
+      const col =
+        slot % cols;
+
+      const row =
+        Math.floor(
+          slot / cols
+        );
+
+      const x =
+        margin +
+        col *
+          (cellW + gap);
+
+      const y =
+        margin +
+        headerH +
+        row *
+          (cellH + gap);
+
+      const item =
+        sorted[i];
+
+      /*
+        Converte o Blob para data URL.
+      */
+
+      const dataUrl =
+        await blobToDataUrl(
+          item.image
+        );
+
+      const size =
+        await imageSize(
+          dataUrl
+        );
+
+      const labelH = 8;
+
+      const maxW =
+        cellW;
+
+      const maxH =
+        Math.max(
+          20,
+          cellH - labelH
+        );
+
+      const ratio =
+        Math.min(
+          maxW / size.w,
+          maxH / size.h
+        );
+
+      const drawW =
+        size.w * ratio;
+
+      const drawH =
+        size.h * ratio;
+
+      const ix =
+        x +
+        (cellW - drawW) / 2;
+
+      const iy =
+        y +
+        (maxH - drawH) / 2;
+
+      doc.setFillColor(
+        255,
+        255,
+        255
+      );
+
+      doc.rect(
+        x,
+        y,
+        cellW,
+        maxH,
+        "F"
+      );
+
+      doc.setDrawColor(
+        220,
+        220,
+        220
+      );
+
+      doc.rect(
+        x,
+        y,
+        cellW,
+        maxH,
+        "S"
+      );
+
+      /*
+        Todas as novas fotos são JPEG.
+      */
+
+      doc.addImage(
+        dataUrl,
+        "JPEG",
+        ix,
+        iy,
+        drawW,
+        drawH,
+        undefined,
+        "FAST"
+      );
+
+      const dateText =
+        item.issuedDate
+          ? item.issuedDate
+              .split("-")
+              .reverse()
+              .join("/")
+          : "Sem data";
+
+      const totalText =
+        item.total == null
+          ? "Sem total"
+          : formatEuros(
+              item.total
+            );
+
+      doc.setFont(
+        "helvetica",
+        "normal"
+      );
+
+      doc.setFontSize(7);
+
+      doc.setTextColor(
+        45,
+        45,
+        45
+      );
+
+      doc.text(
+        dateText +
+        " · " +
+        item.category,
+        x,
+        y + maxH + 5
+      );
+
+      doc.text(
+        totalText,
+        x + cellW,
+        y + maxH + 5,
+        {
+          align: "right"
+        }
+      );
+    }
+
+    if (!sorted.length) {
+
+      doc.addPage();
+
+      header();
+
+      doc.setFontSize(11);
+
+      doc.text(
+        "Não existem faturas neste mês.",
+        margin,
+        margin +
+          headerH +
+          12
+      );
+    }
+
+    /*
+      Remove primeira página vazia.
+    */
+
+    if (
+      doc.getNumberOfPages() > 1
+    ) {
+      doc.deletePage(1);
+    }
+
+    const blob =
+      doc.output("blob");
+
+    const filename =
+      "faturas-" +
+      month +
+      "-" +
+      count +
+      "por-pagina.pdf";
+
+    const file =
+      new File(
+        [blob],
+        filename,
+        {
+          type: "application/pdf"
+        }
+      );
+
+    if (
+      navigator.canShare?.({
+        files: [file]
+      }) &&
+      navigator.share
+    ) {
+
+      try {
+
+        await navigator.share({
+          files: [file],
+          title:
+            "Faturas " +
+            formatMonthKey(month)
+        });
+
+        return;
+
+      } catch (error) {
+
+        if (
+          error?.name ===
+          "AbortError"
+        ) {
+          return;
+        }
+      }
+    }
+
+    const url =
+      URL.createObjectURL(
+        blob
+      );
+
+    const a =
+      document.createElement("a");
+
+    a.href = url;
+    a.download = filename;
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    a.remove();
+
+    setTimeout(
+      () =>
+        URL.revokeObjectURL(url),
+      4000
+    );
+  }
+
+  function blobToDataUrl(blob) {
+
+    return new Promise(
+      (resolve, reject) => {
+
+        if (!blob) {
+          reject(
+            new Error(
+              "imagem inexistente"
+            )
+          );
+
+          return;
+        }
+
+        const reader =
+          new FileReader();
+
+        reader.onload =
+          () =>
+            resolve(
+              String(
+                reader.result
+              )
+            );
+
+        reader.onerror =
+          () =>
+            reject(
+              reader.error ||
+              new Error(
+                "imagem"
+              )
+            );
+
+        reader.readAsDataURL(
+          blob
+        );
+      }
+    );
+  }
+
+  function imageSize(
+    dataUrl
+  ) {
+
+    return new Promise(
+      (resolve, reject) => {
+
+        const img =
+          new Image();
+
+        img.onload =
+          () =>
+            resolve({
+              w:
+                img.naturalWidth ||
+                img.width,
+
+              h:
+                img.naturalHeight ||
+                img.height
+            });
+
+        img.onerror =
+          () =>
+            reject(
+              new Error(
+                "imagem inválida"
+              )
+            );
+
+        img.src =
+          dataUrl;
+      }
+    );
+  }
+
+  /* =========================================================
+     APLICAÇÃO
+  ========================================================= */
+
+  function logo() {
+
+    return `
+      <svg
+        class="ft-logo"
+        viewBox="0 0 86 56"
+        aria-hidden="true"
+      >
+        <g
+          fill="none"
+          stroke="#EB0A1E"
+          stroke-width="5"
+        >
+          <ellipse
+            cx="30"
+            cy="28"
+            rx="22"
+            ry="13"
+            transform="rotate(-52 30 28)"
+          />
+
+          <ellipse
+            cx="43"
+            cy="28"
+            rx="22"
+            ry="13"
+          />
+
+          <ellipse
+            cx="56"
+            cy="28"
+            rx="22"
+            ry="13"
+            transform="rotate(52 56 28)"
+          />
+        </g>
+      </svg>
+    `;
+  }
+
+  function mountFaturas(
+    root
+  ) {
+
     ensureStyle();
-    root2.replaceChildren();
-    root2.className = "ft";
-    const header = el("header", { class: "ft-top" });
-    header.innerHTML = logo() + '<div><p class="ft-kicker">PELA TCAP</p><h1>Faturas</h1></div>';
-    const main = el("main", { class: "ft-main" });
-    const nav = el("nav", { class: "ft-nav" });
-    nav.innerHTML = '<button type="button" data-tab="nova">Nova</button><button type="button" data-tab="arquivo">Arquivo</button>';
-    const fileCam = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp,image/*", capture: "environment", class: "ft-hidden", "aria-label": "Fotografar talão" });
-    const fileLib = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp,image/*", class: "ft-hidden", "aria-label": "Escolher da galeria" });
-    const fileBatch = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp,image/*", multiple: "true", class: "ft-hidden", "aria-label": "Escolher várias faturas" });
-    root2.append(header, main, nav, fileCam, fileLib, fileBatch);
+
+    root.replaceChildren();
+
+    root.className = "ft";
+
+    const header =
+      el(
+        "header",
+        {
+          class: "ft-top"
+        }
+      );
+
+    header.innerHTML =
+      logo() +
+      `
+        <div>
+          <p class="ft-kicker">
+            PELA TCAP
+          </p>
+
+          <h1>
+            Faturas
+          </h1>
+        </div>
+      `;
+
+    const main =
+      el(
+        "main",
+        {
+          class: "ft-main"
+        }
+      );
+
+    const nav =
+      el(
+        "nav",
+        {
+          class: "ft-nav"
+        }
+      );
+
+    nav.innerHTML = `
+      <button
+        type="button"
+        data-tab="nova"
+      >
+        Nova
+      </button>
+
+      <button
+        type="button"
+        data-tab="arquivo"
+      >
+        Arquivo
+      </button>
+    `;
+
+    const fileCam =
+      el(
+        "input",
+        {
+          type: "file",
+          accept:
+            "image/jpeg,image/png,image/webp,image/*",
+          capture: "environment",
+          class: "ft-hidden"
+        }
+      );
+
+    const fileLib =
+      el(
+        "input",
+        {
+          type: "file",
+          accept:
+            "image/jpeg,image/png,image/webp,image/*",
+          class: "ft-hidden"
+        }
+      );
+
+    const fileBatch =
+      el(
+        "input",
+        {
+          type: "file",
+          accept:
+            "image/jpeg,image/png,image/webp,image/*",
+          multiple: "true",
+          class: "ft-hidden"
+        }
+      );
+
+    root.append(
+      header,
+      main,
+      nav,
+      fileCam,
+      fileLib,
+      fileBatch
+    );
+
     let source = null;
-    let rect = null;
-    let cropFailed = false;
     let scan = null;
+    let rect = null;
+
+    let cropFailed = false;
     let busy = false;
     let reading = false;
     let ocrToken = 0;
+
     const urls = [];
-    const revoke = () => {
-      for (const u of urls) URL.revokeObjectURL(u);
-      urls.length = 0;
-    };
-    const setTab = (next) => {
-      for (const btn of nav.querySelectorAll("button")) {
-        if (btn.getAttribute("data-tab") === next) btn.setAttribute("aria-current", "page");
-        else btn.removeAttribute("aria-current");
+
+    function revokeUrls() {
+
+      for (const url of urls) {
+        URL.revokeObjectURL(url);
       }
-    };
-    function showHome() {
-      setTab("nova");
-      nav.classList.remove("ft-hidden");
-      main.replaceChildren();
-      const card = el("section", { class: "ft-card" });
-      card.innerHTML = '<h2 class="ft-lead">A foto fica como a câmara a viu.</h2><p class="ft-muted">Sem filtro. Sem ficar preta. Só corta à volta da folha, com os mesmos pixels.</p><ol class="ft-steps"><li><span class="ft-num">1</span><span>Fotografa com a câmara traseira.</span></li><li><span class="ft-num">2</span><span>Confirma a data de emissão e o total. Se não ler, escreve tu.</span></li><li><span class="ft-num">3</span><span>No arquivo, exporta o PDF do mês.</span></li></ol>';
-      const shoot = el("button", { class: "ft-btn", type: "button" });
-      shoot.textContent = "Fotografar talão";
-      const gallery = el("button", { class: "ft-btn secondary", type: "button" });
-      gallery.textContent = "Escolher da galeria";
-      const batch = el("button", { class: "ft-btn secondary", type: "button" });
-      batch.textContent = "Importar várias faturas";
-      // Usa o seletor nativo de fotografia do sistema: funciona em Safari/iPhone
-      // e Chrome/Android sem depender de getUserMedia ou de permissões WebRTC.
-      shoot.addEventListener("click", () => fileCam.click());
-      gallery.addEventListener("click", () => fileLib.click());
-      batch.addEventListener("click", () => fileBatch.click());
-      main.append(card, shoot, gallery, batch);
+
+      urls.length = 0;
     }
-    // A fotografia é aberta pelo input file com capture="environment".
-    // Isto é deliberado: é a opção mais compatível entre iPhone/iPad e Android.
-    async function beginReview(full) {
+
+    function setTab(
+      tab
+    ) {
+
+      nav
+        .querySelectorAll(
+          "button"
+        )
+        .forEach(
+          button => {
+
+            if (
+              button.dataset.tab ===
+              tab
+            ) {
+
+              button.setAttribute(
+                "aria-current",
+                "page"
+              );
+
+            } else {
+
+              button.removeAttribute(
+                "aria-current"
+              );
+            }
+          }
+        );
+    }
+
+    function showHome() {
+
+      setTab("nova");
+
+      nav.classList.remove(
+        "ft-hidden"
+      );
+
+      main.replaceChildren();
+
+      const card =
+        el(
+          "section",
+          {
+            class: "ft-card"
+          }
+        );
+
+      card.innerHTML = `
+        <h2 class="ft-lead">
+          A foto fica como a câmara a viu.
+        </h2>
+
+        <p class="ft-muted">
+          Sem filtro e sem ficar preta.
+          Apenas corta à volta da folha.
+        </p>
+
+        <ol class="ft-steps">
+          <li>
+            <span class="ft-num">1</span>
+            <span>
+              Fotografa com a câmara traseira.
+            </span>
+          </li>
+
+          <li>
+            <span class="ft-num">2</span>
+            <span>
+              Confirma a data e o total.
+            </span>
+          </li>
+
+          <li>
+            <span class="ft-num">3</span>
+            <span>
+              Guarda e consulta no arquivo.
+            </span>
+          </li>
+        </ol>
+      `;
+
+      const shoot =
+        el(
+          "button",
+          {
+            class: "ft-btn",
+            type: "button"
+          }
+        );
+
+      shoot.textContent =
+        "Fotografar talão";
+
+      shoot.addEventListener(
+        "click",
+        () =>
+          fileCam.click()
+      );
+
+      const gallery =
+        el(
+          "button",
+          {
+            class:
+              "ft-btn secondary",
+            type: "button"
+          }
+        );
+
+      gallery.textContent =
+        "Escolher da galeria";
+
+      gallery.addEventListener(
+        "click",
+        () =>
+          fileLib.click()
+      );
+
+      const batch =
+        el(
+          "button",
+          {
+            class:
+              "ft-btn secondary",
+            type: "button"
+          }
+        );
+
+      batch.textContent =
+        "Importar várias faturas";
+
+      batch.addEventListener(
+        "click",
+        () =>
+          fileBatch.click()
+      );
+
+      main.append(
+        card,
+        shoot,
+        gallery,
+        batch
+      );
+    }
+
+    function reviewFields() {
+
+      return {
+        status:
+          main.querySelector(
+            "[data-status]"
+          ),
+
+        date:
+          main.querySelector(
+            "[data-date]"
+          ),
+
+        dateHint:
+          main.querySelector(
+            "[data-date-hint]"
+          ),
+
+        total:
+          main.querySelector(
+            "[data-total]"
+          ),
+
+        cat:
+          main.querySelector(
+            "[data-cat]"
+          ),
+
+        notes:
+          main.querySelector(
+            "[data-notes]"
+          ),
+
+        ocr:
+          main.querySelector(
+            "[data-ocr]"
+          )
+      };
+    }
+
+    async function beginReview(
+      full
+    ) {
+
       source = full;
+
       ocrToken++;
-      const myToken = ocrToken;
+
+      const token =
+        ocrToken;
+
       reading = false;
 
-      const ctx = full.getContext("2d", { willReadFrequently: true });
-      const data = ctx?.getImageData(0, 0, full.width, full.height);
-      const found = data ? findPage(data.data, full.width, full.height) : null;
-
-      cropFailed = !found;
-      rect = found ?? { x: 0, y: 0, w: full.width, h: full.height };
-      scan = renderScan(full, rect);
-
-      setTab("nova");
-      nav.classList.remove("ft-hidden");
-      paintReview();
-      void runOcr(myToken);
-    }
-    function paintReview() {
-      if (!scan || !rect || !source) return;
-      main.replaceChildren();
-      const figure = el("section", { class: "ft-card" });
-      const view = el("canvas", { class: "ft-scan" });
-      view.width = scan.width;
-      view.height = scan.height;
-      view.getContext("2d")?.drawImage(scan, 0, 0);
-      const tools = el("div", { class: "ft-row" });
-      const tighter = el("button", { class: "ft-btn ghost", type: "button" });
-      tighter.textContent = "Apertar bordas";
-      const wider = el("button", { class: "ft-btn ghost", type: "button" });
-      wider.textContent = "Alargar bordas";
-      const whole = el("button", { class: "ft-btn ghost", type: "button" });
-      whole.textContent = "Usar foto inteira";
-      tools.append(tighter, wider);
-      const trim = el("div", { class: "ft-trim" });
-      const makeRange = (label, value, min, max, axis) => {
-        const row = el("label", { class: "ft-trim-row" });
-        const title = el("span", {}); title.textContent = label;
-        const input = el("input", { type: "range", min: String(min), max: String(max), step: "1", value: String(value) });
-        const out = el("output", {}); out.textContent = value + "px";
-        input.addEventListener("input", () => {
-          out.textContent = input.value + "px";
-          const n = Number(input.value);
-          if (axis === "x1") rect.x = Math.min(n, rect.x + rect.w - 24);
-          if (axis === "y1") rect.y = Math.min(n, rect.y + rect.h - 24);
-          if (axis === "x2") { const right = Math.max(n, rect.x + 24); rect.w = Math.min(source.width - rect.x, right - rect.x); }
-          if (axis === "y2") { const bottom = Math.max(n, rect.y + 24); rect.h = Math.min(source.height - rect.y, bottom - rect.y); }
-          cropFailed = false; apply();
-        });
-        row.append(title, input, out); trim.append(row);
-        return input;
-      };
-      makeRange("Esquerda", Math.round(rect.x), 0, Math.max(1, Math.floor(source.width - 24)), "x1");
-      makeRange("Topo", Math.round(rect.y), 0, Math.max(1, Math.floor(source.height - 24)), "y1");
-      makeRange("Direita", Math.round(rect.x + rect.w), 24, Math.max(24, source.width), "x2");
-      makeRange("Fundo", Math.round(rect.y + rect.h), 24, Math.max(24, source.height), "y2");
-      const trimHelp = el("p", { class: "ft-trim-help" });
-      trimHelp.textContent = "Arrasta as 4 barras até a borda da folha. A imagem não recebe filtros nem fica preta.";
-      figure.append(view, tools, whole, trim, trimHelp);
-      if (cropFailed) {
-        const warn = el("p", { class: "ft-warn" });
-        warn.textContent = "Não isolei o talão com segurança. Está a foto inteira — aperta ou alarga as bordas se precisares.";
-        figure.append(warn);
-      }
-      const again = el("button", { class: "ft-btn secondary", type: "button" });
-      again.textContent = "Repetir foto";
-      const form = el("section", { class: "ft-card" });
-      form.innerHTML = '<p class="ft-status ft-muted" data-status>A preparar a leitura…</p><label>Data de emissão<input data-date type="date" inputmode="numeric" /></label><p class="ft-muted" data-date-hint>Tem de ser a data impressa no talão, não a de hoje.</p><label>Total pago (€)<input data-total inputmode="decimal" placeholder="ex.: 6,69" autocomplete="off" /></label><label>Categoria<select data-cat>' + CATEGORIES.map((c) => "<option" + (c === "Outros" ? " selected" : "") + ">" + c + "</option>").join("") + '</select></label><label>Notas<input data-notes maxlength="180" placeholder="opcional" /></label><label>Texto lido<textarea data-ocr readonly placeholder="O texto cru do OCR aparece aqui."></textarea></label>';
-      const reread = el("button", { class: "ft-btn secondary", type: "button" });
-      reread.textContent = "Ler outra vez";
-      const save = el("button", { class: "ft-btn", type: "button" });
-      save.textContent = "Guardar no telemóvel";
-      main.append(figure, again, form, reread, save);
-      const apply = () => {
-        if (!source || !rect) return;
-        scan = renderScan(source, rect);
-        view.width = scan.width;
-        view.height = scan.height;
-        view.getContext("2d")?.drawImage(scan, 0, 0);
-      };
-      tighter.addEventListener("click", () => {
-        if (!source || !rect) return;
-        rect = shrinkRect(rect, source.width, source.height, 0.04);
-        cropFailed = false;
-        apply();
-      });
-      wider.addEventListener("click", () => {
-        if (!source || !rect) return;
-        rect = expandRect(rect, source.width, source.height, 0.06);
-        apply();
-      });
-      whole.addEventListener("click", () => {
-        if (!source) return;
-        rect = { x: 0, y: 0, w: source.width, h: source.height };
-        cropFailed = false;
-        apply();
-      });
-      again.addEventListener("click", () => fileCam.click());
-      reread.addEventListener("click", () => {
-        if (reading) return;
-        const f = reviewFields();
-        if (f.date) f.date.value = "";
-        if (f.total) f.total.value = "";
-        if (f.ocr) f.ocr.value = "";
-        ocrToken++;
-        reading = false;
-        void runOcr(ocrToken);
-      });
-      save.addEventListener("click", () => void onSave());
-    }
-    function reviewFields() {
-      return {
-        status: main.querySelector("[data-status]"),
-        date: main.querySelector("[data-date]"),
-        dateHint: main.querySelector("[data-date-hint]"),
-        total: main.querySelector("[data-total]"),
-        cat: main.querySelector("[data-cat]"),
-        notes: main.querySelector("[data-notes]"),
-        ocr: main.querySelector("[data-ocr]")
-      };
-    }
-    async function runOcr(token = ocrToken) {
-      if (!scan || reading) return;
-      reading = true;
-      const fields = reviewFields();
-      const setStatus = (s) => {
-        if (token !== ocrToken) return;
-        if (fields.status) fields.status.textContent = s;
-      };
-
-      try {
-        const text = await readReceipt(limitCanvas(scan, 1800), setStatus);
-        if (token !== ocrToken) return;
-
-        if (fields.ocr) fields.ocr.value = text.trim();
-
-        const date = parseEmissionDate(text);
-        const total = parseTotal(text);
-        const cat = categorize(text);
-
-        if (date && fields.date && !fields.date.value) {
-          fields.date.value = date.iso;
-          if (fields.dateHint) {
-            fields.dateHint.textContent = "Lida no talão: " + date.display;
+      const ctx =
+        full.getContext(
+          "2d",
+          {
+            willReadFrequently:
+              true
           }
-        } else if (!date && fields.dateHint) {
-          fields.dateHint.textContent =
-            "Não li a data de emissão. Preenche à mão — não uso a data de hoje.";
-        }
-
-        if (total && fields.total && !fields.total.value) {
-          fields.total.value = total.euros.toLocaleString("pt-PT", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          });
-        }
-
-        if (fields.cat && cat !== "Outros") fields.cat.value = cat;
-
-        setStatus(
-          [
-            date ? "Data " + date.display : "Data não lida",
-            total ? "Total " + formatEuros(total.euros) : "Total não lido",
-            cat
-          ].join(" · ") + ". Confirma antes de guardar."
         );
-      } catch (err) {
-        if (token !== ocrToken) return;
-        setStatus("Não consegui ler o talão. Preenche a data e o total à mão — não invento valores.");
-      } finally {
-        if (token === ocrToken) reading = false;
-      }
+
+      const pixels =
+        ctx
+          ? ctx.getImageData(
+              0,
+              0,
+              full.width,
+              full.height
+            )
+          : null;
+
+      const found =
+        pixels
+          ? findPage(
+              pixels.data,
+              full.width,
+              full.height
+            )
+          : null;
+
+      cropFailed =
+        !found;
+
+      rect =
+        found || {
+          x: 0,
+          y: 0,
+          w: full.width,
+          h: full.height
+        };
+
+      scan =
+        renderScan(
+          full,
+          rect
+        );
+
+      paintReview();
+
+      void runOcr(
+        token
+      );
     }
-    async function onSave() {
-      if (busy || !scan) return;
-      const fields = reviewFields();
-      const iso = fields.date?.value ?? "";
-      const issuedDate = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : null;
-      const total = parseUserTotal(fields.total?.value ?? "");
-      if ((fields.total?.value ?? "").trim() && total == null) {
-        if (fields.status) fields.status.textContent = "Total inválido. Usa 6,69 ou deixa vazio.";
+
+    function paintReview() {
+
+      if (
+        !source ||
+        !scan ||
+        !rect
+      ) {
         return;
       }
-      busy = true;
+
+      main.replaceChildren();
+
+      const figure =
+        el(
+          "section",
+          {
+            class: "ft-card"
+          }
+        );
+
+      const view =
+        el(
+          "canvas",
+          {
+            class: "ft-scan"
+          }
+        );
+
+      view.width =
+        scan.width;
+
+      view.height =
+        scan.height;
+
+      view
+        .getContext("2d")
+        ?.drawImage(
+          scan,
+          0,
+          0
+        );
+
+      const tools =
+        el(
+          "div",
+          {
+            class: "ft-row"
+          }
+        );
+
+      const tighter =
+        el(
+          "button",
+          {
+            class: "ft-btn ghost",
+            type: "button"
+          }
+        );
+
+      tighter.textContent =
+        "Apertar bordas";
+
+      const wider =
+        el(
+          "button",
+          {
+            class: "ft-btn ghost",
+            type: "button"
+          }
+        );
+
+      wider.textContent =
+        "Alargar bordas";
+
+      const whole =
+        el(
+          "button",
+          {
+            class: "ft-btn ghost",
+            type: "button"
+          }
+        );
+
+      whole.textContent =
+        "Usar foto inteira";
+
+      tools.append(
+        tighter,
+        wider
+      );
+
+      const trim =
+        el(
+          "div",
+          {
+            class: "ft-trim"
+          }
+        );
+
+      function range(
+        label,
+        value,
+        min,
+        max,
+        axis
+      ) {
+
+        const row =
+          el(
+            "label",
+            {
+              class:
+                "ft-trim-row"
+            }
+          );
+
+        const title =
+          el(
+            "span"
+          );
+
+        title.textContent =
+          label;
+
+        const input =
+          el(
+            "input",
+            {
+              type: "range",
+              min: String(min),
+              max: String(max),
+              step: "1",
+              value: String(value)
+            }
+          );
+
+        const output =
+          el(
+            "output"
+          );
+
+        output.textContent =
+          value + "px";
+
+        input.addEventListener(
+          "input",
+          () => {
+
+            const n =
+              Number(
+                input.value
+              );
+
+            output.textContent =
+              n + "px";
+
+            if (
+              axis === "left"
+            ) {
+
+              rect.x =
+                Math.min(
+                  n,
+                  rect.x +
+                    rect.w -
+                    24
+                );
+            }
+
+            if (
+              axis === "top"
+            ) {
+
+              rect.y =
+                Math.min(
+                  n,
+                  rect.y +
+                    rect.h -
+                    24
+                );
+            }
+
+            if (
+              axis === "right"
+            ) {
+
+              const right =
+                Math.max(
+                  n,
+                  rect.x + 24
+                );
+
+              rect.w =
+                Math.min(
+                  source.width -
+                    rect.x,
+                  right -
+                    rect.x
+                );
+            }
+
+            if (
+              axis === "bottom"
+            ) {
+
+              const bottom =
+                Math.max(
+                  n,
+                  rect.y + 24
+                );
+
+              rect.h =
+                Math.min(
+                  source.height -
+                    rect.y,
+                  bottom -
+                    rect.y
+                );
+            }
+
+            cropFailed = false;
+
+            applyCrop();
+          }
+        );
+
+        row.append(
+          title,
+          input,
+          output
+        );
+
+        trim.append(
+          row
+        );
+      }
+
+      range(
+        "Esquerda",
+        Math.round(rect.x),
+        0,
+        Math.max(
+          1,
+          source.width - 24
+        ),
+        "left"
+      );
+
+      range(
+        "Topo",
+        Math.round(rect.y),
+        0,
+        Math.max(
+          1,
+          source.height - 24
+        ),
+        "top"
+      );
+
+      range(
+        "Direita",
+        Math.round(
+          rect.x + rect.w
+        ),
+        24,
+        Math.max(
+          24,
+          source.width
+        ),
+        "right"
+      );
+
+      range(
+        "Fundo",
+        Math.round(
+          rect.y + rect.h
+        ),
+        24,
+        Math.max(
+          24,
+          source.height
+        ),
+        "bottom"
+      );
+
+      const help =
+        el(
+          "p",
+          {
+            class:
+              "ft-trim-help"
+          }
+        );
+
+      help.textContent =
+        "Ajusta as barras se a folha não ficou bem recortada.";
+
+      figure.append(
+        view,
+        tools,
+        whole,
+        trim,
+        help
+      );
+
+      if (cropFailed) {
+
+        const warn =
+          el(
+            "p",
+            {
+              class: "ft-warn"
+            }
+          );
+
+        warn.textContent =
+          "Não consegui detetar a folha automaticamente. Está a foto inteira; podes ajustar as bordas.";
+
+        figure.append(
+          warn
+        );
+      }
+
+      const again =
+        el(
+          "button",
+          {
+            class:
+              "ft-btn secondary",
+            type: "button"
+          }
+        );
+
+      again.textContent =
+        "Repetir foto";
+
+      const form =
+        el(
+          "section",
+          {
+            class: "ft-card"
+          }
+        );
+
+      form.innerHTML = `
+        <p
+          class="ft-status ft-muted"
+          data-status
+        >
+          A preparar a leitura…
+        </p>
+
+        <label>
+          Data de emissão
+
+          <input
+            data-date
+            type="date"
+            inputmode="numeric"
+          />
+        </label>
+
+        <p
+          class="ft-muted"
+          data-date-hint
+        >
+          Tem de ser a data impressa no talão.
+        </p>
+
+        <label>
+          Total pago (€)
+
+          <input
+            data-total
+            inputmode="decimal"
+            placeholder="ex.: 6,69"
+            autocomplete="off"
+          />
+        </label>
+
+        <label>
+          Categoria
+
+          <select data-cat>
+            ${CATEGORIES
+              .map(
+                category =>
+                  `
+                  <option
+                    ${category === "Outros"
+                      ? "selected"
+                      : ""}
+                  >
+                    ${category}
+                  </option>
+                  `
+              )
+              .join("")}
+          </select>
+        </label>
+
+        <label>
+          Notas
+
+          <input
+            data-notes
+            maxlength="180"
+            placeholder="opcional"
+          />
+        </label>
+
+        <label>
+          Texto lido
+
+          <textarea
+            data-ocr
+            readonly
+            placeholder="Texto OCR"
+          ></textarea>
+        </label>
+      `;
+
+      const reread =
+        el(
+          "button",
+          {
+            class:
+              "ft-btn secondary",
+            type: "button"
+          }
+        );
+
+      reread.textContent =
+        "Ler outra vez";
+
+      const save =
+        el(
+          "button",
+          {
+            class: "ft-btn",
+            type: "button"
+          }
+        );
+
+      save.textContent =
+        "Guardar no telemóvel";
+
+      main.append(
+        figure,
+        again,
+        form,
+        reread,
+        save
+      );
+
+      function applyCrop() {
+
+        scan =
+          renderScan(
+            source,
+            rect
+          );
+
+        view.width =
+          scan.width;
+
+        view.height =
+          scan.height;
+
+        view
+          .getContext("2d")
+          ?.drawImage(
+            scan,
+            0,
+            0
+          );
+      }
+
+      tighter.addEventListener(
+        "click",
+        () => {
+
+          rect =
+            shrinkRect(
+              rect,
+              source.width,
+              source.height,
+              .04
+            );
+
+          cropFailed = false;
+
+          applyCrop();
+        }
+      );
+
+      wider.addEventListener(
+        "click",
+        () => {
+
+          rect =
+            expandRect(
+              rect,
+              source.width,
+              source.height,
+              .06
+            );
+
+          applyCrop();
+        }
+      );
+
+      whole.addEventListener(
+        "click",
+        () => {
+
+          rect = {
+            x: 0,
+            y: 0,
+            w: source.width,
+            h: source.height
+          };
+
+          cropFailed = false;
+
+          applyCrop();
+        }
+      );
+
+      again.addEventListener(
+        "click",
+        () =>
+          fileCam.click()
+      );
+
+      reread.addEventListener(
+        "click",
+        () => {
+
+          if (reading) {
+            return;
+          }
+
+          const fields =
+            reviewFields();
+
+          if (fields.date) {
+            fields.date.value = "";
+          }
+
+          if (fields.total) {
+            fields.total.value = "";
+          }
+
+          if (fields.ocr) {
+            fields.ocr.value = "";
+          }
+
+          ocrToken++;
+
+          void runOcr(
+            ocrToken
+          );
+        }
+      );
+
+      save.addEventListener(
+        "click",
+        () =>
+          void onSave()
+      );
+    }
+
+    async function runOcr(
+      token
+    ) {
+
+      if (
+        !scan ||
+        reading
+      ) {
+        return;
+      }
+
+      reading = true;
+
+      const fields =
+        reviewFields();
+
+      function status(
+        text
+      ) {
+
+        if (
+          token !== ocrToken
+        ) {
+          return;
+        }
+
+        if (
+          fields.status
+        ) {
+          fields.status.textContent =
+            text;
+        }
+      }
+
       try {
+
+        const text =
+          await readReceipt(
+            scan,
+            status
+          );
+
+        if (
+          token !== ocrToken
+        ) {
+          return;
+        }
+
+        if (fields.ocr) {
+          fields.ocr.value =
+            text.trim();
+        }
+
+        const date =
+          parseEmissionDate(
+            text
+          );
+
+        const total =
+          parseTotal(
+            text
+          );
+
+        const category =
+          categorize(
+            text
+          );
+
+        if (
+          date &&
+          fields.date &&
+          !fields.date.value
+        ) {
+
+          fields.date.value =
+            date.iso;
+
+          if (
+            fields.dateHint
+          ) {
+
+            fields.dateHint.textContent =
+              "Lida no talão: " +
+              date.display;
+          }
+        }
+
+        if (
+          total &&
+          fields.total &&
+          !fields.total.value
+        ) {
+
+          fields.total.value =
+            total.euros.toLocaleString(
+              "pt-PT",
+              {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              }
+            );
+        }
+
+        if (
+          fields.cat &&
+          category !== "Outros"
+        ) {
+
+          fields.cat.value =
+            category;
+        }
+
+        status(
+          [
+            date
+              ? "Data " + date.display
+              : "Data não lida",
+
+            total
+              ? "Total " +
+                formatEuros(
+                  total.euros
+                )
+              : "Total não lido",
+
+            category
+          ].join(" · ") +
+          ". Confirma antes de guardar."
+        );
+
+      } catch {
+
+        if (
+          token !== ocrToken
+        ) {
+          return;
+        }
+
+        status(
+          "Não consegui ler o talão. Preenche os dados manualmente."
+        );
+
+      } finally {
+
+        if (
+          token === ocrToken
+        ) {
+          reading = false;
+        }
+      }
+    }
+
+    async function onSave() {
+
+      if (
+        busy ||
+        !scan
+      ) {
+        return;
+      }
+
+      const fields =
+        reviewFields();
+
+      const dateValue =
+        fields.date?.value || "";
+
+      const issuedDate =
+        /^\d{4}-\d{2}-\d{2}$/
+          .test(dateValue)
+          ? dateValue
+          : null;
+
+      const totalRaw =
+        fields.total?.value || "";
+
+      const total =
+        parseUserTotal(
+          totalRaw
+        );
+
+      if (
+        totalRaw.trim() &&
+        total == null
+      ) {
+
+        if (fields.status) {
+
+          fields.status.textContent =
+            "Total inválido. Usa, por exemplo, 6,69.";
+        }
+
+        return;
+      }
+
+      busy = true;
+
+      try {
+
+        /*
+          AQUI ESTÁ A CORREÇÃO PRINCIPAL:
+          a imagem guardada é um JPEG válido.
+        */
+
+        const imageBlob =
+          await canvasToBlob(
+            scan
+          );
+
         await saveFatura({
-          id: crypto.randomUUID(),
-          createdAt: Date.now(),
+
+          id:
+            crypto.randomUUID(),
+
+          createdAt:
+            Date.now(),
+
           issuedDate,
-          month: monthKeyFromIso(issuedDate),
-          category: fields.cat?.value || "Outros",
+
+          month:
+            monthKeyFromIso(
+              issuedDate
+            ),
+
+          category:
+            fields.cat?.value ||
+            "Outros",
+
           total,
-          notes: fields.notes?.value.trim() ?? "",
-          ocrText: fields.ocr?.value ?? "",
-          // Guarda a imagem que está no ecrã de revisão, já recortada.
-          cropApplied: true,
-          image: await canvasToBlob(scan)
+
+          notes:
+            fields.notes?.value
+              ?.trim() || "",
+
+          ocrText:
+            fields.ocr?.value || "",
+
+          cropApplied:
+            true,
+
+          image:
+            imageBlob,
+
+          imageType:
+            imageBlob.type,
+
+          imageSize:
+            imageBlob.size
         });
+
         source = null;
         scan = null;
         rect = null;
+
         await showArchive();
-      } catch {
-        if (fields.status) fields.status.textContent = "Não consegui guardar no telemóvel. Tenta outra vez.";
+
+      } catch (error) {
+
+        console.error(
+          "Erro ao guardar:",
+          error
+        );
+
+        if (fields.status) {
+
+          fields.status.textContent =
+            "Não consegui guardar a fotografia. Tenta novamente.";
+        }
+
       } finally {
+
         busy = false;
       }
     }
+
+    /* =======================================================
+       ARQUIVO
+    ======================================================= */
+
     async function showArchive() {
+
       setTab("arquivo");
-      nav.classList.remove("ft-hidden");
-      revoke();
+
+      nav.classList.remove(
+        "ft-hidden"
+      );
+
+      revokeUrls();
+
       main.replaceChildren();
+
       let rows = [];
+
       try {
-        rows = await listFaturas();
-      } catch {
-        const p = el("p", { class: "ft-warn" });
-        p.textContent = "Não consegui abrir o arquivo neste browser.";
-        main.append(p);
+
+        rows =
+          await listFaturas();
+
+      } catch (error) {
+
+        console.error(
+          error
+        );
+
+        const warning =
+          el(
+            "p",
+            {
+              class: "ft-warn"
+            }
+          );
+
+        warning.textContent =
+          "Não consegui abrir o arquivo neste browser.";
+
+        main.append(
+          warning
+        );
+
         return;
       }
+
       if (!rows.length) {
-        const card = el("section", { class: "ft-card" });
-        card.innerHTML = '<h2 class="ft-lead">Ainda não há faturas.</h2><p class="ft-muted">Fotografa um talão. Fica só neste iPhone, sem conta.</p>';
-        main.append(card);
+
+        const card =
+          el(
+            "section",
+            {
+              class: "ft-card"
+            }
+          );
+
+        card.innerHTML = `
+          <h2 class="ft-lead">
+            Ainda não há faturas.
+          </h2>
+
+          <p class="ft-muted">
+            Fotografa um talão para começar.
+          </p>
+        `;
+
+        main.append(
+          card
+        );
+
         return;
       }
-      const groups = new Map();
+
+      const groups =
+        new Map();
+
       for (const row of rows) {
-        const key = row.month || "sem-data";
-        const list = groups.get(key) ?? [];
+
+        const key =
+          row.month ||
+          "sem-data";
+
+        const list =
+          groups.get(key) ||
+          [];
+
         list.push(row);
-        groups.set(key, list);
+
+        groups.set(
+          key,
+          list
+        );
       }
-      const keys = [...groups.keys()].sort((a, b) => {
-        if (a === "sem-data") return 1;
-        if (b === "sem-data") return -1;
-        return a < b ? 1 : -1;
-      });
+
+      const keys =
+        [...groups.keys()].sort(
+          (a, b) => {
+
+            if (
+              a === "sem-data"
+            ) {
+              return 1;
+            }
+
+            if (
+              b === "sem-data"
+            ) {
+              return -1;
+            }
+
+            return a < b
+              ? 1
+              : -1;
+          }
+        );
+
       for (const key of keys) {
-        const items = groups.get(key) ?? [];
-        const card = el("section", { class: "ft-card" });
-        const sums = new Map();
+
+        const items =
+          groups.get(key) ||
+          [];
+
+        const card =
+          el(
+            "section",
+            {
+              class: "ft-card"
+            }
+          );
+
         let grand = 0;
-        for (const item of items) {
-          if (item.total == null) continue;
-          sums.set(item.category, (sums.get(item.category) ?? 0) + item.total);
-          grand += item.total;
+
+        const sums =
+          new Map();
+
+        for (
+          const item of items
+        ) {
+
+          if (
+            item.total == null
+          ) {
+            continue;
+          }
+
+          grand +=
+            item.total;
+
+          sums.set(
+            item.category,
+            (
+              sums.get(
+                item.category
+              ) || 0
+            ) + item.total
+          );
         }
-        const head = el("div", { class: "ft-month" });
-        head.innerHTML = "<div><h2>" + formatMonthKey(key) + '</h2><p class="ft-muted">Total gasto no mês</p></div><p class="ft-sum">' + formatEuros(grand) + "</p>";
-        card.append(head);
-        for (const cat of CATEGORIES) {
-          if (!sums.has(cat)) continue;
-          const line = el("div", { class: "ft-sub" });
-          line.innerHTML = "<span>" + cat + "</span><strong>" + formatEuros(sums.get(cat) ?? 0) + "</strong>";
-          card.append(line);
+
+        const head =
+          el(
+            "div",
+            {
+              class: "ft-month"
+            }
+          );
+
+        head.innerHTML = `
+          <div>
+            <h2>
+              ${formatMonthKey(key)}
+            </h2>
+
+            <p class="ft-muted">
+              Total gasto no mês
+            </p>
+          </div>
+
+          <p class="ft-sum">
+            ${formatEuros(grand)}
+          </p>
+        `;
+
+        card.append(
+          head
+        );
+
+        for (
+          const category of CATEGORIES
+        ) {
+
+          if (
+            !sums.has(category)
+          ) {
+            continue;
+          }
+
+          const line =
+            el(
+              "div",
+              {
+                class: "ft-sub"
+              }
+            );
+
+          line.innerHTML = `
+            <span>
+              ${category}
+            </span>
+
+            <strong>
+              ${formatEuros(
+                sums.get(
+                  category
+                )
+              )}
+            </strong>
+          `;
+
+          card.append(
+            line
+          );
         }
-        const pdfControls = el("div", { class: "ft-pdf-controls" });
-        const pdfLabel = el("label", {});
-        pdfLabel.textContent = "Faturas por página";
-        const pdfSelect = el("select", { "data-per-page": key });
-        pdfSelect.innerHTML = '<option value="1">1 — maior</option><option value="2">2</option><option value="4" selected>4 — recomendado</option><option value="6">6 — poupa mais papel</option>';
-        pdfLabel.append(pdfSelect);
-        const pdfBtn = el("button", { class: "ft-btn", type: "button" });
-        pdfBtn.textContent = "Imprimir / PDF";
-        pdfBtn.addEventListener("click", () => {
-          const count = Number(pdfSelect.value) || 4;
-          pdfBtn.disabled = true;
-          pdfBtn.textContent = "A criar PDF…";
-          void exportMonthPdf(key, items, count).catch(() => {
-            pdfBtn.textContent = "Falhou. Tentar outra vez";
-          }).finally(() => {
-            pdfBtn.disabled = false;
-            if (pdfBtn.textContent === "A criar PDF…") pdfBtn.textContent = "Imprimir / PDF";
-          });
-        });
-        pdfControls.append(pdfLabel, pdfBtn);
-        card.append(pdfControls);
-        for (const item of items) {
-          const url = URL.createObjectURL(item.image);
-          urls.push(url);
-          const box = el("article", { class: "ft-item" });
-          const when = item.issuedDate ? item.issuedDate.split("-").reverse().join("/") : "Sem data";
-          box.innerHTML = '<img alt="Talão" src="' + url + '" /><div><h3>' + when + "</h3><p>" + item.category + " · " + formatEuros(item.total) + "</p>" + (item.notes ? '<p class="ft-muted">' + escapeHtml(item.notes) + "</p>" : "") + '<div class="ft-row" style="margin-top:8px"><button type="button" class="ft-btn ghost" data-edit="' + item.id + '">Corrigir</button><button type="button" class="ft-btn danger" data-del="' + item.id + '">Apagar</button></div></div>';
-          card.append(box);
+
+        /* PDF */
+
+        const pdfControls =
+          el(
+            "div",
+            {
+              class:
+                "ft-pdf-controls"
+            }
+          );
+
+        const label =
+          el(
+            "label"
+          );
+
+        label.textContent =
+          "Faturas por página";
+
+        const select =
+          el(
+            "select"
+          );
+
+        select.innerHTML = `
+          <option value="1">
+            1 — maior
+          </option>
+
+          <option value="2">
+            2
+          </option>
+
+          <option
+            value="4"
+            selected
+          >
+            4 — recomendado
+          </option>
+
+          <option value="6">
+            6 — mais compacto
+          </option>
+        `;
+
+        label.append(
+          select
+        );
+
+        const pdfButton =
+          el(
+            "button",
+            {
+              class:
+                "ft-btn",
+              type: "button"
+            }
+          );
+
+        pdfButton.textContent =
+          "Imprimir / PDF";
+
+        pdfButton.addEventListener(
+          "click",
+          async () => {
+
+            pdfButton.disabled =
+              true;
+
+            pdfButton.textContent =
+              "A criar PDF…";
+
+            try {
+
+              await exportMonthPdf(
+                key,
+                items,
+                Number(
+                  select.value
+                )
+              );
+
+            } catch (error) {
+
+              console.error(
+                error
+              );
+
+              alert(
+                "Não foi possível criar o PDF."
+              );
+
+            } finally {
+
+              pdfButton.disabled =
+                false;
+
+              pdfButton.textContent =
+                "Imprimir / PDF";
+            }
+          }
+        );
+
+        pdfControls.append(
+          label,
+          pdfButton
+        );
+
+        card.append(
+          pdfControls
+        );
+
+        /* Faturas */
+
+        for (
+          const item of items
+        ) {
+
+          const box =
+            el(
+              "article",
+              {
+                class:
+                  "ft-item"
+              }
+            );
+
+          let imageUrl = null;
+
+          try {
+
+            if (
+              item.image instanceof Blob
+            ) {
+
+              imageUrl =
+                URL.createObjectURL(
+                  item.image
+                );
+
+            } else {
+
+              throw new Error(
+                "Imagem não é Blob"
+              );
+            }
+
+          } catch (error) {
+
+            console.error(
+              "Imagem inválida:",
+              error
+            );
+          }
+
+          const img =
+            el(
+              "img",
+              {
+                alt: "Talão"
+              }
+            );
+
+          if (imageUrl) {
+
+            img.src =
+              imageUrl;
+
+            urls.push(
+              imageUrl
+            );
+
+          } else {
+
+            img.alt =
+              "Imagem indisponível";
+
+            img.style.objectFit =
+              "contain";
+          }
+
+          /*
+            NOVO:
+            se a imagem estiver corrompida,
+            não fica silenciosamente partida.
+          */
+
+          img.addEventListener(
+            "error",
+            () => {
+
+              img.removeAttribute(
+                "src"
+              );
+
+              img.alt =
+                "Imagem indisponível";
+
+              img.style.objectFit =
+                "contain";
+            }
+          );
+
+          const info =
+            el("div");
+
+          const dateText =
+            item.issuedDate
+              ? item.issuedDate
+                  .split("-")
+                  .reverse()
+                  .join("/")
+              : "Sem data";
+
+          info.innerHTML = `
+            <h3>
+              ${dateText}
+            </h3>
+
+            <p>
+              ${escapeHtml(
+                item.category
+              )}
+              ·
+              ${formatEuros(
+                item.total
+              )}
+            </p>
+
+            ${
+              item.notes
+                ? `
+                  <p class="ft-muted">
+                    ${escapeHtml(
+                      item.notes
+                    )}
+                  </p>
+                `
+                : ""
+            }
+
+            <div
+              class="ft-row"
+              style="margin-top:8px"
+            >
+
+              <button
+                type="button"
+                class="ft-btn ghost"
+                data-edit="${escapeAttr(
+                  item.id
+                )}"
+              >
+                Corrigir
+              </button>
+
+              <button
+                type="button"
+                class="ft-btn danger"
+                data-del="${escapeAttr(
+                  item.id
+                )}"
+              >
+                Apagar
+              </button>
+
+            </div>
+          `;
+
+          box.append(
+            img,
+            info
+          );
+
+          card.append(
+            box
+          );
         }
-        main.append(card);
+
+        main.append(
+          card
+        );
       }
-      main.querySelectorAll("[data-del]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-del");
-          if (!id || !confirm("Apagar esta fatura deste iPhone?")) return;
-          void deleteFatura(id).then(() => showArchive());
-        });
-      });
-      main.querySelectorAll("[data-edit]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-edit");
-          const item = rows.find((r) => r.id === id);
-          if (item) openEdit(item);
-        });
-      });
+
+      main
+        .querySelectorAll(
+          "[data-del]"
+        )
+        .forEach(
+          button => {
+
+            button.addEventListener(
+              "click",
+              async () => {
+
+                const id =
+                  button.dataset.del;
+
+                if (!id) {
+                  return;
+                }
+
+                if (
+                  !confirm(
+                    "Apagar esta fatura deste telemóvel?"
+                  )
+                ) {
+                  return;
+                }
+
+                await deleteFatura(
+                  id
+                );
+
+                await showArchive();
+              }
+            );
+          }
+        );
+
+      main
+        .querySelectorAll(
+          "[data-edit]"
+        )
+        .forEach(
+          button => {
+
+            button.addEventListener(
+              "click",
+              () => {
+
+                const item =
+                  rows.find(
+                    row =>
+                      row.id ===
+                      button.dataset.edit
+                  );
+
+                if (item) {
+                  openEdit(
+                    item
+                  );
+                }
+              }
+            );
+          }
+        );
     }
-    function openEdit(item) {
+
+    /* =======================================================
+       EDITAR
+    ======================================================= */
+
+    function openEdit(
+      item
+    ) {
+
       main.replaceChildren();
-      const card = el("section", { class: "ft-card" });
-      const url = URL.createObjectURL(item.image);
-      urls.push(url);
-      const totalValue = item.total == null ? "" : item.total.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      card.innerHTML = '<img class="ft-scan" alt="Talão" src="' + url + '" /><label>Data de emissão<input data-date type="date" value="' + (item.issuedDate ?? "") + '" /></label><label>Total pago (€)<input data-total inputmode="decimal" value="' + totalValue + '" /></label><label>Categoria<select data-cat>' + CATEGORIES.map((c) => "<option " + (c === item.category ? "selected" : "") + ">" + c + "</option>").join("") + '</select></label><label>Notas<input data-notes maxlength="180" value="' + escapeAttr(item.notes) + '" /></label><label>Texto lido<textarea readonly>' + escapeHtml(item.ocrText) + "</textarea></label>";
-      const save = el("button", { class: "ft-btn", type: "button" });
-      save.textContent = "Atualizar";
-      const back = el("button", { class: "ft-btn secondary", type: "button" });
-      back.textContent = "Voltar ao arquivo";
-      const status = el("p", { class: "ft-muted" });
-      main.append(card, save, back, status);
-      back.addEventListener("click", () => void showArchive());
-      save.addEventListener("click", () => {
-        const date = card.querySelector("[data-date]").value;
-        const totalRaw = card.querySelector("[data-total]").value;
-        const total = parseUserTotal(totalRaw);
-        if (totalRaw.trim() && total == null) {
-          status.textContent = "Total inválido. Usa 6,69 ou deixa vazio.";
+
+      const card =
+        el(
+          "section",
+          {
+            class: "ft-card"
+          }
+        );
+
+      let url = null;
+
+      try {
+
+        if (
+          item.image instanceof Blob
+        ) {
+
+          url =
+            URL.createObjectURL(
+              item.image
+            );
+
+          urls.push(
+            url
+          );
+        }
+
+      } catch {}
+
+      const img =
+        el(
+          "img",
+          {
+            class: "ft-scan",
+            alt: "Talão"
+          }
+        );
+
+      if (url) {
+
+        img.src =
+          url;
+
+      } else {
+
+        img.alt =
+          "Imagem indisponível";
+      }
+
+      img.addEventListener(
+        "error",
+        () => {
+
+          img.removeAttribute(
+            "src"
+          );
+
+          img.alt =
+            "Imagem indisponível";
+        }
+      );
+
+      const date =
+        el(
+          "input",
+          {
+            type: "date"
+          }
+        );
+
+      date.value =
+        item.issuedDate || "";
+
+      const total =
+        el(
+          "input",
+          {
+            inputmode:
+              "decimal"
+          }
+        );
+
+      total.value =
+        item.total == null
+          ? ""
+          : item.total.toLocaleString(
+              "pt-PT",
+              {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              }
+            );
+
+      const category =
+        el(
+          "select"
+        );
+
+      category.innerHTML =
+        CATEGORIES
+          .map(
+            value =>
+              `
+              <option
+                ${value ===
+                  item.category
+                  ? "selected"
+                  : ""}
+              >
+                ${value}
+              </option>
+              `
+          )
+          .join("");
+
+      const notes =
+        el(
+          "input",
+          {
+            maxlength: "180"
+          }
+        );
+
+      notes.value =
+        item.notes || "";
+
+      const ocr =
+        el(
+          "textarea",
+          {
+            readonly: ""
+          }
+        );
+
+      ocr.value =
+        item.ocrText || "";
+
+      function labelled(
+        text,
+        field
+      ) {
+
+        const label =
+          el("label");
+
+        label.textContent =
+          text;
+
+        label.append(
+          field
+        );
+
+        return label;
+      }
+
+      card.append(
+        img,
+
+        labelled(
+          "Data de emissão",
+          date
+        ),
+
+        labelled(
+          "Total pago (€)",
+          total
+        ),
+
+        labelled(
+          "Categoria",
+          category
+        ),
+
+        labelled(
+          "Notas",
+          notes
+        ),
+
+        labelled(
+          "Texto lido",
+          ocr
+        )
+      );
+
+      const save =
+        el(
+          "button",
+          {
+            class: "ft-btn",
+            type: "button"
+          }
+        );
+
+      save.textContent =
+        "Atualizar";
+
+      const back =
+        el(
+          "button",
+          {
+            class:
+              "ft-btn secondary",
+            type: "button"
+          }
+        );
+
+      back.textContent =
+        "Voltar ao arquivo";
+
+      const status =
+        el(
+          "p",
+          {
+            class:
+              "ft-muted"
+          }
+        );
+
+      main.append(
+        card,
+        save,
+        back,
+        status
+      );
+
+      back.addEventListener(
+        "click",
+        () =>
+          void showArchive()
+      );
+
+      save.addEventListener(
+        "click",
+        async () => {
+
+          const raw =
+            total.value;
+
+          const parsed =
+            parseUserTotal(
+              raw
+            );
+
+          if (
+            raw.trim() &&
+            parsed == null
+          ) {
+
+            status.textContent =
+              "Total inválido.";
+
+            return;
+          }
+
+          const issuedDate =
+            /^\d{4}-\d{2}-\d{2}$/
+              .test(date.value)
+              ? date.value
+              : null;
+
+          try {
+
+            await saveFatura({
+
+              ...item,
+
+              issuedDate,
+
+              month:
+                monthKeyFromIso(
+                  issuedDate
+                ),
+
+              total:
+                parsed,
+
+              category:
+                category.value,
+
+              notes:
+                notes.value.trim()
+            });
+
+            await showArchive();
+
+          } catch (error) {
+
+            console.error(
+              error
+            );
+
+            status.textContent =
+              "Não consegui atualizar.";
+          }
+        }
+      );
+    }
+
+    /* =======================================================
+       IMPORTAR VÁRIAS
+    ======================================================= */
+
+    async function processBatch(
+      files
+    ) {
+
+      if (!files?.length) {
+        return;
+      }
+
+      nav.classList.add(
+        "ft-hidden"
+      );
+
+      main.replaceChildren();
+
+      const card =
+        el(
+          "section",
+          {
+            class: "ft-card"
+          }
+        );
+
+      card.innerHTML = `
+        <h2 class="ft-lead">
+          A importar faturas…
+        </h2>
+
+        <p
+          class="ft-muted"
+          data-batch-status
+        >
+          0 de ${files.length}
+        </p>
+
+        <div
+          data-batch-list
+        ></div>
+      `;
+
+      main.append(
+        card
+      );
+
+      const list =
+        card.querySelector(
+          "[data-batch-list]"
+        );
+
+      let ok = 0;
+      let failed = 0;
+      let missingDate = 0;
+
+      for (
+        let i = 0;
+        i < files.length;
+        i++
+      ) {
+
+        const file =
+          files[i];
+
+        const line =
+          el(
+            "p",
+            {
+              class:
+                "ft-muted"
+            }
+          );
+
+        line.textContent =
+          (
+            i + 1
+          ) +
+          "/" +
+          files.length +
+          " — " +
+          file.name +
+          " — a processar…";
+
+        list.append(
+          line
+        );
+
+        try {
+
+          const full =
+            await canvasFromFile(
+              file
+            );
+
+          const ctx =
+            full.getContext(
+              "2d",
+              {
+                willReadFrequently:
+                  true
+              }
+            );
+
+          const pixels =
+            ctx.getImageData(
+              0,
+              0,
+              full.width,
+              full.height
+            );
+
+          const found =
+            findPage(
+              pixels.data,
+              full.width,
+              full.height
+            );
+
+          const r =
+            found || {
+              x: 0,
+              y: 0,
+              w: full.width,
+              h: full.height
+            };
+
+          const cropped =
+            renderScan(
+              full,
+              r
+            );
+
+          const text =
+            await readReceipt(
+              cropped,
+              message => {
+
+                line.textContent =
+                  (
+                    i + 1
+                  ) +
+                  "/" +
+                  files.length +
+                  " — " +
+                  file.name +
+                  " — " +
+                  message;
+              }
+            );
+
+          const date =
+            parseEmissionDate(
+              text
+            );
+
+          const parsedTotal =
+            parseTotal(
+              text
+            );
+
+          const category =
+            categorize(
+              text
+            );
+
+          const imageBlob =
+            await canvasToBlob(
+              cropped
+            );
+
+          await saveFatura({
+
+            id:
+              crypto.randomUUID(),
+
+            createdAt:
+              Date.now(),
+
+            issuedDate:
+              date?.iso ||
+              null,
+
+            month:
+              monthKeyFromIso(
+                date?.iso ||
+                null
+              ),
+
+            category,
+
+            total:
+              parsedTotal?.euros ??
+              null,
+
+            notes:
+              "Importada automaticamente",
+
+            ocrText:
+              text,
+
+            cropApplied:
+              true,
+
+            image:
+              imageBlob,
+
+            imageType:
+              imageBlob.type,
+
+            imageSize:
+              imageBlob.size
+          });
+
+          ok++;
+
+          if (!date) {
+            missingDate++;
+          }
+
+          line.textContent =
+            (
+              i + 1
+            ) +
+            "/" +
+            files.length +
+            " — " +
+            file.name +
+            " — " +
+            (
+              date
+                ? date.display
+                : "data por confirmar"
+            ) +
+            " · " +
+            (
+              parsedTotal
+                ? formatEuros(
+                    parsedTotal.euros
+                  )
+                : "total por confirmar"
+            ) +
+            " · " +
+            category;
+
+        } catch (error) {
+
+          console.error(
+            error
+          );
+
+          failed++;
+
+          line.textContent =
+            (
+              i + 1
+            ) +
+            "/" +
+            files.length +
+            " — " +
+            file.name +
+            " — não foi possível processar";
+        }
+
+        const status =
+          card.querySelector(
+            "[data-batch-status]"
+          );
+
+        if (status) {
+
+          status.textContent =
+            ok +
+            " guardadas · " +
+            failed +
+            " falharam · " +
+            missingDate +
+            " sem data para rever.";
+        }
+      }
+
+      const done =
+        el(
+          "button",
+          {
+            class: "ft-btn",
+            type: "button"
+          }
+        );
+
+      done.textContent =
+        "Abrir arquivo";
+
+      done.addEventListener(
+        "click",
+        () =>
+          void showArchive()
+      );
+
+      main.append(
+        done
+      );
+    }
+
+    /* =======================================================
+       EVENTOS
+    ======================================================= */
+
+    nav.addEventListener(
+      "click",
+      event => {
+
+        const button =
+          event.target.closest(
+            "button"
+          );
+
+        if (!button) {
           return;
         }
-        const issuedDate = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
-        void saveFatura({
-          ...item,
-          issuedDate,
-          month: monthKeyFromIso(issuedDate),
-          total,
-          category: card.querySelector("[data-cat]").value,
-          notes: card.querySelector("[data-notes]").value.trim()
-        }).then(() => showArchive()).catch(() => {
-          status.textContent = "Não consegui atualizar.";
-        });
-      });
-    }
-    async function processBatch(files) {
-      if (!files?.length) return;
-      nav.classList.add("ft-hidden");
-      main.replaceChildren();
-      const card = el("section", { class: "ft-card" });
-      card.innerHTML = '<h2 class="ft-lead">A importar faturas…</h2><p class="ft-muted" data-batch-status>0 de ' + files.length + ' processadas.</p><div class="ft-status" data-batch-list></div>';
-      main.append(card);
-      const list = card.querySelector("[data-batch-list]");
-      let ok = 0, failed = 0, missingDate = 0;
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const line = el("p", { class: "ft-muted" });
-        line.textContent = (i + 1) + "/" + files.length + " — " + file.name + " — a ler…";
-        list.append(line);
-        try {
-          const full = await canvasFromFile(file);
-          const ctx = full.getContext("2d", { willReadFrequently: true });
-          const pixels = ctx?.getImageData(0, 0, full.width, full.height);
-          const found = pixels ? findPage(pixels.data, full.width, full.height) : null;
-          const r = found ?? { x: 0, y: 0, w: full.width, h: full.height };
-          const cropped = renderScan(full, r);
-          const text = await readReceipt(limitCanvas(cropped, 1800), (msg) => { line.textContent = (i + 1) + "/" + files.length + " — " + file.name + " — " + msg; });
-          const date = parseEmissionDate(text);
-          const total = parseTotal(text);
-          const category = categorize(text);
-          await saveFatura({
-            id: crypto.randomUUID(), createdAt: Date.now(),
-            issuedDate: date?.iso ?? null,
-            month: monthKeyFromIso(date?.iso ?? null),
-            category: category || "Outros", total: total?.euros ?? null,
-            notes: "Importada automaticamente", ocrText: text,
-            cropApplied: true, image: await canvasToBlob(cropped)
-          });
-          ok++;
-          if (!date) missingDate++;
-          line.textContent = (i + 1) + "/" + files.length + " — " + file.name + " — " + (date ? date.display : "data por confirmar") + " · " + (total ? formatEuros(total.euros) : "total por confirmar") + " · " + category;
-        } catch (err) {
-          failed++;
-          line.textContent = (i + 1) + "/" + files.length + " — " + file.name + " — não foi possível processar";
+
+        if (
+          button.dataset.tab ===
+          "nova"
+        ) {
+
+          showHome();
         }
-        const status = card.querySelector("[data-batch-status]");
-        if (status) status.textContent = ok + " guardadas · " + failed + " falharam · " + missingDate + " sem data para rever.";
+
+        if (
+          button.dataset.tab ===
+          "arquivo"
+        ) {
+
+          void showArchive();
+        }
       }
-      const done = el("button", { class: "ft-btn", type: "button" });
-      done.textContent = "Abrir arquivo";
-      done.addEventListener("click", () => void showArchive());
-      main.append(done);
-    }
-    nav.addEventListener("click", (ev) => {
-      const btn = ev.target.closest("button");
-      const next = btn?.getAttribute("data-tab");
-      if (next === "nova") showHome();
-      if (next === "arquivo") void showArchive();
-    });
-    fileCam.addEventListener("change", () => {
-      const file = fileCam.files?.[0];
-      fileCam.value = "";
-      if (file) void canvasFromFile(file).then((c) => beginReview(c)).catch((err) => alert(err?.message === "formato" ? "Escolhe uma fotografia JPG, PNG ou WebP." : "Não consegui abrir essa imagem. Tenta uma fotografia JPG ou PNG."));
-    });
-    fileLib.addEventListener("change", () => {
-      const file = fileLib.files?.[0];
-      fileLib.value = "";
-      if (file) void canvasFromFile(file).then((c) => beginReview(c)).catch((err) => alert(err?.message === "formato" ? "Escolhe uma fotografia JPG, PNG ou WebP." : "Não consegui abrir essa imagem. Tenta uma fotografia JPG ou PNG."));
-    });
-    fileBatch.addEventListener("change", () => {
-      const files = [...(fileBatch.files || [])];
-      fileBatch.value = "";
-      if (files.length) void processBatch(files);
-    });
+    );
+
+    fileCam.addEventListener(
+      "change",
+      () => {
+
+        const file =
+          fileCam.files?.[0];
+
+        fileCam.value = "";
+
+        if (!file) {
+          return;
+        }
+
+        void canvasFromFile(
+          file
+        )
+          .then(
+            canvas =>
+              beginReview(
+                canvas
+              )
+          )
+          .catch(
+            error => {
+
+              console.error(
+                error
+              );
+
+              alert(
+                error?.message ===
+                  "formato"
+                  ? "Escolhe uma fotografia JPG, PNG ou WebP."
+                  : "Não consegui abrir essa fotografia. Tenta JPG ou PNG."
+              );
+            }
+          );
+      }
+    );
+
+    fileLib.addEventListener(
+      "change",
+      () => {
+
+        const file =
+          fileLib.files?.[0];
+
+        fileLib.value = "";
+
+        if (!file) {
+          return;
+        }
+
+        void canvasFromFile(
+          file
+        )
+          .then(
+            canvas =>
+              beginReview(
+                canvas
+              )
+          )
+          .catch(
+            error => {
+
+              console.error(
+                error
+              );
+
+              alert(
+                "Não consegui abrir essa imagem."
+              );
+            }
+          );
+      }
+    );
+
+    fileBatch.addEventListener(
+      "change",
+      () => {
+
+        const files =
+          [
+            ...(fileBatch.files || [])
+          ];
+
+        fileBatch.value = "";
+
+        if (files.length) {
+          void processBatch(
+            files
+          );
+        }
+      }
+    );
+
     showHome();
   }
-  function escapeHtml(s) {
-    return s.replace(/\u0026/g, "&amp;").replace(/\u003c/g, "&lt;").replace(/\u003e/g, "&gt;");
+
+  /* =========================================================
+     INICIAR
+  ========================================================= */
+
+  const root =
+    document.getElementById(
+      "app"
+    );
+
+  if (root) {
+    mountFaturas(root);
   }
-  function escapeAttr(s) {
-    return escapeHtml(s).replace(/\u0022/g, "&quot;");
-  }
-  var root = document.getElementById("app");
-  if (root) mountFaturas(root);
+
 })();
 </script>
 </body>
