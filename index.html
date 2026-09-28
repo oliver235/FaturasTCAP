@@ -1118,30 +1118,53 @@
     return c;
   }
   async function canvasFromFile(file) {
-    const c = document.createElement("canvas");
+    if (!file || !file.type?.startsWith("image/")) throw new Error("formato");
+    // Safari/iPhone pode não aceitar o segundo argumento de createImageBitmap.
+    // Primeiro tentamos a versão simples, depois o decoder nativo via <img>.
+    let bmp = null;
     try {
-      const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+      if (typeof createImageBitmap === "function") {
+        try {
+          bmp = await createImageBitmap(file);
+        } catch {
+          bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+        }
+      }
+    } catch {}
+
+    if (bmp) {
+      const c = document.createElement("canvas");
       c.width = bmp.width;
       c.height = bmp.height;
-      c.getContext("2d")?.drawImage(bmp, 0, 0);
-      bmp.close();
+      const ctx = c.getContext("2d", { alpha: false });
+      if (!ctx) { bmp.close?.(); throw new Error("canvas"); }
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(bmp, 0, 0);
+      bmp.close?.();
       return c;
-    } catch {
-      const url = URL.createObjectURL(file);
-      try {
-        const img = await new Promise((resolve, reject) => {
-          const image = new Image();
-          image.onload = () => resolve(image);
-          image.onerror = () => reject(new Error("imagem"));
-          image.src = url;
-        });
-        c.width = img.naturalWidth;
-        c.height = img.naturalHeight;
-        c.getContext("2d")?.drawImage(img, 0, 0);
-        return c;
-      } finally {
-        URL.revokeObjectURL(url);
-      }
+    }
+
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error("imagem"));
+        image.src = url;
+      });
+      const w = img.naturalWidth || img.width;
+      const h = img.naturalHeight || img.height;
+      if (!w || !h) throw new Error("dimensao");
+      const c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      const ctx = c.getContext("2d", { alpha: false });
+      if (!ctx) throw new Error("canvas");
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, 0, 0, w, h);
+      return c;
+    } finally {
+      URL.revokeObjectURL(url);
     }
   }
   function canvasToBlob(canvas) {
@@ -1159,9 +1182,9 @@
     const main = el("main", { class: "ft-main" });
     const nav = el("nav", { class: "ft-nav" });
     nav.innerHTML = '<button type="button" data-tab="nova">Nova</button><button type="button" data-tab="arquivo">Arquivo</button>';
-    const fileCam = el("input", { type: "file", accept: "image/*", capture: "environment", class: "ft-hidden", "aria-label": "Fotografar talão" });
-    const fileLib = el("input", { type: "file", accept: "image/*", class: "ft-hidden", "aria-label": "Escolher da galeria" });
-    const fileBatch = el("input", { type: "file", accept: "image/*", multiple: "true", class: "ft-hidden", "aria-label": "Escolher várias faturas" });
+    const fileCam = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp,image/*", capture: "environment", class: "ft-hidden", "aria-label": "Fotografar talão" });
+    const fileLib = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp,image/*", class: "ft-hidden", "aria-label": "Escolher da galeria" });
+    const fileBatch = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp,image/*", multiple: "true", class: "ft-hidden", "aria-label": "Escolher várias faturas" });
     root2.append(header, main, nav, fileCam, fileLib, fileBatch);
     let source = null;
     let rect = null;
@@ -1600,12 +1623,12 @@
     fileCam.addEventListener("change", () => {
       const file = fileCam.files?.[0];
       fileCam.value = "";
-      if (file) void canvasFromFile(file).then((c) => beginReview(c)).catch(() => alert("Não consegui abrir essa imagem. Tenta outra fotografia."));
+      if (file) void canvasFromFile(file).then((c) => beginReview(c)).catch((err) => alert(err?.message === "formato" ? "Escolhe uma fotografia JPG, PNG ou WebP." : "Não consegui abrir essa imagem. Tenta uma fotografia JPG ou PNG."));
     });
     fileLib.addEventListener("change", () => {
       const file = fileLib.files?.[0];
       fileLib.value = "";
-      if (file) void canvasFromFile(file).then((c) => beginReview(c)).catch(() => alert("Não consegui abrir essa imagem. Tenta outra fotografia."));
+      if (file) void canvasFromFile(file).then((c) => beginReview(c)).catch((err) => alert(err?.message === "formato" ? "Escolhe uma fotografia JPG, PNG ou WebP." : "Não consegui abrir essa imagem. Tenta uma fotografia JPG ou PNG."));
     });
     fileBatch.addEventListener("change", () => {
       const files = [...(fileBatch.files || [])];
