@@ -1072,6 +1072,11 @@
 .ft-pdf-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; margin-top: 10px; }
 .ft-pdf-controls label { font-size: 12px; }
 .ft-pdf-controls select { min-height: 46px; }
+ .ft-trim { display:grid; gap:8px; margin-top:10px; }
+.ft-trim-row { display:grid; grid-template-columns: 72px 1fr 52px; gap:8px; align-items:center; font-size:12px; }
+.ft-trim-row input[type=range] { width:100%; min-height:36px; accent-color:#EB0A1E; }
+.ft-trim-row output { text-align:right; font-variant-numeric:tabular-nums; }
+.ft-trim-help { margin:4px 0 0; font-size:12px; color:#666; }
 `;
   function logo() {
     return '<svg class="ft-logo" viewBox="0 0 86 56" aria-hidden="true"><g fill="none" stroke="#EB0A1E" stroke-width="5"><ellipse cx="30" cy="28" rx="22" ry="13" transform="rotate(-52 30 28)"/><ellipse cx="43" cy="28" rx="22" ry="13"/><ellipse cx="56" cy="28" rx="22" ry="13" transform="rotate(52 56 28)"/></g></svg>';
@@ -1120,7 +1125,7 @@
       c.height = bmp.height;
       c.getContext("2d")?.drawImage(bmp, 0, 0);
       bmp.close();
-      return limitCanvas(c, 1800);
+      return c;
     } catch {
       const url = URL.createObjectURL(file);
       try {
@@ -1133,7 +1138,7 @@
         c.width = img.naturalWidth;
         c.height = img.naturalHeight;
         c.getContext("2d")?.drawImage(img, 0, 0);
-        return limitCanvas(c, 1800);
+        return c;
       } finally {
         URL.revokeObjectURL(url);
       }
@@ -1188,65 +1193,15 @@
       gallery.textContent = "Escolher da galeria";
       const batch = el("button", { class: "ft-btn secondary", type: "button" });
       batch.textContent = "Importar várias faturas";
-      shoot.addEventListener("click", () => void openCamera());
+      // Usa o seletor nativo de fotografia do sistema: funciona em Safari/iPhone
+      // e Chrome/Android sem depender de getUserMedia ou de permissões WebRTC.
+      shoot.addEventListener("click", () => fileCam.click());
       gallery.addEventListener("click", () => fileLib.click());
       batch.addEventListener("click", () => fileBatch.click());
       main.append(card, shoot, gallery, batch);
     }
-    async function openCamera() {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        fileCam.click();
-        return;
-      }
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 2560 } }
-        });
-      } catch {
-        fileCam.click();
-        return;
-      }
-      nav.classList.add("ft-hidden");
-      const wrap = el("div", { class: "ft-cam" });
-      const video = el("video", { playsinline: "true", autoplay: "true", muted: "true" });
-      video.playsInline = true;
-      video.muted = true;
-      video.autoplay = true;
-      video.srcObject = stream;
-      const bar = el("div", { class: "ft-cam-bar" });
-      const cancel = el("button", { class: "link", type: "button" });
-      cancel.textContent = "Fechar";
-      const shutter = el("button", { class: "ft-shutter", type: "button", "aria-label": "Disparar" });
-      const spacer = el("button", { class: "link", type: "button" });
-      spacer.textContent = "Galeria";
-      bar.append(cancel, shutter, spacer);
-      wrap.append(video, bar);
-      root2.append(wrap);
-      await video.play().catch(() => void 0);
-      const close = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        wrap.remove();
-        nav.classList.remove("ft-hidden");
-      };
-      cancel.addEventListener("click", close);
-      spacer.addEventListener("click", () => {
-        close();
-        fileLib.click();
-      });
-      shutter.addEventListener("click", () => {
-        const w = video.videoWidth;
-        const h = video.videoHeight;
-        if (!w || !h) return;
-        const shot = document.createElement("canvas");
-        shot.width = w;
-        shot.height = h;
-        shot.getContext("2d")?.drawImage(video, 0, 0);
-        close();
-        void beginReview(limitCanvas(shot, 1800));
-      });
-    }
+    // A fotografia é aberta pelo input file com capture="environment".
+    // Isto é deliberado: é a opção mais compatível entre iPhone/iPad e Android.
     async function beginReview(full) {
       source = full;
       ocrToken++;
@@ -1282,7 +1237,31 @@
       const whole = el("button", { class: "ft-btn ghost", type: "button" });
       whole.textContent = "Usar foto inteira";
       tools.append(tighter, wider);
-      figure.append(view, tools, whole);
+      const trim = el("div", { class: "ft-trim" });
+      const makeRange = (label, value, min, max, axis) => {
+        const row = el("label", { class: "ft-trim-row" });
+        const title = el("span", {}); title.textContent = label;
+        const input = el("input", { type: "range", min: String(min), max: String(max), step: "1", value: String(value) });
+        const out = el("output", {}); out.textContent = value + "px";
+        input.addEventListener("input", () => {
+          out.textContent = input.value + "px";
+          const n = Number(input.value);
+          if (axis === "x1") rect.x = Math.min(n, rect.x + rect.w - 24);
+          if (axis === "y1") rect.y = Math.min(n, rect.y + rect.h - 24);
+          if (axis === "x2") { const right = Math.max(n, rect.x + 24); rect.w = Math.min(source.width - rect.x, right - rect.x); }
+          if (axis === "y2") { const bottom = Math.max(n, rect.y + 24); rect.h = Math.min(source.height - rect.y, bottom - rect.y); }
+          cropFailed = false; apply();
+        });
+        row.append(title, input, out); trim.append(row);
+        return input;
+      };
+      makeRange("Esquerda", Math.round(rect.x), 0, Math.max(1, Math.floor(source.width - 24)), "x1");
+      makeRange("Topo", Math.round(rect.y), 0, Math.max(1, Math.floor(source.height - 24)), "y1");
+      makeRange("Direita", Math.round(rect.x + rect.w), 24, Math.max(24, source.width), "x2");
+      makeRange("Fundo", Math.round(rect.y + rect.h), 24, Math.max(24, source.height), "y2");
+      const trimHelp = el("p", { class: "ft-trim-help" });
+      trimHelp.textContent = "Arrasta as 4 barras até a borda da folha. A imagem não recebe filtros nem fica preta.";
+      figure.append(view, tools, whole, trim, trimHelp);
       if (cropFailed) {
         const warn = el("p", { class: "ft-warn" });
         warn.textContent = "Não isolei o talão com segurança. Está a foto inteira — aperta ou alarga as bordas se precisares.";
@@ -1321,7 +1300,7 @@
         cropFailed = false;
         apply();
       });
-      again.addEventListener("click", () => void openCamera());
+      again.addEventListener("click", () => fileCam.click());
       reread.addEventListener("click", () => {
         if (reading) return;
         const f = reviewFields();
@@ -1355,7 +1334,7 @@
       };
 
       try {
-        const text = await readReceipt(scan, setStatus);
+        const text = await readReceipt(limitCanvas(scan, 1800), setStatus);
         if (token !== ocrToken) return;
 
         if (fields.ocr) fields.ocr.value = text.trim();
@@ -1448,7 +1427,7 @@
       }
       if (!rows.length) {
         const card = el("section", { class: "ft-card" });
-        card.innerHTML = '<h2 class="ft-lead">Ainda não há faturas.</h2><p class="ft-muted">Fotografa um talão. Fica só neste dispositivo, sem conta.</p>';
+        card.innerHTML = '<h2 class="ft-lead">Ainda não há faturas.</h2><p class="ft-muted">Fotografa um talão. Fica só neste iPhone, sem conta.</p>';
         main.append(card);
         return;
       }
@@ -1585,7 +1564,7 @@
           const found = pixels ? findPage(pixels.data, full.width, full.height) : null;
           const r = found ?? { x: 0, y: 0, w: full.width, h: full.height };
           const cropped = renderScan(full, r);
-          const text = await readReceipt(cropped, (msg) => { line.textContent = (i + 1) + "/" + files.length + " — " + file.name + " — " + msg; });
+          const text = await readReceipt(limitCanvas(cropped, 1800), (msg) => { line.textContent = (i + 1) + "/" + files.length + " — " + file.name + " — " + msg; });
           const date = parseEmissionDate(text);
           const total = parseTotal(text);
           const category = categorize(text);
