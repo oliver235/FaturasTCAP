@@ -230,124 +230,130 @@
     return { x: x0, y: y0, w: rw, h: rh };
   }
   function detectPage(rgba, w, h) {
-    // Deteção robusta da folha: procura a maior região clara e pouco saturada
-    // que tenha texto/contorno dentro, evitando deixar a mesa/fundo no recorte.
-    const n = w * h;
-    const paper = new Uint8Array(n);
-    const ink = new Uint8Array(n);
+    // Recorte físico: não aplica filtros à fotografia. Apenas procura os limites
+    // da folha e usa esses limites no drawImage final.
+    if (w < 40 || h < 40) return null;
 
-    for (let i = 0; i < n; i++) {
+    const gray = new Uint8Array(w * h);
+    const satMap = new Uint8Array(w * h);
+    for (let i = 0; i < gray.length; i++) {
       const o = i * 4;
       const r = rgba[o], g = rgba[o + 1], b = rgba[o + 2];
-      const y = luma(r, g, b);
-      const s = sat(r, g, b);
-      if (y >= 145 && s <= 0.38) paper[i] = 1;
-      if (y < 150 && s <= 0.55) ink[i] = 1;
+      gray[i] = luma(r, g, b);
+      satMap[i] = Math.round(sat(r, g, b) * 255);
     }
 
-    // Primeiro tenta componentes internos: uma folha branca normalmente forma
-    // uma grande região contínua separada do fundo por uma mudança de tom.
-    const closed = dilate(erode(paper, w, h, 1), w, h, 2);
-    const packed = paperComponents(closed, ink, w, h);
-    const minArea = n * 0.015;
-    const maxArea = n * 0.94;
-    const candidates = packed.comps
-      .filter((c) => c.area >= minArea && c.area <= maxArea)
-      .map((c) => {
-        const bw = c.x1 - c.x0 + 1;
-        const bh = c.y1 - c.y0 + 1;
-        const frame = (bw * bh) / n;
-        const aspect = bh / Math.max(1, bw);
-        const edgeTouch =
-          (c.x0 <= 1 ? 1 : 0) + (c.y0 <= 1 ? 1 : 0) +
-          (c.x1 >= w - 2 ? 1 : 0) + (c.y1 >= h - 2 ? 1 : 0);
-        let score = c.area * 0.00002 + c.ink * 0.004 + Math.min(frame, 0.75) * 20;
-        if (aspect >= 0.45 && aspect <= 3.2) score += 45;
-        if (aspect >= 0.25 && aspect <= 5.5) score += 12;
-        if (edgeTouch >= 2) score -= 45;
-        if (edgeTouch >= 3) score -= 100;
-        if (frame > 0.90) score -= 120;
-        return { c, score };
-      })
-      .sort((a, b) => b.score - a.score);
-
-    const best = candidates[0]?.c;
-    if (best) {
-      const bw = best.x1 - best.x0 + 1;
-      const bh = best.y1 - best.y0 + 1;
-      // Margem pequena: suficiente para não cortar a folha, mas não para trazer
-      // uma faixa grande da mesa para dentro do PDF.
-      const padX = Math.max(2, Math.round(bw * 0.008));
-      const padY = Math.max(2, Math.round(bh * 0.008));
-      const rect = clampRect(
-        best.x0 - padX, best.y0 - padY,
-        bw + padX * 2, bh + padY * 2, w, h
-      );
-      if (rect && rect.w < w * 0.97 && rect.h < h * 0.97) return rect;
-    }
-
-    // Fallback para fundos claros: usa projeções de pixels de papel para
-    // encontrar o bloco central mais consistente, em vez da foto inteira.
-    const row = new Float32Array(h);
-    const col = new Float32Array(w);
-    for (let y = 0; y < h; y++) {
-      let count = 0;
-      const off = y * w;
-      for (let x = 0; x < w; x++) {
-        if (paper[off + x]) count++;
+    // 1) Primeiro tenta encontrar uma grande área de papel claro. O limiar é
+    // relativo ao fundo dos cantos para funcionar com mesas escuras ou médias.
+    const patch = Math.max(3, Math.round(Math.min(w, h) * 0.08));
+    const cornerMean = (x0, y0, x1, y1) => {
+      let sum = 0, n = 0;
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+        sum += gray[y * w + x]; n++;
       }
-      row[y] = count / w;
-    }
-    for (let x = 0; x < w; x++) {
-      let count = 0;
-      for (let y = 0; y < h; y++) if (paper[y * w + x]) count++;
-      col[x] = count / h;
+      return n ? sum / n : 0;
+    };
+    const bg = (cornerMean(0, 0, patch, patch) +
+      cornerMean(w - patch, 0, w, patch) +
+      cornerMean(0, h - patch, patch, h) +
+      cornerMean(w - patch, h - patch, w, h)) / 4;
+    const threshold = Math.max(155, Math.min(225, bg + 22));
+    const paper = new Uint8Array(w * h);
+    for (let i = 0; i < paper.length; i++) {
+      // Permite papel branco ligeiramente quente/cinzento, sem exigir branco puro.
+      paper[i] = gray[i] >= threshold && satMap[i] <= 115 ? 1 : 0;
     }
 
-    const findBand = (arr, minRatio) => {
-      let bestBand = null;
-      let start = -1;
-      let score = 0;
-      for (let i = 0; i < arr.length; i++) {
-        if (arr[i] >= minRatio) {
-          if (start < 0) start = i;
-          score += arr[i];
-        } else if (start >= 0) {
-          const end = i - 1;
-          if (!bestBand || score > bestBand.score) bestBand = { start, end, score };
-          start = -1;
-          score = 0;
+    // Pequena limpeza da máscara, sem tocar na fotografia original.
+    const cleaned = dilate(erode(paper, w, h, 1), w, h, 2);
+    const comps = paperComponents(cleaned, null, w, h).comps;
+    const imageArea = w * h;
+    const candidates = comps
+      .map(c => ({ ...c, bw: c.x1 - c.x0 + 1, bh: c.y1 - c.y0 + 1 }))
+      .filter(c => c.area > imageArea * 0.025 && c.bw > w * 0.18 && c.bh > h * 0.18)
+      .filter(c => c.bw < w * 0.995 && c.bh < h * 0.995);
+
+    function scoreCandidate(c) {
+      const border = Math.max(2, Math.round(Math.min(w, h) * 0.012));
+      let inside = 0, insideN = 0, outside = 0, outsideN = 0;
+      const x0 = Math.max(0, c.x0), x1 = Math.min(w - 1, c.x1);
+      const y0 = Math.max(0, c.y0), y1 = Math.min(h - 1, c.y1);
+      const sx = Math.max(1, Math.floor((x1 - x0 + 1) / 80));
+      const sy = Math.max(1, Math.floor((y1 - y0 + 1) / 80));
+      for (let y = y0 + border; y <= y1 - border; y += sy) {
+        for (let x = x0 + border; x <= x1 - border; x += sx) {
+          inside += gray[y * w + x]; insideN++;
         }
       }
-      if (start >= 0) {
-        const end = arr.length - 1;
-        if (!bestBand || score > bestBand.score) bestBand = { start, end, score };
-      }
-      return bestBand;
-    };
-
-    const rb = findBand(row, 0.42);
-    const cb = findBand(col, 0.42);
-    if (rb && cb) {
-      const bw = cb.end - cb.start + 1;
-      const bh = rb.end - rb.start + 1;
-      if (bw >= w * 0.18 && bh >= h * 0.18 && bw <= w * 0.96 && bh <= h * 0.96) {
-        return clampRect(cb.start, rb.start, bw, bh, w, h);
-      }
+      // Verifica se há contraste junto às quatro bordas.
+      const sampleEdge = (horizontal, fixed, from, to, inner) => {
+        let a = 0, b = 0, n = 0;
+        const step = Math.max(1, Math.floor((to - from) / 100));
+        for (let q = from; q <= to; q += step) {
+          const x = horizontal ? q : fixed;
+          const y = horizontal ? fixed : q;
+          const x2 = horizontal ? q : fixed + inner;
+          const y2 = horizontal ? fixed + inner : q;
+          if (x < 0 || x >= w || y < 0 || y >= h || x2 < 0 || x2 >= w || y2 < 0 || y2 >= h) continue;
+          a += gray[y * w + x];
+          b += gray[y2 * w + x2];
+          n++;
+        }
+        return n ? Math.abs(a / n - b / n) : 0;
+      };
+      const contrast = (
+        sampleEdge(true, y0, x0, x1, Math.max(2, Math.round(h * 0.012))) +
+        sampleEdge(true, y1, x0, x1, -Math.max(2, Math.round(h * 0.012))) +
+        sampleEdge(false, x0, y0, y1, Math.max(2, Math.round(w * 0.012))) +
+        sampleEdge(false, x1, y0, y1, -Math.max(2, Math.round(w * 0.012)))
+      ) / 4;
+      const coverage = c.area / Math.max(1, (c.bw * c.bh));
+      const aspect = c.bw / Math.max(1, c.bh);
+      const plausible = (aspect > 0.35 && aspect < 3.2) ? 1 : 0.4;
+      return (insideN ? inside / insideN : 0) + contrast * 1.8 + coverage * 80 + plausible * 8;
     }
 
-    // Último recurso: texto, mas com margem moderada.
-    const inkBox = inkBounds(ink, w, h);
-    if (!inkBox) return null;
-    const bw = inkBox.x1 - inkBox.x0 + 1;
-    const bh = inkBox.y1 - inkBox.y0 + 1;
-    return clampRect(
-      inkBox.x0 - Math.round(bw * 0.10),
-      inkBox.y0 - Math.round(bh * 0.16),
-      bw * 1.20,
-      bh * 1.32,
-      w, h
-    );
+    candidates.sort((a, b) => scoreCandidate(b) - scoreCandidate(a));
+    if (candidates[0]) {
+      const c = candidates[0];
+      // Só acrescenta 1-2 pixels para não cortar a própria folha.
+      const pad = Math.max(1, Math.round(Math.min(w, h) * 0.002));
+      return clampRect(c.x0 - pad, c.y0 - pad, c.bw + pad * 2, c.bh + pad * 2, w, h);
+    }
+
+    // 2) Fallback por perfis de contraste. Útil quando a folha tem fundo branco
+    // e texto/cores suficientes para destruir a máscara de papel.
+    const row = new Float32Array(h), col = new Float32Array(w);
+    const step = Math.max(1, Math.floor(Math.min(w, h) / 700));
+    for (let y = step; y < h - step; y += step) {
+      let sum = 0, n = 0;
+      for (let x = step; x < w - step; x += step) {
+        sum += Math.abs(gray[y * w + x] - gray[(y - step) * w + x]); n++;
+      }
+      row[y] = n ? sum / n : 0;
+    }
+    for (let x = step; x < w - step; x += step) {
+      let sum = 0, n = 0;
+      for (let y = step; y < h - step; y += step) {
+        sum += Math.abs(gray[y * w + x] - gray[y * w + x - step]); n++;
+      }
+      col[x] = n ? sum / n : 0;
+    }
+    const peak = (arr, lo, hi) => {
+      let bi = -1, bs = -1;
+      const a = Math.floor(arr.length * lo), b = Math.ceil(arr.length * hi);
+      for (let i = a; i <= b; i++) if (arr[i] > bs) { bs = arr[i]; bi = i; }
+      return bi >= 0 ? { i: bi, score: bs } : null;
+    };
+    const top = peak(row, .03, .45), bottom = peak(row, .55, .97);
+    const left = peak(col, .03, .45), right = peak(col, .55, .97);
+    if (top && bottom && left && right) {
+      const rw = right.i - left.i, rh = bottom.i - top.i;
+      if (rw > w * .20 && rh > h * .20 && rw < w * .99 && rh < h * .99) {
+        return clampRect(left.i, top.i, rw, rh, w, h);
+      }
+    }
+    return null;
   }
   function findPage(rgba, width, height) {
     if (width < 8 || height < 8) return null;
@@ -769,7 +775,7 @@
     const worker = await getWorker(onStatus);
     onStatus("A ler o talão…");
 
-    const prepared = prepareOcrCanvas(canvas);
+    const prepared = prepareOcrCanvas(limitCanvas(canvas, 1800));
     let text = await recognize(worker, prepared);
 
     let date = parseEmissionDate(text);
@@ -920,7 +926,8 @@
       doc.rect(x, y, cellW, maxImgH, "F");
       doc.setDrawColor(220, 220, 220);
       doc.rect(x, y, cellW, maxImgH, "S");
-      doc.addImage(dataUrl, "JPEG", ix, iy, drawW, drawH, undefined, "FAST");
+      const imageFormat = /^data:image\/png/i.test(dataUrl) ? "PNG" : "JPEG";
+      doc.addImage(dataUrl, imageFormat, ix, iy, drawW, drawH, undefined, "FAST");
 
       const dateText = item.issuedDate ? item.issuedDate.split("-").reverse().join("/") : "Sem data";
       const totalText = item.total == null ? "Sem total" : formatEuros(item.total);
@@ -1094,13 +1101,14 @@
     return c;
   }
   function renderScan(src, rect) {
-    const maxW = 1400;
-    const scale = Math.min(1, maxW / rect.w);
+    // Mantém exatamente a resolução do recorte. Não aplica filtro, contraste
+    // nem redução de tamanho. O PNG preserva os pixels do canvas.
     const c = document.createElement("canvas");
-    c.width = Math.max(1, Math.round(rect.w * scale));
-    c.height = Math.max(1, Math.round(rect.h * scale));
+    c.width = Math.max(1, Math.round(rect.w));
+    c.height = Math.max(1, Math.round(rect.h));
     const ctx = c.getContext("2d");
     if (!ctx) return c;
+    ctx.imageSmoothingEnabled = false;
     ctx.drawImage(src, rect.x, rect.y, rect.w, rect.h, 0, 0, c.width, c.height);
     return c;
   }
@@ -1133,7 +1141,8 @@
   }
   function canvasToBlob(canvas) {
     return new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("sem imagem")), "image/jpeg", 0.82);
+      // PNG: sem compressão com perdas. A fotografia é apenas recortada.
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("sem imagem")), "image/png");
     });
   }
   function mountFaturas(root2) {
@@ -1147,7 +1156,8 @@
     nav.innerHTML = '<button type="button" data-tab="nova">Nova</button><button type="button" data-tab="arquivo">Arquivo</button>';
     const fileCam = el("input", { type: "file", accept: "image/*", capture: "environment", class: "ft-hidden", "aria-label": "Fotografar talão" });
     const fileLib = el("input", { type: "file", accept: "image/*", class: "ft-hidden", "aria-label": "Escolher da galeria" });
-    root2.append(header, main, nav, fileCam, fileLib);
+    const fileBatch = el("input", { type: "file", accept: "image/*", multiple: "true", class: "ft-hidden", "aria-label": "Escolher várias faturas" });
+    root2.append(header, main, nav, fileCam, fileLib, fileBatch);
     let source = null;
     let rect = null;
     let cropFailed = false;
@@ -1176,9 +1186,12 @@
       shoot.textContent = "Fotografar talão";
       const gallery = el("button", { class: "ft-btn secondary", type: "button" });
       gallery.textContent = "Escolher da galeria";
+      const batch = el("button", { class: "ft-btn secondary", type: "button" });
+      batch.textContent = "Importar várias faturas";
       shoot.addEventListener("click", () => void openCamera());
       gallery.addEventListener("click", () => fileLib.click());
-      main.append(card, shoot, gallery);
+      batch.addEventListener("click", () => fileBatch.click());
+      main.append(card, shoot, gallery, batch);
     }
     async function openCamera() {
       if (!navigator.mediaDevices?.getUserMedia) {
@@ -1435,7 +1448,7 @@
       }
       if (!rows.length) {
         const card = el("section", { class: "ft-card" });
-        card.innerHTML = '<h2 class="ft-lead">Ainda não há faturas.</h2><p class="ft-muted">Fotografa um talão. Fica só neste iPhone, sem conta.</p>';
+        card.innerHTML = '<h2 class="ft-lead">Ainda não há faturas.</h2><p class="ft-muted">Fotografa um talão. Fica só neste dispositivo, sem conta.</p>';
         main.append(card);
         return;
       }
@@ -1551,6 +1564,54 @@
         });
       });
     }
+    async function processBatch(files) {
+      if (!files?.length) return;
+      nav.classList.add("ft-hidden");
+      main.replaceChildren();
+      const card = el("section", { class: "ft-card" });
+      card.innerHTML = '<h2 class="ft-lead">A importar faturas…</h2><p class="ft-muted" data-batch-status>0 de ' + files.length + ' processadas.</p><div class="ft-status" data-batch-list></div>';
+      main.append(card);
+      const list = card.querySelector("[data-batch-list]");
+      let ok = 0, failed = 0, missingDate = 0;
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const line = el("p", { class: "ft-muted" });
+        line.textContent = (i + 1) + "/" + files.length + " — " + file.name + " — a ler…";
+        list.append(line);
+        try {
+          const full = await canvasFromFile(file);
+          const ctx = full.getContext("2d", { willReadFrequently: true });
+          const pixels = ctx?.getImageData(0, 0, full.width, full.height);
+          const found = pixels ? findPage(pixels.data, full.width, full.height) : null;
+          const r = found ?? { x: 0, y: 0, w: full.width, h: full.height };
+          const cropped = renderScan(full, r);
+          const text = await readReceipt(cropped, (msg) => { line.textContent = (i + 1) + "/" + files.length + " — " + file.name + " — " + msg; });
+          const date = parseEmissionDate(text);
+          const total = parseTotal(text);
+          const category = categorize(text);
+          await saveFatura({
+            id: crypto.randomUUID(), createdAt: Date.now(),
+            issuedDate: date?.iso ?? null,
+            month: monthKeyFromIso(date?.iso ?? null),
+            category: category || "Outros", total: total?.euros ?? null,
+            notes: "Importada automaticamente", ocrText: text,
+            cropApplied: true, image: await canvasToBlob(cropped)
+          });
+          ok++;
+          if (!date) missingDate++;
+          line.textContent = (i + 1) + "/" + files.length + " — " + file.name + " — " + (date ? date.display : "data por confirmar") + " · " + (total ? formatEuros(total.euros) : "total por confirmar") + " · " + category;
+        } catch (err) {
+          failed++;
+          line.textContent = (i + 1) + "/" + files.length + " — " + file.name + " — não foi possível processar";
+        }
+        const status = card.querySelector("[data-batch-status]");
+        if (status) status.textContent = ok + " guardadas · " + failed + " falharam · " + missingDate + " sem data para rever.";
+      }
+      const done = el("button", { class: "ft-btn", type: "button" });
+      done.textContent = "Abrir arquivo";
+      done.addEventListener("click", () => void showArchive());
+      main.append(done);
+    }
     nav.addEventListener("click", (ev) => {
       const btn = ev.target.closest("button");
       const next = btn?.getAttribute("data-tab");
@@ -1566,6 +1627,11 @@
       const file = fileLib.files?.[0];
       fileLib.value = "";
       if (file) void canvasFromFile(file).then((c) => beginReview(c)).catch(() => alert("Não consegui abrir essa imagem. Tenta outra fotografia."));
+    });
+    fileBatch.addEventListener("change", () => {
+      const files = [...(fileBatch.files || [])];
+      fileBatch.value = "";
+      if (files.length) void processBatch(files);
     });
     showHome();
   }
