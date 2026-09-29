@@ -943,59 +943,86 @@ function ascii(s){return new TextEncoder().encode(s)}
 function concatBytes(parts){let n=0;for(const p of parts)n+=p.length;const out=new Uint8Array(n);let o=0;for(const p of parts){out.set(p,o);o+=p.length}return out}
 async function createPDF(docs,copies,month){
   if(!docs.length){alert("Não existem documentos neste mês.");return}
-  const all=[];
-  for(let c=0;c<Math.max(1,copies||1);c++) for(const d of docs) all.push(d);
-  const rows=[];
-  for(const d of all){
-    try{
-      const url=URL.createObjectURL(d.image);
-      const info=await new Promise((resolve,reject)=>{
-        const im=new Image(); im.onload=()=>resolve({url,w:im.naturalWidth||im.width,h:im.naturalHeight||im.height}); im.onerror=()=>reject(new Error("Imagem inválida")); im.src=url;
-      });
-      rows.push({...d,...info});
-    }catch(e){console.error("Imagem não preparada para impressão",e,d)}
-  }
-  if(!rows.length){alert("Não foi possível ler as imagens guardadas. Abre uma fatura e confirma se a digitalização aparece.");return}
 
-  /*
-     Em vez de construir um PDF binário no browser (que varia entre Chrome,
-     Edge, Safari e ficheiro local), abrimos uma folha de impressão real.
-     O utilizador pode escolher "Guardar como PDF" ou uma impressora física.
-     As imagens são carregadas directamente da IndexedDB/Blob e entram na
-     impressão com object-fit:contain, sem serem deformadas.
-  */
+  // Abrimos a janela IMEDIATAMENTE no clique. Se esperarmos por um await,
+  // Chrome/Edge podem considerar a janela um popup não autorizado.
   const win=window.open("","_blank","width=1000,height=800");
   if(!win){
     alert("O browser bloqueou a janela de impressão. Permite pop-ups para este ficheiro e tenta novamente.");
-    rows.forEach(r=>URL.revokeObjectURL(r.url));
     return;
   }
-  const title=`TOYOTA — Faturas ${month||"sem data"}`;
+
   win.document.open();
-  win.document.write(`<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><title>${escapeHTML(title)}</title>
-  <style>
-    @page{size:A4;margin:0}
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:#ddd;font-family:Arial,sans-serif;color:#111}
-    .toolbar{position:fixed;z-index:20;top:12px;left:12px;right:12px;padding:10px 14px;background:#fff;border:1px solid #ccc;border-radius:10px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 3px 15px #0002}
-    .toolbar button{padding:10px 18px;border:0;border-radius:8px;background:#e4001b;color:#fff;font-weight:700;cursor:pointer}
-    .sheet{width:210mm;min-height:297mm;margin:15mm auto;background:#fff;page-break-after:always;display:flex;align-items:center;justify-content:center;padding:10mm}
-    .sheet:last-child{page-break-after:auto}
-    .doc{width:190mm;height:277mm;display:flex;align-items:center;justify-content:center;position:relative}
-    .doc img{display:block;max-width:190mm;max-height:277mm;width:auto;height:auto;object-fit:contain}
-    .label{position:absolute;left:0;bottom:-7mm;font-size:8pt;color:#666}
-    @media print{
-      body{background:#fff}
-      .toolbar{display:none!important}
-      .sheet{margin:0;width:210mm;height:297mm;min-height:297mm;padding:10mm}
-    }
-  </style></head><body>
-  <div class="toolbar"><span>${escapeHTML(title)} · ${rows.length} página(s)</span><button onclick="window.print()">Imprimir / Guardar PDF</button></div>
-  ${rows.map((r,i)=>`<section class="sheet"><div class="doc"><img src="${r.url}" alt="Fatura ${i+1}"><div class="label">${escapeHTML(r.supplier||"Documento")}${r.issuedDate?" · "+escapeHTML(r.issuedDate.split("-").reverse().join("/")):""}</div></div></section>`).join("")}
-  <script>window.addEventListener('load',()=>{const imgs=[...document.images];Promise.all(imgs.map(i=>i.complete?Promise.resolve():new Promise(res=>{i.onload=i.onerror=res}))).then(()=>setTimeout(()=>window.print(),350));});window.addEventListener('afterprint',()=>{setTimeout(()=>window.close(),250);});<\/script>
-  </body></html>`);
+  win.document.write(`<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><title>TOYOTA — Preparar impressão</title>
+  <style>body{font-family:Arial,sans-serif;padding:40px;background:#f5f5f5;color:#222}.box{max-width:700px;margin:80px auto;background:#fff;padding:30px;border-radius:14px;text-align:center;box-shadow:0 4px 20px #0002}.spin{font-size:28px;margin-bottom:12px}</style>
+  </head><body><div class="box"><div class="spin">⏳</div><h2>A preparar as digitalizações…</h2><p>Por favor aguarda.</p></div></body></html>`);
   win.document.close();
-  setTimeout(()=>rows.forEach(r=>URL.revokeObjectURL(r.url)),60000);
+
+  try{
+    const all=[];
+    for(let c=0;c<Math.max(1,copies||1);c++) for(const d of docs) all.push(d);
+
+    const rows=[];
+    for(const d of all){
+      try{
+        // Data URL: funciona de forma fiável na nova janela, mesmo com o
+        // HTML aberto localmente (file://), sem depender de Blob URLs.
+        const dataUrl=await new Promise((resolve,reject)=>{
+          const reader=new FileReader();
+          reader.onload=()=>resolve(reader.result);
+          reader.onerror=()=>reject(new Error("Não foi possível ler a imagem."));
+          reader.readAsDataURL(d.image);
+        });
+        const info=await new Promise((resolve,reject)=>{
+          const im=new Image();
+          im.onload=()=>resolve({w:im.naturalWidth||im.width,h:im.naturalHeight||im.height});
+          im.onerror=()=>reject(new Error("Imagem inválida."));
+          im.src=dataUrl;
+        });
+        rows.push({...d,dataUrl,...info});
+      }catch(e){console.error("Imagem não preparada para impressão",e,d)}
+    }
+
+    if(!rows.length) throw new Error("Não foi possível ler as imagens guardadas.");
+
+    const title=`TOYOTA — Faturas ${month||"sem data"}`;
+    win.document.open();
+    win.document.write(`<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><title>${escapeHTML(title)}</title>
+    <style>
+      @page{size:A4;margin:0}
+      *{box-sizing:border-box}
+      html,body{margin:0;padding:0;background:#ddd;font-family:Arial,sans-serif;color:#111}
+      .toolbar{position:fixed;z-index:20;top:12px;left:12px;right:12px;padding:10px 14px;background:#fff;border:1px solid #ccc;border-radius:10px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 3px 15px #0002}
+      .toolbar button{padding:10px 18px;border:0;border-radius:8px;background:#e4001b;color:#fff;font-weight:700;cursor:pointer}
+      .sheet{width:210mm;height:297mm;margin:15mm auto;background:#fff;page-break-after:always;display:flex;align-items:center;justify-content:center;padding:10mm}
+      .sheet:last-child{page-break-after:auto}
+      .doc{width:190mm;height:277mm;display:flex;align-items:center;justify-content:center;position:relative}
+      .doc img{display:block;max-width:190mm;max-height:267mm;width:auto;height:auto;object-fit:contain}
+      .label{position:absolute;left:0;bottom:0;font-size:8pt;color:#666}
+      @media print{
+        html,body{background:#fff}
+        .toolbar{display:none!important}
+        .sheet{margin:0;width:210mm;height:297mm;padding:10mm}
+      }
+    </style></head><body>
+    <div class="toolbar"><span>${escapeHTML(title)} · ${rows.length} página(s)</span><button onclick="window.print()">Imprimir / Guardar PDF</button></div>
+    ${rows.map((r,i)=>`<section class="sheet"><div class="doc"><img src="${r.dataUrl}" alt="Fatura ${i+1}"><div class="label">${escapeHTML(r.supplier||"Documento")}${r.issuedDate?" · "+escapeHTML(r.issuedDate.split("-").reverse().join("/")):""}</div></div></section>`).join("")}
+    <script>
+      window.addEventListener('load',()=>{
+        const imgs=[...document.images];
+        Promise.all(imgs.map(i=>i.complete?Promise.resolve():new Promise(res=>{i.onload=i.onerror=res})))
+          .then(()=>setTimeout(()=>window.print(),500));
+      });
+      window.addEventListener('afterprint',()=>setTimeout(()=>window.close(),500));
+    <\/script>
+    </body></html>`);
+    win.document.close();
+  }catch(err){
+    console.error(err);
+    win.document.open();
+    win.document.write(`<html lang="pt-PT"><body style="font-family:Arial;padding:40px"><h2>Não foi possível preparar a impressão</h2><p>${escapeHTML(err.message||"Erro desconhecido")}</p><p>Fecha esta janela e tenta novamente.</p></body></html>`);
+    win.document.close();
+  }
 }
 
 /* =========================================================
