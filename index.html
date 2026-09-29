@@ -161,35 +161,50 @@ function parseNIF(text){
 }
 function numberPattern(){return "(\\d{1,3}(?:[. ]\\d{3})*(?:,\\d{1,2})|\\d+(?:[,.]\\d{1,2}))"}
 function parseTotal(text){
-  const raw=String(text||"").replace(/\r/g,""), lines=raw.split("\n"), found=[];
-  const label=/\b(total(?:\s+(?:a\s+pagar|geral|documento|fatura|factura|com\s+iva|c\s*\/\s*iva|final))?|valor\s+(?:a\s+pagar|pago|total)|montante\s+a\s+pagar|a\s+pagar)\b/i;
-  const bad=/\b(subtotal|base\s+(?:tributavel|tributável)|desconto|troco|iva\s+(?:total|\d+)|taxa\s+iva)\b/i;
-  const numRe=/(?:\d{1,3}(?:[. ]\d{3})+|\d+)(?:[,.]\d{2})/g;
+  const raw=String(text||"").replace(/\r/g,""),lines=raw.split("\n");
+  const moneyRe=/(?:(?:\d{1,3}(?:[. ]\d{3})+)|\d+)(?:[,.]\d{2})(?=\s*€|\b|$)/g;
+  const totalLabel=/\b(?:t[o0]tal|t[o0]t[a4]l|valor\s+(?:a\s+pagar|pago|total)|montante\s+a\s+pagar|a\s+pagar)\b/i;
+  const excluded=/\b(?:subtotal|base\s+(?:tributavel|tributável)|desconto|troco|taxa\s+iva|percentagem|percentual)\b/i;
+  const explicit=[];
+  const valuesIn=s=>(String(s).match(moneyRe)||[]).map(parseMoney).filter(v=>v!==null&&v>=0);
+
+  /* Prioridade máxima: uma linha explicitamente marcada como TOTAL. */
   for(let i=0;i<lines.length;i++){
-    const line=lines[i], block=line+" "+(lines[i+1]||"");
-    if(bad.test(block)) continue;
-    const nums=block.match(numRe)||[];
-    if(!nums.length) continue;
-    const vals=nums.map(parseMoney).filter(Number.isFinite);
-    if(!vals.length) continue;
-    if(label.test(line)){
-      found.push({value:vals[vals.length-1],score:220-i*0.01});
-    }else if(label.test(block)){
-      found.push({value:vals[vals.length-1],score:180-i*0.01});
+    const line=lines[i];
+    if(!totalLabel.test(line)||excluded.test(line))continue;
+    const vals=valuesIn(line);
+    if(vals.length){explicit.push({value:vals[vals.length-1],score:300-i/100});continue;}
+    /* OCR pode colocar TOTAL numa linha e o valor na seguinte. */
+    for(let j=1;j<=2;j++){
+      const next=lines[i+j]||"";
+      if(!next||/\b(?:iva|vat|subtotal|desconto|troco)\b/i.test(next))continue;
+      const nv=valuesIn(next);if(nv.length){explicit.push({value:nv[nv.length-1],score:285-i/100});break;}
     }
   }
-  /* Alguns OCR separam a palavra TOTAL do valor. Procurar também no texto corrido. */
-  for(const m of raw.matchAll(/\b(?:total(?:\s+(?:a\s+pagar|geral|documento|fatura|factura|com\s+iva|c\s*\/\s*iva|final))?|valor\s+(?:a\s+pagar|pago|total)|montante\s+a\s+pagar|a\s+pagar)\b[^\d€]{0,45}((?:\d{1,3}(?:[. ]\d{3})+|\d+)(?:[,.]\d{2}))/gi)){
-    const v=parseMoney(m[1]);if(v!==null)found.push({value:v,score:200});
-  }
-  found.sort((a,b)=>b.score-a.score);
-  return found[0]?.value??null;
+
+  /* TOTAL e o valor podem aparecer na mesma sequência depois de OCR. */
+  const compact=raw.replace(/\n+/g," ");
+  const re=/\b(?:t[o0]tal|t[o0]t[a4]l)(?:\s+(?:a\s+pagar|geral|documento|fatura|factura|com\s+iva|c\s*\/\s*iva|final))?\b[^\d€]{0,70}((?:\d{1,3}(?:[. ]\d{3})+|\d+)(?:[,.]\d{2}))/gi;
+  for(const m of compact.matchAll(re)){const v=parseMoney(m[1]);if(v!==null)explicit.push({value:v,score:275});}
+  if(explicit.length){explicit.sort((a,b)=>b.score-a.score);return explicit[0].value;}
+
+  /* Fallback: zona final da fatura, mas nunca uma linha identificada como IVA. */
+  const fallback=[];
+  lines.slice(Math.max(0,lines.length-12)).forEach((line,idx)=>{
+    if(excluded.test(line)||/\b(?:iva|vat)\b/i.test(line))return;
+    valuesIn(line).forEach(v=>fallback.push({value:v,score:80+idx}));
+  });
+  fallback.sort((a,b)=>b.score-a.score);
+  return fallback[0]?.value??null;
 }
 function parseVAT(text){
   const lines=String(text||"").split(/\n/),found=[];
   for(const line of lines){
-    if(!/\biva\b/i.test(line))continue;
-    const vals=(line.match(/\d{1,3}(?:[. ]\d{3})*(?:,\d{2})|\d+[,.]\d{2}/g)||[]).map(parseMoney).filter(Number.isFinite);
+    if(!/\b(?:iva|vat)\b/i.test(line))continue;
+    /* Ex.: IVA 23% 2,30 — extrai 2,30 e não outro total da fatura. */
+    const after=line.match(/\b(?:iva|vat)\b[^\d%€]{0,20}(?:\d{1,2}(?:[,.]\d{1,2})?\s*%\s*)?((?:\d{1,3}(?:[. ]\d{3})+|\d+)(?:[,.]\d{2}))/i);
+    if(after){const v=parseMoney(after[1]);if(v!==null)found.push(v);continue;}
+    const vals=(line.match(/(?:\d{1,3}(?:[. ]\d{3})+|\d+)(?:[,.]\d{2})/g)||[]).map(parseMoney).filter(Number.isFinite);
     if(vals.length)found.push(vals[vals.length-1]);
   }
   return found.length?found[0]:null;
