@@ -992,8 +992,16 @@ async function createPDF(docs,copies,month){
       @page{size:A4;margin:0}
       *{box-sizing:border-box}
       html,body{margin:0;padding:0;background:#ddd;font-family:Arial,sans-serif;color:#111}
-      .toolbar{position:fixed;z-index:20;top:12px;left:12px;right:12px;padding:10px 14px;background:#fff;border:1px solid #ccc;border-radius:10px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 3px 15px #0002}
-      .toolbar button{padding:10px 18px;border:0;border-radius:8px;background:#e4001b;color:#fff;font-weight:700;cursor:pointer}
+      .toolbar{position:fixed;z-index:9999;top:12px;left:12px;right:12px;padding:10px 14px;background:#fff;border:1px solid #ccc;border-radius:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;box-shadow:0 3px 15px #0002}
+      .toolbar span{font-size:14px;line-height:1.25;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .toolbar button{padding:12px 18px;border:0;border-radius:8px;background:#e4001b;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap;min-height:44px}
+      @media(max-width:600px){
+        html,body{background:#eee}
+        .toolbar{top:auto;bottom:0;left:0;right:0;border-radius:0;padding:10px max(10px,env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-right));gap:8px}
+        .toolbar span{font-size:12px;flex:1}
+        .toolbar button{flex:0 0 auto;font-size:14px;padding:12px 14px}
+        .sheet{margin:8px auto 70px auto}
+      }
       .sheet{width:210mm;height:297mm;margin:15mm auto;background:#fff;page-break-after:always;display:flex;align-items:center;justify-content:center;padding:10mm}
       .sheet:last-child{page-break-after:auto}
       .doc{width:190mm;height:277mm;display:flex;align-items:center;justify-content:center;position:relative}
@@ -1011,7 +1019,12 @@ async function createPDF(docs,copies,month){
       window.addEventListener('load',()=>{
         const imgs=[...document.images];
         Promise.all(imgs.map(i=>i.complete?Promise.resolve():new Promise(res=>{i.onload=i.onerror=res})))
-          .then(()=>setTimeout(()=>window.print(),500));
+          .then(()=>{
+            // No telemóvel não abrimos automaticamente a impressão: deixamos
+            // o botão visível no fundo do ecrã para o utilizador tocar nele.
+            const mobile=window.matchMedia && window.matchMedia('(max-width: 600px)').matches;
+            if(!mobile) setTimeout(()=>window.print(),500);
+          });
       });
       window.addEventListener('afterprint',()=>setTimeout(()=>window.close(),500));
     <\/script>
