@@ -43,7 +43,7 @@ input,select,textarea{width:100%;background:#0d0e11;border:1px solid var(--line)
 .camera{position:fixed;inset:0;z-index:100;background:#000;display:flex;flex-direction:column}.camera video{flex:1;width:100%;height:100%;object-fit:cover}.camera-guide{position:absolute;inset:11% 8% 20%;border:2px solid #fff8;border-radius:18px;box-shadow:0 0 0 9999px #00035;pointer-events:none}.camera-guide:after{content:"Alinha as quatro margens da fatura dentro da moldura";position:absolute;left:0;right:0;bottom:-38px;text-align:center;color:#fffC;font-size:12px;font-weight:700}.camera-bar{display:flex;align-items:center;justify-content:space-between;padding:13px 18px calc(14px + var(--safe));background:#050505}.camera-action{color:#fff;font-weight:800;min-width:70px;background:none}.shutter{width:74px;height:74px;border-radius:50%;background:#fff;border:6px solid #555}
 .processing{position:fixed;inset:0;z-index:110;background:#07080af8;display:grid;place-items:center;padding:20px}.processing-box{width:min(480px,100%);background:#15161a;border:1px solid var(--line);border-radius:26px;padding:18px}.processing-preview{height:260px;background:#000;border-radius:18px;display:grid;place-items:center;overflow:hidden}.processing-preview img{max-width:100%;max-height:100%;object-fit:contain}.scanline{position:absolute;left:0;right:0;height:2px;background:var(--red);box-shadow:0 0 18px var(--red);animation:scan 1.35s ease-in-out infinite}@keyframes scan{0%{top:8%}50%{top:90%}100%{top:8%}}
 .step{padding:11px 12px;border-radius:13px;background:#0d0e11;border:1px solid var(--line);margin:7px 0;color:#8d8e94;font-size:13px;font-weight:750}.step.active{color:#fff;border-color:#e4001b88}.step.done{color:#9af0ca}
-.crop-editor{position:fixed;inset:0;z-index:120;background:#060709;display:flex;flex-direction:column;padding:12px 12px calc(12px + var(--safe))}.crop-head{display:flex;justify-content:space-between;align-items:center;padding:5px 2px 12px;gap:10px}.crop-stage{position:relative;flex:1;min-height:0;background:#000;border-radius:18px;overflow:hidden}.crop-media{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:calc(100% - 16px);max-height:calc(100% - 16px)}.crop-media img,.crop-svg{position:absolute;inset:0;width:100%;height:100%;display:block}.crop-media img{object-fit:fill;user-select:none;-webkit-user-select:none;pointer-events:none}.crop-svg{overflow:visible;touch-action:none}.crop-svg circle{filter:drop-shadow(0 2px 8px #000);pointer-events:all}.crop-actions{display:flex;gap:8px;padding-top:10px}.crop-actions button{flex:1;min-height:50px}
+.crop-editor{position:fixed;inset:0;z-index:120;background:#060709;display:flex;flex-direction:column;padding:12px 12px calc(12px + var(--safe))}.crop-head{display:flex;justify-content:space-between;align-items:center;padding:5px 2px 12px;gap:10px}.crop-stage{position:relative;flex:1;min-height:0;background:#000;border-radius:18px;overflow:hidden}.crop-media{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:calc(100% - 16px);max-height:calc(100% - 16px)}.crop-media img,.crop-media canvas,.crop-svg{position:absolute;inset:0;width:100%;height:100%;display:block}.crop-media img,.crop-media canvas{object-fit:fill;user-select:none;-webkit-user-select:none;pointer-events:none}.crop-svg{overflow:visible;touch-action:none}.crop-svg circle{filter:drop-shadow(0 2px 8px #000);pointer-events:all}.crop-actions{display:flex;gap:8px;padding-top:10px}.crop-actions button{flex:1;min-height:50px}
 .export-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.export-options button{padding:12px 5px;background:#202126;border:1px solid var(--line);border-radius:13px;color:#ccc;font-weight:800}.export-options button.active{color:#fff;background:#3a1116;border-color:#e4001b99}
 .mode-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:10px 0}.mode-tabs button{background:#202126;border:1px solid var(--line);border-radius:12px;padding:10px 4px;font-size:11px;font-weight:800}.mode-tabs button.active{background:#3a1116;border-color:#e4001b88}
 .small-note{font-size:11px;color:#777980}.empty{padding:24px 6px;text-align:center;color:var(--muted)}
@@ -76,6 +76,22 @@ const OCR_SIDE=2600;
 const CATEGORIES=["Combustível","Alimentação","Restauração","Estadias","Portagens","Material","Serviços","Outros"];
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+
+/* =========================================================
+   ESTADO DA APLICAÇÃO
+========================================================= */
+const state={
+  tab:"home",
+  processing:false,
+  original:null,
+  scanned:null,
+  ocrImage:null,
+  preview:null,
+  detectedPoints:null,
+  mode:"scan",
+  ocrWorker:null,
+  ocrBusy:false
+};
 
 /* =========================================================
    DOM / SEGURANÇA
@@ -273,6 +289,97 @@ function canvasDataURL(c,q=.9,type="image/jpeg"){return c.toDataURL(type,q)}
 function loadImageFromBlob(blob){return new Promise((res,rej)=>{const u=URL.createObjectURL(blob),i=new Image();i.onload=()=>{URL.revokeObjectURL(u);res(i)};i.onerror=e=>{URL.revokeObjectURL(u);rej(e)};i.src=u})}
 
 /* =========================================================
+   PROCESSAMENTO DE IMAGEM / OCR
+========================================================= */
+function enhanceScanner(source,mode="scan") {
+  if(!source) return null;
+  const max=OCR_SIDE;
+  const c=resizeCanvas(source,max);
+  const out=document.createElement("canvas");
+  out.width=c.width; out.height=c.height;
+  const ctx=out.getContext("2d",{alpha:false});
+  if(mode==="original"){ ctx.drawImage(c,0,0); return out; }
+  ctx.drawImage(c,0,0);
+  const img=ctx.getImageData(0,0,out.width,out.height);
+  const d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    let r=d[i],g=d[i+1],b=d[i+2];
+    if(mode==="bw"){
+      const y=.299*r+.587*g+.114*b;
+      const v=Math.max(0,Math.min(255,(y-128)*1.45+128));
+      d[i]=d[i+1]=d[i+2]=v;
+    }else if(mode==="scan"){
+      const y=.299*r+.587*g+.114*b;
+      const v=Math.max(0,Math.min(255,(y-128)*1.18+128));
+      d[i]=d[i+1]=d[i+2]=v;
+    }else{
+      d[i]=Math.min(255,r*1.06+3);
+      d[i+1]=Math.min(255,g*1.06+3);
+      d[i+2]=Math.min(255,b*1.06+3);
+    }
+  }
+  ctx.putImageData(img,0,0);
+  return out;
+}
+
+function updateStatus(message,kind="status"){
+  const node=$("#ocrStatus");
+  if(node){node.textContent=message;node.className=`${kind}`.trim();}
+}
+
+async function getOCRWorker(){
+  if(state.ocrWorker) return state.ocrWorker;
+  if(!window.Tesseract) throw new Error("Tesseract.js não carregou.");
+  state.ocrWorker=await Tesseract.createWorker("por",1,{
+    logger:m=>{
+      const pct=typeof m.progress==="number"?Math.round(m.progress*100):null;
+      if(m.status) updateStatus(pct!==null?`OCR: ${m.status} ${pct}%`:`OCR: ${m.status}`);
+    }
+  });
+  return state.ocrWorker;
+}
+
+async function runOCR(){
+  if(!state.ocrImage || state.ocrBusy) return;
+  state.ocrBusy=true;
+  try{
+    updateStatus("A preparar OCR local…");
+    const worker=await getOCRWorker();
+    const result=await worker.recognize(state.ocrImage);
+    const text=result?.data?.text||"";
+    const supplier=parseSupplier(text);
+    const nif=parseNIF(text);
+    const date=parseDate(text);
+    const docNumber=parseDocumentNumber(text);
+    const vat=parseVAT(text);
+    const total=parseTotal(text);
+    if($("#ocrText")) $("#ocrText").value=text;
+    if($("#supplier") && supplier) $("#supplier").value=supplier;
+    if($("#nif") && nif) $("#nif").value=nif;
+    if($("#date") && date) $("#date").value=date.iso;
+    if($("#docNumber") && docNumber) $("#docNumber").value=docNumber;
+    if($("#vat") && vat!==null) $("#vat").value=String(vat).replace(".",",");
+    if($("#total") && total!==null) $("#total").value=String(total).replace(".",",");
+    if($("#category")) $("#category").value=categoryFromText(text);
+    const badges=$("#badges");
+    if(badges){
+      badges.replaceChildren();
+      if(supplier) badges.append(el("span",{class:"badge ok",text:"Fornecedor ✓"}));
+      if(nif) badges.append(el("span",{class:"badge ok",text:"NIF ✓"}));
+      if(date) badges.append(el("span",{class:"badge ok",text:"Data ✓"}));
+      if(total!==null) badges.append(el("span",{class:"badge ok",text:"Total ✓"}));
+      if(!supplier&&!nif&&!date&&total===null) badges.append(el("span",{class:"badge warn",text:"Confirma os dados manualmente"}));
+    }
+    updateStatus(text?"OCR concluído. Confirma os campos antes de guardar.":"OCR não encontrou texto. Preenche os campos manualmente.");
+  }catch(e){
+    console.error("OCR:",e);
+    updateStatus("OCR indisponível. Podes preencher os campos manualmente.","status warning");
+  }finally{
+    state.ocrBusy=false;
+  }
+}
+
+/* =========================================================
    OPENCV / DETEÇÃO
 ========================================================= */
 function waitForOpenCV(timeout=15000){
@@ -390,6 +497,22 @@ function detectDocumentCorners(canvas){
     }catch(e){console.warn('Deteção:',e);return null}finally{[src,gray,blur,edges,thr].forEach(x=>{try{x&&x.delete()}catch{}})}
   });
 }
+function fallbackCrop(canvas,corners=null){
+  if(!corners||corners.length!==4){
+    const out=document.createElement("canvas");
+    out.width=canvas.width;out.height=canvas.height;
+    out.getContext("2d").drawImage(canvas,0,0);
+    return out;
+  }
+  const xs=corners.map(p=>p.x),ys=corners.map(p=>p.y);
+  const x=Math.max(0,Math.floor(Math.min(...xs))),y=Math.max(0,Math.floor(Math.min(...ys)));
+  const right=Math.min(canvas.width,Math.ceil(Math.max(...xs))),bottom=Math.min(canvas.height,Math.ceil(Math.max(...ys)));
+  const w=Math.max(1,right-x),h=Math.max(1,bottom-y);
+  const out=document.createElement("canvas");out.width=w;out.height=h;
+  out.getContext("2d").drawImage(canvas,x,y,w,h,0,0,w,h);
+  return out;
+}
+
 function perspectiveCrop(canvas,corners){
   const p=orderCorners(corners),[tl,tr,br,bl]=p;if(!p)throw new Error('Cantos inválidos');
   const w=Math.max(dist(tl,tr),dist(bl,br)),h=Math.max(dist(tl,bl),dist(tr,br));
@@ -400,210 +523,187 @@ function perspectiveCrop(canvas,corners){
   cv.warpPerspective(src,dst,M,new cv.Size(width,height),cv.INTER_CUBIC,cv.BORDER_REPLICATE);
   const out=document.createElement('canvas');out.width=width;out.height=height;cv.imshow(out,dst);[src,dst,s,d,M].forEach(x=>x.delete());return out;
 }
-async function processImage(sourceCanvas,pointsOverride=null){
-  const detected=pointsOverride?{points:orderCorners(pointsOverride),confidence:1}:await detectDocumentCorners(sourceCanvas);
-  if(detected&&detected.points){try{return{canvas:perspectiveCrop(sourceCanvas,detected.points),points:detected.points,confidence:detected.confidence,detected:true}}catch(e){console.warn('Recorte:',e)}}
-  return{canvas:fallbackCrop(sourceCanvas),points:null,confidence:0,detected:false};
-}
-function fallbackCrop(canvas){
-  /* Fallback conservador: remove apenas bordas claramente exteriores; nunca assume A4. */
-  const c=resizeCanvas(canvas,1800),ctx=c.getContext("2d",{willReadFrequently:true}),w=c.width,h=c.height,d=ctx.getImageData(0,0,w,h).data;
-  const sample=(x,y)=>{const i=(y*w+x)*4;return(.299*d[i]+.587*d[i+1]+.114*d[i+2])};
-  const avgRow=y=>{let s=0,n=0;for(let x=0;x<w;x+=8){s+=sample(x,y);n++}return s/n},avgCol=x=>{let s=0,n=0;for(let y=0;y<h;y+=8){s+=sample(x,y);n++}return s/n};
-  const b=[avgRow(2),avgRow(h-3),avgCol(2),avgCol(w-3)];if(b.every(v=>v<75)||b.every(v=>v>245)){const m=Math.round(Math.min(w,h)*.025);const o=document.createElement("canvas");o.width=w-2*m;o.height=h-2*m;o.getContext("2d").drawImage(c,m,m,o.width,o.height,0,0,o.width,o.height);return o}return c;
-}
-
-/* =========================================================
-   SCANNER LOOK
-========================================================= */
-function enhanceScanner(source,mode="scan"){
-  const max=MAX_IMAGE_SIDE,c=resizeCanvas(source,max),w=c.width,h=c.height;
-  const out=document.createElement("canvas");out.width=w;out.height=h;const ctx=out.getContext("2d",{willReadFrequently:true});ctx.drawImage(c,0,0);
-  const im=ctx.getImageData(0,0,w,h),d=im.data;
-  /* Correção de contraste + neutralização ligeira do fundo, preservando texto. */
-  for(let i=0;i<d.length;i+=4){
-    let r=d[i],g=d[i+1],b=d[i+2];
-    const lum=.299*r+.587*g+.114*b;
-    if(mode==="bw"){
-      let x=(lum-128)*1.55+128;x=Math.max(0,Math.min(255,x));
-      const t=x<160?Math.max(0,x*0.72):Math.min(255,190+(x-160)*1.15);
-      d[i]=d[i+1]=d[i+2]=t;
-    }else if(mode==="color"){
-      const gain=1.12,avg=(r+g+b)/3;r=Math.max(0,Math.min(255,avg+(r-avg)*1.08));g=Math.max(0,Math.min(255,avg+(g-avg)*1.08));b=Math.max(0,Math.min(255,avg+(b-avg)*1.08));
-      d[i]=Math.max(0,Math.min(255,(r-128)*gain+128));d[i+1]=Math.max(0,Math.min(255,(g-128)*gain+128));d[i+2]=Math.max(0,Math.min(255,(b-128)*gain+128));
-    }else{
-      const gain=1.16;d[i]=Math.max(0,Math.min(255,(r-128)*gain+128));d[i+1]=Math.max(0,Math.min(255,(g-128)*gain+128));d[i+2]=Math.max(0,Math.min(255,(b-128)*gain+128));
-    }
-  }
-  ctx.putImageData(im,0,0);
-  return out;
-}
-function prepareOCR(canvas){
-  const c=resizeCanvas(canvas,OCR_SIDE),w=c.width,h=c.height,out=document.createElement("canvas");out.width=w;out.height=h;
-  const ctx=out.getContext("2d",{willReadFrequently:true});ctx.drawImage(c,0,0);
-  const im=ctx.getImageData(0,0,w,h),d=im.data;
-  for(let i=0;i<d.length;i+=4){const g=.299*d[i]+.587*d[i+1]+.114*d[i+2];let x=(g-128)*1.45+128;x=Math.max(0,Math.min(255,x));d[i]=d[i+1]=d[i+2]=x}
-  ctx.putImageData(im,0,0);return out;
-}
-
-/* =========================================================
-   CROP EDITOR MANUAL
-========================================================= */
-function openCropEditor(source,initialPoints,onDone){
-  const wrap=el("div",{class:"crop-editor"});
+function openCropEditor(source, initialPoints, onDone){
+  const overlay=el("div",{class:"crop-editor"});
   const head=el("div",{class:"crop-head"});
-  head.append(el("strong",{text:"Ajustar documento"}),el("span",{class:"small-note",text:"Arrasta os 4 cantos vermelhos"}));
+  head.append(
+    el("strong",{text:"Ajustar documento"}),
+    el("span",{class:"small-note",text:"Arrasta os 4 pontos vermelhos para os cantos da fatura"})
+  );
 
   const stage=el("div",{class:"crop-stage"});
   const media=el("div",{class:"crop-media"});
   const img=document.createElement("img");
   img.draggable=false;
-  img.alt="Documento para recorte";
   media.append(img);
-
-  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
-  svg.classList.add("crop-svg");
-  svg.setAttribute("preserveAspectRatio","none");
-  const shade=document.createElementNS("http://www.w3.org/2000/svg","path");
-  shade.setAttribute("fill","rgba(0,0,0,.42)");
-  shade.setAttribute("fill-rule","evenodd");
-  const polygon=document.createElementNS("http://www.w3.org/2000/svg","polygon");
-  polygon.setAttribute("fill","rgba(228,0,27,.10)");
-  polygon.setAttribute("stroke","#e4001b");
-  polygon.setAttribute("stroke-width","5");
-  polygon.setAttribute("vector-effect","non-scaling-stroke");
-  svg.append(shade,polygon);
-  media.append(svg);
   stage.append(media);
 
   const actions=el("div",{class:"crop-actions"});
   const cancel=el("button",{class:"btn secondary",type:"button",text:"Cancelar"});
   const accept=el("button",{class:"btn primary",type:"button",text:"Aplicar recorte"});
-  actions.append(cancel,accept);wrap.append(head,stage,actions);document.body.append(wrap);
+  actions.append(cancel,accept);
+  overlay.append(head,stage,actions);
+  document.body.append(overlay);
 
-  let pts=orderCorners(initialPoints||[
-    {x:source.width*.04,y:source.height*.04},{x:source.width*.96,y:source.height*.04},
-    {x:source.width*.96,y:source.height*.96},{x:source.width*.04,y:source.height*.96}
-  ]) || [
-    {x:source.width*.04,y:source.height*.04},{x:source.width*.96,y:source.height*.04},
-    {x:source.width*.96,y:source.height*.96},{x:source.width*.04,y:source.height*.96}
-  ];
+  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.classList.add("crop-svg");
+  svg.setAttribute("viewBox",`0 0 ${source.width} ${source.height}`);
+  svg.setAttribute("preserveAspectRatio","none");
+  media.append(svg);
 
-  const circles=pts.map((_,i)=>{
+  const shade=document.createElementNS("http://www.w3.org/2000/svg","path");
+  shade.setAttribute("fill","rgba(0,0,0,.45)");
+  shade.setAttribute("fill-rule","evenodd");
+  shade.setAttribute("d",`M0 0H${source.width}V${source.height}H0Z`);
+  svg.append(shade);
+
+  const poly=document.createElementNS("http://www.w3.org/2000/svg","polygon");
+  poly.setAttribute("fill","rgba(228,0,27,.10)");
+  poly.setAttribute("stroke","#e4001b");
+  poly.setAttribute("stroke-width",Math.max(8,source.width/500));
+  svg.append(poly);
+
+  let pts=normaliseCropPoints(initialPoints,source.width,source.height);
+  const circles=[];
+
+  for(let i=0;i<4;i++){
     const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
-    c.setAttribute("r","24");c.setAttribute("fill","#fff");c.setAttribute("stroke","#e4001b");c.setAttribute("stroke-width","7");
-    c.style.cursor="grab";c.style.touchAction="none";c.setAttribute("aria-label",`Canto ${i+1}`);
-    svg.append(c);return c;
-  });
+    c.setAttribute("r",Math.max(32,source.width/55));
+    c.setAttribute("fill","#fff");
+    c.setAttribute("stroke","#e4001b");
+    c.setAttribute("stroke-width",Math.max(10,source.width/300));
+    c.setAttribute("data-index",String(i));
+    svg.append(c);
+    circles.push(c);
+  }
 
-  let mediaBox={left:0,top:0,width:source.width,height:source.height};
+  img.src=canvasDataURL(source,.95);
+
   let active=-1;
-  let raf=0;
 
-  function fit(){
-    const r=stage.getBoundingClientRect();
-    const pad=8;
-    const scale=Math.min((r.width-pad*2)/source.width,(r.height-pad*2)/source.height);
-    const w=Math.max(1,source.width*scale),h=Math.max(1,source.height*scale);
-    media.style.width=w+"px";media.style.height=h+"px";
-    mediaBox={left:(r.width-w)/2,top:(r.height-h)/2,width:w,height:h};
+  function normaliseCropPoints(points,w,h){
+    if(Array.isArray(points)&&points.length===4){
+      const ordered=orderCorners(points);
+      if(ordered)return ordered.map(p=>({x:clamp(p.x,0,w),y:clamp(p.y,0,h)}));
+    }
+    const m=Math.max(20,Math.min(w,h)*.04);
+    return [
+      {x:m,y:m},
+      {x:w-m,y:m},
+      {x:w-m,y:h-m},
+      {x:m,y:h-m}
+    ];
+  }
+
+  function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+
+  function draw(){
+    const points=pts.map(p=>`${p.x},${p.y}`).join(" ");
+    poly.setAttribute("points",points);
+    const d=`M0 0H${source.width}V${source.height}H0Z M${pts[0].x} ${pts[0].y} L${pts[1].x} ${pts[1].y} L${pts[2].x} ${pts[2].y} L${pts[3].x} ${pts[3].y} Z`;
+    shade.setAttribute("d",d);
+    circles.forEach((c,i)=>{
+      c.setAttribute("cx",pts[i].x);
+      c.setAttribute("cy",pts[i].y);
+    });
+  }
+
+  function pointFromEvent(e){
+    const r=svg.getBoundingClientRect();
+    const x=(e.clientX-r.left)/r.width*source.width;
+    const y=(e.clientY-r.top)/r.height*source.height;
+    return {x:clamp(x,0,source.width),y:clamp(y,0,source.height)};
+  }
+
+  function down(e){
+    const target=e.target.closest("circle");
+    if(!target)return;
+    e.preventDefault();
+    active=Number(target.dataset.index);
+    try{svg.setPointerCapture(e.pointerId)}catch{}
+  }
+  function move(e){
+    if(active<0)return;
+    e.preventDefault();
+    pts[active]=pointFromEvent(e);
     draw();
   }
-  function draw(){
-    svg.setAttribute("viewBox",`0 0 ${source.width} ${source.height}`);
-    const points=pts.map(p=>`${p.x},${p.y}`).join(" ");
-    polygon.setAttribute("points",points);
-    shade.setAttribute("d",`M0 0H${source.width}V${source.height}H0Z M${points}Z`);
-    circles.forEach((c,i)=>{c.setAttribute("cx",pts[i].x);c.setAttribute("cy",pts[i].y);});
+  function up(e){
+    if(active>=0){try{svg.releasePointerCapture(e.pointerId)}catch{}}
+    active=-1;
   }
-  function toImage(e){
-    const r=svg.getBoundingClientRect();
-    return {x:Math.max(0,Math.min(source.width,(e.clientX-r.left)*source.width/r.width)),y:Math.max(0,Math.min(source.height,(e.clientY-r.top)*source.height/r.height))};
-  }
-  function nearest(e){
-    const r=svg.getBoundingClientRect(),sx=r.width/source.width,sy=r.height/source.height;
-    let best=-1,bd=Infinity;
-    pts.forEach((p,i)=>{const x=r.left+p.x*sx,y=r.top+p.y*sy,d=Math.hypot(e.clientX-x,e.clientY-y);if(d<bd){bd=d;best=i}});
-    return bd<=70?best:-1;
-  }
-  circles.forEach((c,i)=>{
-    c.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();active=i;c.setPointerCapture?.(e.pointerId);c.style.cursor="grabbing"},{passive:false});
-    c.addEventListener("pointermove",e=>{if(active!==i)return;e.preventDefault();pts[i]=toImage(e);draw()},{passive:false});
-    const end=e=>{if(active===i){try{c.releasePointerCapture?.(e.pointerId)}catch{}active=-1;c.style.cursor="grab"}};
-    c.addEventListener("pointerup",end,{passive:false});c.addEventListener("pointercancel",end,{passive:false});
-  });
-  img.src=canvasDataURL(source,.94);
-  img.onload=()=>{fit();cancel.disabled=false;accept.disabled=false};
-  cancel.disabled=true;accept.disabled=true;
-  requestAnimationFrame(fit);
-  const onResize=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(fit)};
-  window.addEventListener("resize",onResize);
-  cancel.onclick=()=>{window.removeEventListener("resize",onResize);wrap.remove()};
+
+  svg.addEventListener("pointerdown",down,{passive:false});
+  svg.addEventListener("pointermove",move,{passive:false});
+  svg.addEventListener("pointerup",up,{passive:false});
+  svg.addEventListener("pointercancel",up,{passive:false});
+
+  cancel.onclick=()=>overlay.remove();
   accept.onclick=()=>{
-    try{
-      const ordered=orderCorners(pts),g=ordered&&quadGeometry(ordered,source.width,source.height);
-      if(!g||g.area/(source.width*source.height)<.015)throw new Error("Área inválida");
-      window.removeEventListener("resize",onResize);wrap.remove();onDone(ordered);
-    }catch(e){alert("Os quatro cantos não são válidos. Coloca-os dentro da imagem.")}
+    const ordered=orderCorners(pts);
+    if(!ordered){alert("Não foi possível validar os quatro cantos.");return}
+    overlay.remove();
+    onDone(ordered);
   };
+
+  const resize=()=>{
+    const r=stage.getBoundingClientRect();
+    const ar=source.width/source.height;
+    const stageAr=Math.max(.01,r.width)/Math.max(.01,r.height);
+    let w,h;
+    if(ar>stageAr){w=r.width-16;h=w/ar}else{h=r.height-16;w=h*ar}
+    media.style.width=Math.max(1,w)+"px";
+    media.style.height=Math.max(1,h)+"px";
+  };
+  const ro=new ResizeObserver(()=>resize());
+  ro.observe(stage);
+  overlay._cleanup=()=>{try{ro.disconnect()}catch{}};
+  const remove=overlay.remove.bind(overlay);
+  overlay.remove=()=>{overlay._cleanup?.();remove()};
+  requestAnimationFrame(()=>{resize();draw()});
 }
 
-/* =========================================================
-   ESTADO / OCR
-========================================================= */
-const state={tab:"home",original:null,detectedPoints:null,scanned:null,ocrImage:null,preview:null,mode:"scan",ocrText:"",editingId:null,processing:false};
-let ocrWorker=null,ocrBusy=false;
-function updateStatus(msg){const x=$("#ocrStatus");if(x)x.textContent=msg}
-async function getOCRWorker(){
-  if(ocrWorker)return ocrWorker;
-  if(!window.Tesseract)throw new Error("Tesseract.js não carregou. A leitura local não está disponível.");
-  ocrWorker=await Tesseract.createWorker("por",1,{logger:m=>{if(m.status==="recognizing text")updateStatus(`A ler a fatura… ${Math.round((m.progress||0)*100)}%`)}})
-  return ocrWorker;
-}
-async function runOCR(){
-  if(ocrBusy||!state.ocrImage)return;
-  ocrBusy=true;updateStatus("A preparar a leitura local…");
-  try{
-    const worker=await getOCRWorker(),ocrCanvas=prepareOCR(state.ocrImage),blob=await canvasBlob(ocrCanvas,.95,"image/jpeg");
-    const result=await worker.recognize(blob);state.ocrText=(result.data.text||"").trim();const t=state.ocrText;
-    const data={supplier:parseSupplier(t),nif:parseNIF(t),date:parseDate(t),total:parseTotal(t),vat:parseVAT(t),doc:parseDocumentNumber(t),category:categoryFromText(t)};
-    if($("#supplier"))$("#supplier").value=data.supplier;
-    if($("#nif"))$("#nif").value=data.nif;
-    if($("#date")&&data.date)$("#date").value=data.date.iso;
-    if($("#total")&&data.total!==null)$("#total").value=data.total.toLocaleString("pt-PT",{minimumFractionDigits:2,maximumFractionDigits:2});
-    if($("#vat")&&data.vat!==null)$("#vat").value=data.vat.toLocaleString("pt-PT",{minimumFractionDigits:2,maximumFractionDigits:2});
-    if($("#docNumber"))$("#docNumber").value=data.doc;
-    if($("#category")&&data.category!=="Outros")$("#category").value=data.category;
-    renderBadges(data);if($("#ocrText"))$("#ocrText").value=t;
-    updateStatus("Leitura concluída. Campos sem certeza ficam para confirmar.");
-  }catch(e){console.error(e);updateStatus("O OCR local não conseguiu ler todos os dados. Os campos podem ser preenchidos manualmente.");}
-  finally{ocrBusy=false}
-}
-function renderBadges(data){
-  const box=$("#badges");if(!box)return;box.replaceChildren();
-  const add=(label,ok)=>box.append(el("span",{class:"badge "+(ok?"ok":"warn"),text:ok?label+" ✓":label+" · Confirmar"}));
-  add("Fornecedor",!!data.supplier);add("NIF",!!data.nif);add("Data",!!data.date);add("Total",data.total!==null);add("IVA",data.vat!==null);add("Documento",!!data.doc);
-}
-
-/* =========================================================
-   DIGITALIZAÇÃO
-========================================================= */
 async function processImage(sourceCanvas,pointsOverride=null){
-  const detected=pointsOverride?{points:pointsOverride,confidence:1}:await detectDocumentCorners(sourceCanvas);
-  if(detected&&detected.points){
-    try{return {canvas:perspectiveCrop(sourceCanvas,detected.points),points:detected.points,confidence:detected.confidence,detected:true}}
-    catch(e){console.warn(e)}
+  if(pointsOverride){
+    try{
+      return {canvas:perspectiveCrop(sourceCanvas,pointsOverride),points:pointsOverride,confidence:1,detected:true};
+    }catch(e){
+      console.warn("Perspetiva indisponível; a usar recorte simples:",e);
+      return {canvas:fallbackCrop(sourceCanvas,pointsOverride),points:pointsOverride,confidence:.5,detected:true};
+    }
   }
-  return {canvas:fallbackCrop(sourceCanvas),points:null,confidence:0,detected:false}
+  try{
+    const detected=await detectDocumentCorners(sourceCanvas);
+    if(detected&&detected.points){
+      try{return {canvas:perspectiveCrop(sourceCanvas,detected.points),points:detected.points,confidence:detected.confidence,detected:true}}
+      catch(e){console.warn(e)}
+    }
+  }catch(e){console.warn("Deteção automática indisponível:",e)}
+  return {canvas:fallbackCrop(sourceCanvas),points:null,confidence:0,detected:false};
 }
+
 async function showProcessing(source){
-  const overlay=el("div",{class:"processing"}),box=el("div",{class:"processing-box"}),pv=el("div",{class:"processing-preview"});
-  const img=document.createElement("img");img.src=canvasDataURL(source,.82);pv.append(img);box.append(pv);
-  const steps=["Detetar documento","Corrigir perspetiva","Melhorar digitalização","Ler dados"];const els=steps.map((s,i)=>{const x=el("div",{class:"step"+(i===0?" active":""),text:`${i+1} · ${s}`});box.append(x);return x});
-  overlay.append(box);document.body.append(overlay);
-  const set=(i,done=false)=>{if(i>0)els[i-1].classList.remove("active"),els[i-1].classList.add("done");if(i<els.length&&!done)els[i].classList.add("active")};
-  await new Promise(r=>setTimeout(r,80));
-  let result;try{result=await processImage(source);set(1);await new Promise(r=>setTimeout(r,40));if(!result.detected||!result.points){set(2);await new Promise(r=>setTimeout(r,120));overlay.remove();state.scanned=enhanceScanner(source,"scan");state.ocrImage=state.scanned;state.detectedPoints=null;state.mode="scan";openCropEditor(source,null,async pts=>{try{const r=await processImage(source,pts);state.scanned=enhanceScanner(r.canvas,"scan");state.ocrImage=state.scanned;state.detectedPoints=pts;state.mode="scan";renderReview(false);await runOCR()}catch(e){console.error(e);alert("O recorte não pôde ser aplicado. Verifica se os quatro cantos estão dentro da fotografia.")}});return}state.scanned=enhanceScanner(result.canvas,"scan");state.detectedPoints=result.points;state.ocrImage=state.scanned;state.mode="scan";set(2);await new Promise(r=>setTimeout(r,40));set(3);overlay.remove();renderReview(false);await runOCR();return}catch(e){console.error(e);overlay.remove();state.scanned=enhanceScanner(source,"scan");state.ocrImage=state.scanned;state.detectedPoints=null;state.mode="scan";openCropEditor(source,null,async pts=>{try{const r=await processImage(source,pts);state.scanned=enhanceScanner(r.canvas,"scan");state.ocrImage=state.scanned;state.detectedPoints=pts;state.mode="scan";renderReview(false);await runOCR()}catch(err){console.error(err);alert("O recorte não pôde ser aplicado.")}})}
+  /* Mostrar o editor imediatamente. Nunca bloquear o iPhone à espera do OpenCV. */
+  state.scanned=source;
+  state.ocrImage=source;
+  state.detectedPoints=null;
+  state.mode="scan";
+
+  openCropEditor(source,null,async pts=>{
+    try{
+      const r=await processImage(source,pts);
+      state.scanned=enhanceScanner(r.canvas,"scan");
+      state.ocrImage=state.scanned;
+      state.detectedPoints=pts;
+      state.mode="scan";
+      renderReview(false);
+      await runOCR();
+    }catch(e){
+      console.error("Recorte:",e);
+      alert("Não foi possível aplicar o recorte. Confirma que os quatro pontos estão dentro da fotografia e tenta novamente.");
+    }
+  });
+
 }
 
 /* =========================================================
