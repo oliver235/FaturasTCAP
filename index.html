@@ -943,43 +943,59 @@ function ascii(s){return new TextEncoder().encode(s)}
 function concatBytes(parts){let n=0;for(const p of parts)n+=p.length;const out=new Uint8Array(n);let o=0;for(const p of parts){out.set(p,o);o+=p.length}return out}
 async function createPDF(docs,copies,month){
   if(!docs.length){alert("Não existem documentos neste mês.");return}
-  const margin=18, pageW=595.28, pageH=841.89, queue=[];
-  for(let c=0;c<Math.max(1,copies||1);c++)for(const d of docs)queue.push(d);
-  const images=[];
-  for(const d of queue){
+  const all=[];
+  for(let c=0;c<Math.max(1,copies||1);c++) for(const d of docs) all.push(d);
+  const rows=[];
+  for(const d of all){
     try{
-      const jpeg=await imageBlobAsJPEG(d.image,.92), info=await imageInfo(jpeg), bytes=new Uint8Array(await blobToArrayBuffer(jpeg));
-      images.push({doc:d,bytes,w:info.w,h:info.h});
-    }catch(e){console.error("Imagem não preparada para PDF",e,d);}
+      const url=URL.createObjectURL(d.image);
+      const info=await new Promise((resolve,reject)=>{
+        const im=new Image(); im.onload=()=>resolve({url,w:im.naturalWidth||im.width,h:im.naturalHeight||im.height}); im.onerror=()=>reject(new Error("Imagem inválida")); im.src=url;
+      });
+      rows.push({...d,...info});
+    }catch(e){console.error("Imagem não preparada para impressão",e,d)}
   }
-  if(!images.length){alert("Não foi possível ler as imagens guardadas. Abre uma fatura e confirma se a digitalização aparece.");return}
+  if(!rows.length){alert("Não foi possível ler as imagens guardadas. Abre uma fatura e confirma se a digitalização aparece.");return}
 
-  /* PDF object model: catálogo + páginas + uma imagem JPEG e conteúdo por página. */
-  const objs=[]; const reserve=()=>{objs.push(null);return objs.length};
-  const catalog=reserve(), pagesObj=reserve();
-  const pageEntries=[];
-  for(const im of images){
-    const page=reserve(), img=reserve(), content=reserve(); pageEntries.push({page,img,content,im});
+  /*
+     Em vez de construir um PDF binário no browser (que varia entre Chrome,
+     Edge, Safari e ficheiro local), abrimos uma folha de impressão real.
+     O utilizador pode escolher "Guardar como PDF" ou uma impressora física.
+     As imagens são carregadas directamente da IndexedDB/Blob e entram na
+     impressão com object-fit:contain, sem serem deformadas.
+  */
+  const win=window.open("","_blank","width=1000,height=800");
+  if(!win){
+    alert("O browser bloqueou a janela de impressão. Permite pop-ups para este ficheiro e tenta novamente.");
+    rows.forEach(r=>URL.revokeObjectURL(r.url));
+    return;
   }
-  const kids=pageEntries.map(x=>`${x.page} 0 R`).join(" ");
-  objs[catalog]=ascii(`<< /Type /Catalog /Pages ${pagesObj} 0 R >>`);
-  objs[pagesObj]=ascii(`<< /Type /Pages /Kids [${kids}] /Count ${pageEntries.length} >>`);
-
-  for(const x of pageEntries){
-    const {im}=x, availW=pageW-2*margin, availH=pageH-2*margin-16, ratio=Math.min(availW/im.w,availH/im.h), w=im.w*ratio,h=im.h*ratio,xpos=(pageW-w)/2,ypos=pageH-margin-h;
-    const content=`q\n${w.toFixed(3)} 0 0 ${h.toFixed(3)} ${xpos.toFixed(3)} ${ypos.toFixed(3)} cm\n/Im1 Do\nQ\n`;
-    objs[x.img]=concatBytes([ascii(`<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.bytes.length} >>\nstream\n`),im.bytes,ascii(`\nendstream`)]);
-    objs[x.content]=ascii(`<< /Length ${ascii(content).length} >>\nstream\n${content}endstream`);
-    objs[x.page]=ascii(`<< /Type /Page /Parent ${pagesObj} 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /XObject << /Im1 ${x.img} 0 R >> >> /Contents ${x.content} 0 R >>`);
-  }
-  const chunks=[ascii('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n')], offsets=[0];let pos=chunks[0].length;
-  for(let i=0;i<objs.length;i++){
-    const head=ascii(`${i+1} 0 obj\n`),body=objs[i],tail=ascii('\nendobj\n');offsets[i+1]=pos;chunks.push(head,body,tail);pos+=head.length+body.length+tail.length;
-  }
-  const xrefPos=pos, xrefHead=ascii(`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`);chunks.push(xrefHead);pos+=xrefHead.length;
-  for(let i=1;i<=objs.length;i++){const row=ascii(`${String(offsets[i]).padStart(10,'0')} 00000 n \n`);chunks.push(row);pos+=row.length}
-  const trailer=ascii(`trailer\n<< /Size ${objs.length+1} /Root ${catalog} 0 R >>\nstartxref\n${xrefPos}\n%%EOF`);chunks.push(trailer);
-  const blob=new Blob(chunks,{type:'application/pdf'}), url=URL.createObjectURL(blob), a=document.createElement('a');a.href=url;a.download=`TOYOTA-faturas-${month||'sem-data'}.pdf`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
+  const title=`TOYOTA — Faturas ${month||"sem data"}`;
+  win.document.open();
+  win.document.write(`<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><title>${escapeHTML(title)}</title>
+  <style>
+    @page{size:A4;margin:0}
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:#ddd;font-family:Arial,sans-serif;color:#111}
+    .toolbar{position:fixed;z-index:20;top:12px;left:12px;right:12px;padding:10px 14px;background:#fff;border:1px solid #ccc;border-radius:10px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 3px 15px #0002}
+    .toolbar button{padding:10px 18px;border:0;border-radius:8px;background:#e4001b;color:#fff;font-weight:700;cursor:pointer}
+    .sheet{width:210mm;min-height:297mm;margin:15mm auto;background:#fff;page-break-after:always;display:flex;align-items:center;justify-content:center;padding:10mm}
+    .sheet:last-child{page-break-after:auto}
+    .doc{width:190mm;height:277mm;display:flex;align-items:center;justify-content:center;position:relative}
+    .doc img{display:block;max-width:190mm;max-height:277mm;width:auto;height:auto;object-fit:contain}
+    .label{position:absolute;left:0;bottom:-7mm;font-size:8pt;color:#666}
+    @media print{
+      body{background:#fff}
+      .toolbar{display:none!important}
+      .sheet{margin:0;width:210mm;height:297mm;min-height:297mm;padding:10mm}
+    }
+  </style></head><body>
+  <div class="toolbar"><span>${escapeHTML(title)} · ${rows.length} página(s)</span><button onclick="window.print()">Imprimir / Guardar PDF</button></div>
+  ${rows.map((r,i)=>`<section class="sheet"><div class="doc"><img src="${r.url}" alt="Fatura ${i+1}"><div class="label">${escapeHTML(r.supplier||"Documento")}${r.issuedDate?" · "+escapeHTML(r.issuedDate.split("-").reverse().join("/")):""}</div></div></section>`).join("")}
+  <script>window.addEventListener('load',()=>{const imgs=[...document.images];Promise.all(imgs.map(i=>i.complete?Promise.resolve():new Promise(res=>{i.onload=i.onerror=res}))).then(()=>setTimeout(()=>window.print(),350));});window.addEventListener('afterprint',()=>{setTimeout(()=>window.close(),250);});<\/script>
+  </body></html>`);
+  win.document.close();
+  setTimeout(()=>rows.forEach(r=>URL.revokeObjectURL(r.url)),60000);
 }
 
 /* =========================================================
@@ -991,7 +1007,7 @@ async function showExport(){
   const copies=el("select");for(let i=1;i<=5;i++)copies.append(el("option",{value:i,text:`${i} cópia${i>1?"s":""}`}));
   const card=el("section",{class:"card"});card.append(el("strong",{text:"PDF com as digitalizações"}),el("p",{class:"status",text:"O PDF usa as imagens digitalizadas guardadas localmente. O algoritmo tenta aproveitar cada folha A4 sem deformar os documentos."}));
   card.append(el("label",{text:"Mês"}),ms,el("label",{text:"Cópias"}),copies);
-  const pdf=el("button",{class:"btn primary",type:"button",text:"Criar PDF para impressão"}),csv=el("button",{class:"btn secondary",type:"button",text:"Exportar Excel / CSV"});main.append(card,pdf,csv);
+  const pdf=el("button",{class:"btn primary",type:"button",text:"Imprimir / Guardar PDF"}),csv=el("button",{class:"btn secondary",type:"button",text:"Exportar Excel / CSV"});main.append(card,pdf,csv);
   pdf.onclick=()=>createPDF(docs.filter(d=>(d.month||"sem-data")===ms.value),Number(copies.value),ms.value);csv.onclick=()=>exportCSV(docs.filter(d=>(d.month||"sem-data")===ms.value),ms.value);
 }
 
