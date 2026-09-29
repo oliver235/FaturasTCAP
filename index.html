@@ -160,54 +160,59 @@ function parseNIF(text){
   candidates.sort((a,b)=>b.score-a.score);return candidates[0]?.n||"";
 }
 function numberPattern(){return "(\\d{1,3}(?:[. ]\\d{3})*(?:,\\d{1,2})|\\d+(?:[,.]\\d{1,2}))"}
+function normalizeOCRLabel(s){
+  return fold(String(s||"")).replace(/[0]/g,"o").replace(/[1|]/g,"l").replace(/[4]/g,"a").replace(/[5]/g,"s");
+}
+function moneyCandidates(s){
+  const re=/(?<!\d)(?:\d{1,3}(?:[. ]\d{3})+|\d+)(?:[,.]\d{2})(?!\d)/g;
+  return [...String(s||"").matchAll(re)].map(m=>({raw:m[0],value:parseMoney(m[0]),index:m.index})).filter(x=>x.value!==null&&x.value>=0);
+}
 function parseTotal(text){
-  const raw=String(text||"").replace(/\r/g,""),lines=raw.split("\n");
-  const moneyRe=/(?:(?:\d{1,3}(?:[. ]\d{3})+)|\d+)(?:[,.]\d{2})(?=\s*€|\b|$)/g;
-  const totalLabel=/\b(?:t[o0]tal|t[o0]t[a4]l|valor\s+(?:a\s+pagar|pago|total)|montante\s+a\s+pagar|a\s+pagar)\b/i;
-  const excluded=/\b(?:subtotal|base\s+(?:tributavel|tributável)|desconto|troco|taxa\s+iva|percentagem|percentual)\b/i;
-  const explicit=[];
-  const valuesIn=s=>(String(s).match(moneyRe)||[]).map(parseMoney).filter(v=>v!==null&&v>=0);
+  const raw=String(text||"").replace(/\r/g,""), lines=raw.split("\n");
+  const candidates=[];
+  const strong=/\b(?:total|t[o0]tal|t[o0]t[a4]l|valor\s+(?:total|a\s+pagar|a\s+liquidar)|montante\s+(?:total|a\s+pagar)|importe\s+(?:total|a\s+pagar)|total\s+(?:a\s+pagar|geral|final|documento|fatura|factura|liquido|líquido|c\/\s*iva|com\s*iva|inc\.?\s*iva))\b/i;
+  const medium=/\b(?:a\s+pagar|liquido|líquido|fatura\s+total|factura\s+total)\b/i;
+  const bad=/\b(?:iva|vat|subtotal|sub\s*total|base\s+(?:tributavel|tributável)|desconto|troco|recebido|pago|pagamento|taxa|percentagem|percentual)\b/i;
+  const push=(v,score,reason)=>{if(Number.isFinite(v))candidates.push({value:v,score,reason})};
 
-  /* Prioridade máxima: uma linha explicitamente marcada como TOTAL. */
   for(let i=0;i<lines.length;i++){
-    const line=lines[i];
-    if(!totalLabel.test(line)||excluded.test(line))continue;
-    const vals=valuesIn(line);
-    if(vals.length){explicit.push({value:vals[vals.length-1],score:300-i/100});continue;}
-    /* OCR pode colocar TOTAL numa linha e o valor na seguinte. */
-    for(let j=1;j<=2;j++){
-      const next=lines[i+j]||"";
-      if(!next||/\b(?:iva|vat|subtotal|desconto|troco)\b/i.test(next))continue;
-      const nv=valuesIn(next);if(nv.length){explicit.push({value:nv[nv.length-1],score:285-i/100});break;}
+    const line=lines[i], n=normalizeOCRLabel(line), vals=moneyCandidates(line);
+    if(!vals.length)continue;
+    if(strong.test(n)) vals.forEach((x,j)=>push(x.value,1000+j,x.raw));
+    else if(medium.test(n) && !bad.test(n)) vals.forEach((x,j)=>push(x.value,700+j,x.raw));
+    else if(!bad.test(n)){
+      const near=/\b(?:valor|total|fatura|factura)\b/i.test(n);
+      if(near) vals.forEach(x=>push(x.value,450,x.raw));
+      else if(i>=Math.max(0,lines.length-10)) vals.forEach(x=>push(x.value,120+i/100,x.raw));
+    }
+    /* Caso OCR ponha o rótulo numa linha e o valor na seguinte. */
+    if(strong.test(n) && !vals.length){
+      for(let j=1;j<=3;j++){
+        const next=lines[i+j]||"", nn=normalizeOCRLabel(next), nv=moneyCandidates(next);
+        if(!nv.length||bad.test(nn))continue;
+        nv.forEach((x,k)=>push(x.value,900-j*10+k,x.raw)); break;
+      }
     }
   }
 
-  /* TOTAL e o valor podem aparecer na mesma sequência depois de OCR. */
-  const compact=raw.replace(/\n+/g," ");
-  const re=/\b(?:t[o0]tal|t[o0]t[a4]l)(?:\s+(?:a\s+pagar|geral|documento|fatura|factura|com\s+iva|c\s*\/\s*iva|final))?\b[^\d€]{0,70}((?:\d{1,3}(?:[. ]\d{3})+|\d+)(?:[,.]\d{2}))/gi;
-  for(const m of compact.matchAll(re)){const v=parseMoney(m[1]);if(v!==null)explicit.push({value:v,score:275});}
-  if(explicit.length){explicit.sort((a,b)=>b.score-a.score);return explicit[0].value;}
+  /* OCR pode destruir a separação das linhas: procura TOTAL ... valor na sequência. */
+  const compact=raw.replace(/\s+/g," ");
+  const rx=/\b(?:total|t[o0]tal|t[o0]t[a4]l)\b[^\d]{0,90}((?:\d{1,3}(?:[. ]\d{3})+|\d+)[,.]\d{2})/gi;
+  for(const m of compact.matchAll(rx)){const v=parseMoney(m[1]);if(v!==null)push(v,850,m[1]);}
 
-  /* Fallback: zona final da fatura, mas nunca uma linha identificada como IVA. */
-  const fallback=[];
-  lines.slice(Math.max(0,lines.length-12)).forEach((line,idx)=>{
-    if(excluded.test(line)||/\b(?:iva|vat)\b/i.test(line))return;
-    valuesIn(line).forEach(v=>fallback.push({value:v,score:80+idx}));
-  });
-  fallback.sort((a,b)=>b.score-a.score);
-  return fallback[0]?.value??null;
+  if(!candidates.length)return null;
+  candidates.sort((a,b)=>b.score-a.score);
+  return candidates[0].value;
 }
 function parseVAT(text){
-  const lines=String(text||"").split(/\n/),found=[];
+  const lines=String(text||"").split(/\n/), candidates=[];
   for(const line of lines){
-    if(!/\b(?:iva|vat)\b/i.test(line))continue;
-    /* Ex.: IVA 23% 2,30 — extrai 2,30 e não outro total da fatura. */
-    const after=line.match(/\b(?:iva|vat)\b[^\d%€]{0,20}(?:\d{1,2}(?:[,.]\d{1,2})?\s*%\s*)?((?:\d{1,3}(?:[. ]\d{3})+|\d+)(?:[,.]\d{2}))/i);
-    if(after){const v=parseMoney(after[1]);if(v!==null)found.push(v);continue;}
-    const vals=(line.match(/(?:\d{1,3}(?:[. ]\d{3})+|\d+)(?:[,.]\d{2})/g)||[]).map(parseMoney).filter(Number.isFinite);
-    if(vals.length)found.push(vals[vals.length-1]);
+    const n=normalizeOCRLabel(line);if(!/\b(?:iva|vat)\b/i.test(n))continue;
+    const after=n.match(/\b(?:iva|vat)\b[^\d%€]{0,25}(?:\d{1,2}(?:[,.]\d{1,2})?\s*%\s*)?((?:\d{1,3}(?:[. ]\d{3})+|\d+)[,.]\d{2})/i);
+    if(after){const v=parseMoney(after[1]);if(v!==null)candidates.push(v);continue;}
+    const vals=moneyCandidates(line);if(vals.length)candidates.push(vals[vals.length-1].value);
   }
-  return found.length?found[0]:null;
+  return candidates.length?candidates[0]:null;
 }
 const KNOWN_SUPPLIERS=[["galp","Galp"],["repsol","Repsol"],["prio","PRIO"],["bp ","BP"],["cepsa","CEPSA"],["continente","Continente"],["pingo doce","Pingo Doce"],["lidl","Lidl"],["auchan","Auchan"],["mercadona","Mercadona"],["mcdonald","McDonald's"],["burger king","Burger King"],["pestana","Pestana"],["ibis","ibis"],["campanile","Campanile"],["decathlon","Decathlon"],["amazon","Amazon"]];
 function parseSupplier(text){
@@ -911,93 +916,70 @@ function exportCSV(docs,month){
 }
 
 /* =========================================================
-   PDF: PACKING REAL POR PROPORÇÃO
+   PDF — SEM DEPENDÊNCIAS EXTERNAS
+   Gera um PDF A4 diretamente no browser, incorporando os JPEGs.
 ========================================================= */
-async function loadJsPDF(){
-  if(window.jspdf?.jsPDF)return window.jspdf.jsPDF;
-  await new Promise((resolve,reject)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js";s.onload=resolve;s.onerror=()=>reject(new Error("jsPDF não carregou."));document.head.append(s)});
-  return window.jspdf.jsPDF;
+async function blobToArrayBuffer(blob){
+  if(!blob)throw new Error("Imagem não encontrada.");
+  return await blob.arrayBuffer();
 }
-function fitImage(iw,ih,cw,ch){const r=Math.min(cw/iw,ch/ih);return{w:iw*r,h:ih*r}}
-function docRatio(doc){return Math.max(.08,Math.min(8,(doc.scannedWidth||1200)/(doc.scannedHeight||1700)))}
-function packDocuments(items,pageW,pageH,margin,gap){
-  /* Skyline/row packing: tenta colocar documentos altos e estreitos lado a lado,
-     sem deformar, mantendo uma altura de linha coerente. */
-  const usableW=pageW-2*margin,usableH=pageH-2*margin;  const pages=[];let queue=[...items];
-  while(queue.length){
-    let page=[],usedH=0;
-    while(queue.length){
-      const d=queue[0],r=docRatio(d);
-      const maxH=usableW/r;
-      if(!page.length&&maxH>usableH){page.push({doc:d,w:usableW,h:usableH});queue.shift();break}
-      /* tenta uma linha com 1, 2 ou 3 documentos */
-      let n=Math.min(3,queue.length),best=null;
-      for(let k=n;k>=1;k--){
-        const group=queue.slice(0,k),sumR=group.reduce((s,x)=>s+docRatio(x),0);
-        const h=(usableW-gap*(k-1))/sumR;
-        if(h<35)continue;
-        const remain=usableH-usedH-(page.length?gap:0);
-        if(h<=remain+0.01){best={group,h};break}
-      }
-      if(!best)break;
-      const widths=best.group.map(x=>best.h*docRatio(x));let x=margin;
-      best.group.forEach(xdoc=>{const w=best.h*docRatio(xdoc);page.push({doc:xdoc,x,y:margin+usedH,w,h:best.h});x+=w+gap});
-      queue.splice(0,best.group.length);usedH+=best.h+gap;
-      if(usedH>=usableH-gap)break;
-    }
-    if(!page.length){const d=queue.shift();page.push({doc:d,x:margin,y:margin,w:usableW,h:usableH})}
-    pages.push(page);
-  }
-  return pages;
-}
-async function blobToDataURL(blob){
-  if(!blob) throw new Error("Imagem não encontrada.");
-  return await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error||new Error("Não foi possível ler a imagem."));r.readAsDataURL(blob)});
-}
-async function imageSizeFromBlob(blob){
+async function imageBlobAsJPEG(blob,quality=.92){
+  if(!blob)throw new Error("Imagem não encontrada.");
+  if(String(blob.type||"").toLowerCase()==="image/jpeg")return blob;
   const url=URL.createObjectURL(blob);
-  try{const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error("Imagem inválida."));i.src=url});return {w:img.naturalWidth||img.width,h:img.naturalHeight||img.height}}
+  try{
+    const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error("Imagem inválida."));i.src=url});
+    const c=document.createElement("canvas");c.width=img.naturalWidth||img.width;c.height=img.naturalHeight||img.height;
+    c.getContext("2d",{alpha:false}).drawImage(img,0,0,c.width,c.height);
+    return await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("Não foi possível converter a imagem para JPEG.")),"image/jpeg",quality));
+  }finally{URL.revokeObjectURL(url)}
+}
+async function imageInfo(blob){
+  const url=URL.createObjectURL(blob);
+  try{return await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve({w:i.naturalWidth||i.width,h:i.naturalHeight||i.height});i.onerror=()=>reject(new Error("Imagem inválida."));i.src=url})}
   finally{URL.revokeObjectURL(url)}
 }
+function ascii(s){return new TextEncoder().encode(s)}
+function concatBytes(parts){let n=0;for(const p of parts)n+=p.length;const out=new Uint8Array(n);let o=0;for(const p of parts){out.set(p,o);o+=p.length}return out}
 async function createPDF(docs,copies,month){
   if(!docs.length){alert("Não existem documentos neste mês.");return}
-  const PDF=await loadJsPDF();
-  const pdf=new PDF({orientation:"portrait",unit:"mm",format:"a4",compress:true});
-  const W=pdf.internal.pageSize.getWidth(),H=pdf.internal.pageSize.getHeight(),margin=6,gap=3;
-  const prepared=[];
-  for(const d of docs){
+  const margin=18, pageW=595.28, pageH=841.89, queue=[];
+  for(let c=0;c<Math.max(1,copies||1);c++)for(const d of docs)queue.push(d);
+  const images=[];
+  for(const d of queue){
     try{
-      const size=await imageSizeFromBlob(d.image);
-      prepared.push({...d,scannedWidth:size.w,scannedHeight:size.h});
-    }catch(e){console.warn("Imagem ignorada no PDF",d.id,e)}
+      const jpeg=await imageBlobAsJPEG(d.image,.92), info=await imageInfo(jpeg), bytes=new Uint8Array(await blobToArrayBuffer(jpeg));
+      images.push({doc:d,bytes,w:info.w,h:info.h});
+    }catch(e){console.error("Imagem não preparada para PDF",e,d);}
   }
-  if(!prepared.length){alert("As imagens das faturas não estão disponíveis. Abre uma fatura e confirma se a imagem aparece.");return}
-  const queue=[];for(let c=0;c<copies;c++)prepared.forEach(d=>queue.push(d));
-  const pages=packDocuments(queue,W,H,margin,gap);
-  let first=true;
-  for(const page of pages){
-    if(!first)pdf.addPage();first=false;
-    for(const p of page){
-      try{
-        const data=await blobToDataURL(p.doc.image);
-        const format=/^data:image\/png/i.test(data)?"PNG":"JPEG";
-        pdf.addImage(data,format,p.x,p.y,p.w,p.h,undefined,"FAST");
-      }catch(e){
-        console.error("Erro ao inserir imagem no PDF",e,p.doc);
-        pdf.setDrawColor(180);pdf.rect(p.x,p.y,p.w,p.h);
-        pdf.setFontSize(7);pdf.text("Imagem não disponível",p.x+3,p.y+6);
-      }
-      const label=p.doc.supplier||"Documento";
-      if(p.w>55&&p.h>25){pdf.setFontSize(5);pdf.setTextColor(95);pdf.text(`${label}${p.doc.issuedDate?" · "+p.doc.issuedDate.split("-").reverse().join("/"):""}`,p.x+1,Math.min(H-margin,p.y+p.h+2))}
-    }
+  if(!images.length){alert("Não foi possível ler as imagens guardadas. Abre uma fatura e confirma se a digitalização aparece.");return}
+
+  /* PDF object model: catálogo + páginas + uma imagem JPEG e conteúdo por página. */
+  const objs=[]; const reserve=()=>{objs.push(null);return objs.length};
+  const catalog=reserve(), pagesObj=reserve();
+  const pageEntries=[];
+  for(const im of images){
+    const page=reserve(), img=reserve(), content=reserve(); pageEntries.push({page,img,content,im});
   }
-  const filename=`TOYOTA-faturas-${month||"sem-data"}.pdf`;
-  try{
-    pdf.save(filename);
-  }catch(e){
-    console.error("PDF save",e);
-    const blob=pdf.output("blob"),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+  const kids=pageEntries.map(x=>`${x.page} 0 R`).join(" ");
+  objs[catalog]=ascii(`<< /Type /Catalog /Pages ${pagesObj} 0 R >>`);
+  objs[pagesObj]=ascii(`<< /Type /Pages /Kids [${kids}] /Count ${pageEntries.length} >>`);
+
+  for(const x of pageEntries){
+    const {im}=x, availW=pageW-2*margin, availH=pageH-2*margin-16, ratio=Math.min(availW/im.w,availH/im.h), w=im.w*ratio,h=im.h*ratio,xpos=(pageW-w)/2,ypos=pageH-margin-h;
+    const content=`q\n${w.toFixed(3)} 0 0 ${h.toFixed(3)} ${xpos.toFixed(3)} ${ypos.toFixed(3)} cm\n/Im1 Do\nQ\n`;
+    objs[x.img]=concatBytes([ascii(`<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.bytes.length} >>\nstream\n`),im.bytes,ascii(`\nendstream`)]);
+    objs[x.content]=ascii(`<< /Length ${ascii(content).length} >>\nstream\n${content}endstream`);
+    objs[x.page]=ascii(`<< /Type /Page /Parent ${pagesObj} 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /XObject << /Im1 ${x.img} 0 R >> >> /Contents ${x.content} 0 R >>`);
   }
+  const chunks=[ascii('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n')], offsets=[0];let pos=chunks[0].length;
+  for(let i=0;i<objs.length;i++){
+    const head=ascii(`${i+1} 0 obj\n`),body=objs[i],tail=ascii('\nendobj\n');offsets[i+1]=pos;chunks.push(head,body,tail);pos+=head.length+body.length+tail.length;
+  }
+  const xrefPos=pos, xrefHead=ascii(`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`);chunks.push(xrefHead);pos+=xrefHead.length;
+  for(let i=1;i<=objs.length;i++){const row=ascii(`${String(offsets[i]).padStart(10,'0')} 00000 n \n`);chunks.push(row);pos+=row.length}
+  const trailer=ascii(`trailer\n<< /Size ${objs.length+1} /Root ${catalog} 0 R >>\nstartxref\n${xrefPos}\n%%EOF`);chunks.push(trailer);
+  const blob=new Blob(chunks,{type:'application/pdf'}), url=URL.createObjectURL(blob), a=document.createElement('a');a.href=url;a.download=`TOYOTA-faturas-${month||'sem-data'}.pdf`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
 }
 
 /* =========================================================
