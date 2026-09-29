@@ -43,7 +43,7 @@ input,select,textarea{width:100%;background:#0d0e11;border:1px solid var(--line)
 .camera{position:fixed;inset:0;z-index:100;background:#000;display:flex;flex-direction:column}.camera video{flex:1;width:100%;height:100%;object-fit:cover}.camera-guide{position:absolute;inset:11% 8% 20%;border:2px solid #fff8;border-radius:18px;box-shadow:0 0 0 9999px #00035;pointer-events:none}.camera-guide:after{content:"Alinha as quatro margens da fatura dentro da moldura";position:absolute;left:0;right:0;bottom:-38px;text-align:center;color:#fffC;font-size:12px;font-weight:700}.camera-bar{display:flex;align-items:center;justify-content:space-between;padding:13px 18px calc(14px + var(--safe));background:#050505}.camera-action{color:#fff;font-weight:800;min-width:70px;background:none}.shutter{width:74px;height:74px;border-radius:50%;background:#fff;border:6px solid #555}
 .processing{position:fixed;inset:0;z-index:110;background:#07080af8;display:grid;place-items:center;padding:20px}.processing-box{width:min(480px,100%);background:#15161a;border:1px solid var(--line);border-radius:26px;padding:18px}.processing-preview{height:260px;background:#000;border-radius:18px;display:grid;place-items:center;overflow:hidden}.processing-preview img{max-width:100%;max-height:100%;object-fit:contain}.scanline{position:absolute;left:0;right:0;height:2px;background:var(--red);box-shadow:0 0 18px var(--red);animation:scan 1.35s ease-in-out infinite}@keyframes scan{0%{top:8%}50%{top:90%}100%{top:8%}}
 .step{padding:11px 12px;border-radius:13px;background:#0d0e11;border:1px solid var(--line);margin:7px 0;color:#8d8e94;font-size:13px;font-weight:750}.step.active{color:#fff;border-color:#e4001b88}.step.done{color:#9af0ca}
-.crop-editor{position:fixed;inset:0;z-index:120;background:#060709;display:flex;flex-direction:column;padding:12px 12px calc(12px + var(--safe))}.crop-head{display:flex;justify-content:space-between;align-items:center;padding:5px 2px 12px}.crop-stage{position:relative;flex:1;min-height:0;background:#000;border-radius:18px;overflow:hidden;display:grid;place-items:center}.crop-viewport{position:relative;width:100%;height:100%;overflow:hidden}.crop-viewport img{position:absolute;max-width:none;max-height:none;touch-action:none;user-select:none}.crop-handle{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:#fff;border:5px solid #e4001b;box-shadow:0 2px 14px #000;z-index:3;padding:0;touch-action:none}.crop-stage canvas{max-width:100%;max-height:100%;width:auto;height:auto;touch-action:none};position:absolute;display:block;touch-action:none;user-select:none;-webkit-user-select:none.crop-actions{display:flex;gap:8px;padding-top:10px}.crop-actions button{flex:1}
+.crop-editor{position:fixed;inset:0;z-index:120;background:#060709;display:flex;flex-direction:column;padding:12px 12px calc(12px + var(--safe))}.crop-head{display:flex;justify-content:space-between;align-items:center;padding:5px 2px 12px;gap:10px}.crop-stage{position:relative;flex:1;min-height:0;background:#000;border-radius:18px;overflow:hidden}.crop-media{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:calc(100% - 16px);max-height:calc(100% - 16px)}.crop-media img,.crop-svg{position:absolute;inset:0;width:100%;height:100%;display:block}.crop-media img{object-fit:fill;user-select:none;-webkit-user-select:none;pointer-events:none}.crop-svg{overflow:visible;touch-action:none}.crop-svg circle{filter:drop-shadow(0 2px 8px #000);pointer-events:all}.crop-actions{display:flex;gap:8px;padding-top:10px}.crop-actions button{flex:1;min-height:50px}
 .export-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.export-options button{padding:12px 5px;background:#202126;border:1px solid var(--line);border-radius:13px;color:#ccc;font-weight:800}.export-options button.active{color:#fff;background:#3a1116;border-color:#e4001b99}
 .mode-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:10px 0}.mode-tabs button{background:#202126;border:1px solid var(--line);border-radius:12px;padding:10px 4px;font-size:11px;font-weight:800}.mode-tabs button.active{background:#3a1116;border-color:#e4001b88}
 .small-note{font-size:11px;color:#777980}.empty{padding:24px 6px;text-align:center;color:var(--muted)}
@@ -452,201 +452,102 @@ function prepareOCR(canvas){
 function openCropEditor(source,initialPoints,onDone){
   const wrap=el("div",{class:"crop-editor"});
   const head=el("div",{class:"crop-head"});
-  head.append(
-    el("strong",{text:"Ajustar documento"}),
-    el("span",{class:"small-note",text:"Arrasta cada canto vermelho"})
-  );
+  head.append(el("strong",{text:"Ajustar documento"}),el("span",{class:"small-note",text:"Arrasta os 4 cantos vermelhos"}));
 
   const stage=el("div",{class:"crop-stage"});
-  const canvas=document.createElement("canvas");
-  canvas.className="crop-edit-canvas";
-  stage.append(canvas);
+  const media=el("div",{class:"crop-media"});
+  const img=document.createElement("img");
+  img.draggable=false;
+  img.alt="Documento para recorte";
+  media.append(img);
+
+  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.classList.add("crop-svg");
+  svg.setAttribute("preserveAspectRatio","none");
+  const shade=document.createElementNS("http://www.w3.org/2000/svg","path");
+  shade.setAttribute("fill","rgba(0,0,0,.42)");
+  shade.setAttribute("fill-rule","evenodd");
+  const polygon=document.createElementNS("http://www.w3.org/2000/svg","polygon");
+  polygon.setAttribute("fill","rgba(228,0,27,.10)");
+  polygon.setAttribute("stroke","#e4001b");
+  polygon.setAttribute("stroke-width","5");
+  polygon.setAttribute("vector-effect","non-scaling-stroke");
+  svg.append(shade,polygon);
+  media.append(svg);
+  stage.append(media);
 
   const actions=el("div",{class:"crop-actions"});
   const cancel=el("button",{class:"btn secondary",type:"button",text:"Cancelar"});
   const accept=el("button",{class:"btn primary",type:"button",text:"Aplicar recorte"});
-  actions.append(cancel,accept);
-  wrap.append(head,stage,actions);
-  document.body.append(wrap);
+  actions.append(cancel,accept);wrap.append(head,stage,actions);document.body.append(wrap);
 
-  const ctx=canvas.getContext("2d");
   let pts=orderCorners(initialPoints||[
-    {x:source.width*.04,y:source.height*.04},
-    {x:source.width*.96,y:source.height*.04},
-    {x:source.width*.96,y:source.height*.96},
-    {x:source.width*.04,y:source.height*.96}
-  ]);
-
-  if(!pts) pts=[
-    {x:source.width*.04,y:source.height*.04},
-    {x:source.width*.96,y:source.height*.04},
-    {x:source.width*.96,y:source.height*.96},
-    {x:source.width*.04,y:source.height*.96}
+    {x:source.width*.04,y:source.height*.04},{x:source.width*.96,y:source.height*.04},
+    {x:source.width*.96,y:source.height*.96},{x:source.width*.04,y:source.height*.96}
+  ]) || [
+    {x:source.width*.04,y:source.height*.04},{x:source.width*.96,y:source.height*.04},
+    {x:source.width*.96,y:source.height*.96},{x:source.width*.04,y:source.height*.96}
   ];
 
-  const img=new Image();
-  img.onload=()=>draw();
+  const circles=pts.map((_,i)=>{
+    const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c.setAttribute("r","24");c.setAttribute("fill","#fff");c.setAttribute("stroke","#e4001b");c.setAttribute("stroke-width","7");
+    c.style.cursor="grab";c.style.touchAction="none";c.setAttribute("aria-label",`Canto ${i+1}`);
+    svg.append(c);return c;
+  });
 
-  let scale=1,offX=0,offY=0;
-  const handleRadius=22;
+  let mediaBox={left:0,top:0,width:source.width,height:source.height};
   let active=-1;
+  let raf=0;
 
   function fit(){
     const r=stage.getBoundingClientRect();
     const pad=8;
-    scale=Math.min(
-      (r.width-pad*2)/source.width,
-      (r.height-pad*2)/source.height
-    );
-    scale=Math.max(.01,scale);
-
-    canvas.width=Math.max(1,Math.round(source.width*scale));
-    canvas.height=Math.max(1,Math.round(source.height*scale));
-
-    offX=(r.width-canvas.width)/2;
-    offY=(r.height-canvas.height)/2;
-
-    canvas.style.width=canvas.width+"px";
-    canvas.style.height=canvas.height+"px";
-    canvas.style.position="absolute";
-    canvas.style.left=offX+"px";
-    canvas.style.top=offY+"px";
-
+    const scale=Math.min((r.width-pad*2)/source.width,(r.height-pad*2)/source.height);
+    const w=Math.max(1,source.width*scale),h=Math.max(1,source.height*scale);
+    media.style.width=w+"px";media.style.height=h+"px";
+    mediaBox={left:(r.width-w)/2,top:(r.height-h)/2,width:w,height:h};
     draw();
   }
-
-  function toScreen(p){
-    return {x:p.x*scale,y:p.y*scale};
-  }
-
-  function toImage(clientX,clientY){
-    const r=canvas.getBoundingClientRect();
-    return {
-      x:Math.max(0,Math.min(source.width,(clientX-r.left)/scale)),
-      y:Math.max(0,Math.min(source.height,(clientY-r.top)/scale))
-    };
-  }
-
   function draw(){
-    if(!canvas.width||!canvas.height)return;
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.drawImage(img,0,0,canvas.width,canvas.height);
-
-    const q=pts.map(toScreen);
-
-    ctx.save();
-    ctx.fillStyle="rgba(0,0,0,.38)";
-    ctx.beginPath();
-    ctx.rect(0,0,canvas.width,canvas.height);
-    ctx.moveTo(q[0].x,q[0].y);
-    ctx.lineTo(q[1].x,q[1].y);
-    ctx.lineTo(q[2].x,q[2].y);
-    ctx.lineTo(q[3].x,q[3].y);
-    ctx.closePath();
-    ctx.fill("evenodd");
-
-    ctx.beginPath();
-    ctx.moveTo(q[0].x,q[0].y);
-    for(let i=1;i<4;i++)ctx.lineTo(q[i].x,q[i].y);
-    ctx.closePath();
-    ctx.lineWidth=3;
-    ctx.strokeStyle="#e4001b";
-    ctx.stroke();
-
-    ctx.fillStyle="rgba(228,0,27,.12)";
-    ctx.beginPath();
-    ctx.moveTo(q[0].x,q[0].y);
-    for(let i=1;i<4;i++)ctx.lineTo(q[i].x,q[i].y);
-    ctx.closePath();
-    ctx.fill();
-
-    q.forEach((p,i)=>{
-      ctx.beginPath();
-      ctx.arc(p.x,p.y,handleRadius,0,Math.PI*2);
-      ctx.fillStyle="#fff";
-      ctx.fill();
-      ctx.lineWidth=6;
-      ctx.strokeStyle="#e4001b";
-      ctx.stroke();
-
-      ctx.fillStyle="#111";
-      ctx.font="800 15px -apple-system,BlinkMacSystemFont,sans-serif";
-      ctx.textAlign="center";
-      ctx.textBaseline="middle";
-      ctx.fillText(String(i+1),p.x,p.y);
-    });
-    ctx.restore();
+    svg.setAttribute("viewBox",`0 0 ${source.width} ${source.height}`);
+    const points=pts.map(p=>`${p.x},${p.y}`).join(" ");
+    polygon.setAttribute("points",points);
+    shade.setAttribute("d",`M0 0H${source.width}V${source.height}H0Z M${points}Z`);
+    circles.forEach((c,i)=>{c.setAttribute("cx",pts[i].x);c.setAttribute("cy",pts[i].y);});
   }
-
-  function nearestHandle(clientX,clientY){
-    let best=-1,bestD=Infinity;
-    for(let i=0;i<4;i++){
-      const p=toScreen(pts[i]);
-      const r=canvas.getBoundingClientRect();
-      const x=r.left+p.x,y=r.top+p.y;
-      const d=Math.hypot(clientX-x,clientY-y);
-      if(d<bestD){bestD=d;best=i}
-    }
-    return bestD<=Math.max(44,handleRadius*1.8)?best:-1;
+  function toImage(e){
+    const r=svg.getBoundingClientRect();
+    return {x:Math.max(0,Math.min(source.width,(e.clientX-r.left)*source.width/r.width)),y:Math.max(0,Math.min(source.height,(e.clientY-r.top)*source.height/r.height))};
   }
-
-  function pointerDown(e){
-    e.preventDefault();
-    const i=nearestHandle(e.clientX,e.clientY);
-    if(i<0)return;
-    active=i;
-    canvas.setPointerCapture?.(e.pointerId);
+  function nearest(e){
+    const r=svg.getBoundingClientRect(),sx=r.width/source.width,sy=r.height/source.height;
+    let best=-1,bd=Infinity;
+    pts.forEach((p,i)=>{const x=r.left+p.x*sx,y=r.top+p.y*sy,d=Math.hypot(e.clientX-x,e.clientY-y);if(d<bd){bd=d;best=i}});
+    return bd<=70?best:-1;
   }
-
-  function pointerMove(e){
-    if(active<0)return;
-    e.preventDefault();
-    pts[active]=toImage(e.clientX,e.clientY);
-    draw();
-  }
-
-  function pointerEnd(e){
-    if(active>=0){
-      e.preventDefault();
-      try{canvas.releasePointerCapture?.(e.pointerId)}catch{}
-    }
-    active=-1;
-  }
-
-  canvas.addEventListener("pointerdown",pointerDown,{passive:false});
-  canvas.addEventListener("pointermove",pointerMove,{passive:false});
-  canvas.addEventListener("pointerup",pointerEnd,{passive:false});
-  canvas.addEventListener("pointercancel",pointerEnd,{passive:false});
-  canvas.addEventListener("lostpointercapture",()=>{active=-1});
-
-  const onResize=()=>fit();
+  circles.forEach((c,i)=>{
+    c.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();active=i;c.setPointerCapture?.(e.pointerId);c.style.cursor="grabbing"},{passive:false});
+    c.addEventListener("pointermove",e=>{if(active!==i)return;e.preventDefault();pts[i]=toImage(e);draw()},{passive:false});
+    const end=e=>{if(active===i){try{c.releasePointerCapture?.(e.pointerId)}catch{}active=-1;c.style.cursor="grab"}};
+    c.addEventListener("pointerup",end,{passive:false});c.addEventListener("pointercancel",end,{passive:false});
+  });
+  img.src=canvasDataURL(source,.94);
+  img.onload=()=>{fit();cancel.disabled=false;accept.disabled=false};
+  cancel.disabled=true;accept.disabled=true;
+  requestAnimationFrame(fit);
+  const onResize=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(fit)};
   window.addEventListener("resize",onResize);
-
-  cancel.onclick=()=>{
-    window.removeEventListener("resize",onResize);
-    wrap.remove();
-  };
-
+  cancel.onclick=()=>{window.removeEventListener("resize",onResize);wrap.remove()};
   accept.onclick=()=>{
     try{
-      const ordered=orderCorners(pts);
-      if(!ordered)throw new Error("Cantos inválidos");
-
-      const g=quadGeometry(ordered,source.width,source.height);
-      if(!g||g.area/(source.width*source.height)<.015)
-        throw new Error("Área inválida");
-
-      window.removeEventListener("resize",onResize);
-      wrap.remove();
-      onDone(ordered);
-    }catch(e){
-      alert("Os quatro cantos não são válidos. Coloca cada canto dentro da imagem e tenta novamente.");
-    }
+      const ordered=orderCorners(pts),g=ordered&&quadGeometry(ordered,source.width,source.height);
+      if(!g||g.area/(source.width*source.height)<.015)throw new Error("Área inválida");
+      window.removeEventListener("resize",onResize);wrap.remove();onDone(ordered);
+    }catch(e){alert("Os quatro cantos não são válidos. Coloca-os dentro da imagem.")}
   };
-
-  img.src=canvasDataURL(source,.94);
-  requestAnimationFrame(fit);
 }
+
 /* =========================================================
    ESTADO / OCR
 ========================================================= */
@@ -702,7 +603,7 @@ async function showProcessing(source){
   overlay.append(box);document.body.append(overlay);
   const set=(i,done=false)=>{if(i>0)els[i-1].classList.remove("active"),els[i-1].classList.add("done");if(i<els.length&&!done)els[i].classList.add("active")};
   await new Promise(r=>setTimeout(r,80));
-  let result;try{result=await processImage(source);set(1);await new Promise(r=>setTimeout(r,40));state.scanned=enhanceScanner(result.canvas,"scan");state.detectedPoints=result.points;state.ocrImage=state.scanned;state.mode="scan";set(2);await new Promise(r=>setTimeout(r,40));set(3);overlay.remove();renderReview(false);await runOCR();return}catch(e){console.error(e);overlay.remove();alert("Não foi possível processar a imagem. Podes ajustar os quatro cantos manualmente.");openCropEditor(source,result?.points||null,async pts=>{const r=await processImage(source,pts);state.scanned=enhanceScanner(r.canvas,"scan");state.ocrImage=state.scanned;state.detectedPoints=pts;renderReview(false);await runOCR()})}
+  let result;try{result=await processImage(source);set(1);await new Promise(r=>setTimeout(r,40));if(!result.detected||!result.points){set(2);await new Promise(r=>setTimeout(r,120));overlay.remove();state.scanned=enhanceScanner(source,"scan");state.ocrImage=state.scanned;state.detectedPoints=null;state.mode="scan";openCropEditor(source,null,async pts=>{try{const r=await processImage(source,pts);state.scanned=enhanceScanner(r.canvas,"scan");state.ocrImage=state.scanned;state.detectedPoints=pts;state.mode="scan";renderReview(false);await runOCR()}catch(e){console.error(e);alert("O recorte não pôde ser aplicado. Verifica se os quatro cantos estão dentro da fotografia.")}});return}state.scanned=enhanceScanner(result.canvas,"scan");state.detectedPoints=result.points;state.ocrImage=state.scanned;state.mode="scan";set(2);await new Promise(r=>setTimeout(r,40));set(3);overlay.remove();renderReview(false);await runOCR();return}catch(e){console.error(e);overlay.remove();state.scanned=enhanceScanner(source,"scan");state.ocrImage=state.scanned;state.detectedPoints=null;state.mode="scan";openCropEditor(source,null,async pts=>{try{const r=await processImage(source,pts);state.scanned=enhanceScanner(r.canvas,"scan");state.ocrImage=state.scanned;state.detectedPoints=pts;state.mode="scan";renderReview(false);await runOCR()}catch(err){console.error(err);alert("O recorte não pôde ser aplicado.")}})}
 }
 
 /* =========================================================
