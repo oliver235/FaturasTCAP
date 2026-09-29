@@ -43,9 +43,9 @@ input,select,textarea{width:100%;background:#0d0e11;border:1px solid var(--line)
 .camera{position:fixed;inset:0;z-index:100;background:#000;display:flex;flex-direction:column}.camera video{flex:1;width:100%;height:100%;object-fit:cover}.camera-guide{position:absolute;inset:11% 8% 20%;border:2px solid #fff8;border-radius:18px;box-shadow:0 0 0 9999px #00035;pointer-events:none}.camera-guide:after{content:"Alinha as quatro margens da fatura dentro da moldura";position:absolute;left:0;right:0;bottom:-38px;text-align:center;color:#fffC;font-size:12px;font-weight:700}.camera-bar{display:flex;align-items:center;justify-content:space-between;padding:13px 18px calc(14px + var(--safe));background:#050505}.camera-action{color:#fff;font-weight:800;min-width:70px;background:none}.shutter{width:74px;height:74px;border-radius:50%;background:#fff;border:6px solid #555}
 .processing{position:fixed;inset:0;z-index:110;background:#07080af8;display:grid;place-items:center;padding:20px}.processing-box{width:min(480px,100%);background:#15161a;border:1px solid var(--line);border-radius:26px;padding:18px}.processing-preview{height:260px;background:#000;border-radius:18px;display:grid;place-items:center;overflow:hidden}.processing-preview img{max-width:100%;max-height:100%;object-fit:contain}.scanline{position:absolute;left:0;right:0;height:2px;background:var(--red);box-shadow:0 0 18px var(--red);animation:scan 1.35s ease-in-out infinite}@keyframes scan{0%{top:8%}50%{top:90%}100%{top:8%}}
 .step{padding:11px 12px;border-radius:13px;background:#0d0e11;border:1px solid var(--line);margin:7px 0;color:#8d8e94;font-size:13px;font-weight:750}.step.active{color:#fff;border-color:#e4001b88}.step.done{color:#9af0ca}
-.crop-editor{position:fixed;inset:0;z-index:120;background:#060709;display:flex;flex-direction:column;padding:12px 12px calc(12px + var(--safe))}.crop-head{display:flex;justify-content:space-between;align-items:center;padding:5px 2px 12px}.crop-stage{position:relative;flex:1;min-height:0;background:#000;border-radius:18px;overflow:hidden;display:grid;place-items:center}.crop-stage canvas{max-width:100%;max-height:100%;width:auto;height:auto;touch-action:none}.crop-actions{display:flex;gap:8px;padding-top:10px}.crop-actions button{flex:1}
+.crop-editor{position:fixed;inset:0;z-index:120;background:#060709;display:flex;flex-direction:column;padding:12px 12px calc(12px + var(--safe))}.crop-head{display:flex;justify-content:space-between;align-items:center;padding:5px 2px 12px}.crop-stage{position:relative;flex:1;min-height:0;background:#000;border-radius:18px;overflow:hidden;display:grid;place-items:center}.crop-viewport{position:relative;width:100%;height:100%;overflow:hidden}.crop-viewport img{position:absolute;max-width:none;max-height:none;touch-action:none;user-select:none}.crop-handle{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:#fff;border:5px solid #e4001b;box-shadow:0 2px 14px #000;z-index:3;padding:0;touch-action:none}.crop-stage canvas{max-width:100%;max-height:100%;width:auto;height:auto;touch-action:none}.crop-actions{display:flex;gap:8px;padding-top:10px}.crop-actions button{flex:1}
 .export-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.export-options button{padding:12px 5px;background:#202126;border:1px solid var(--line);border-radius:13px;color:#ccc;font-weight:800}.export-options button.active{color:#fff;background:#3a1116;border-color:#e4001b99}
-.mode-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0}.mode-tabs button{background:#202126;border:1px solid var(--line);border-radius:12px;padding:10px 4px;font-size:11px;font-weight:800}.mode-tabs button.active{background:#3a1116;border-color:#e4001b88}
+.mode-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:10px 0}.mode-tabs button{background:#202126;border:1px solid var(--line);border-radius:12px;padding:10px 4px;font-size:11px;font-weight:800}.mode-tabs button.active{background:#3a1116;border-color:#e4001b88}
 .small-note{font-size:11px;color:#777980}.empty{padding:24px 6px;text-align:center;color:var(--muted)}
 @media(min-width:700px){.main{padding-top:34px}.cta{max-width:720px}.preview img,.preview canvas{max-height:760px}}
 </style>
@@ -304,26 +304,44 @@ function edgeSupport(gray,pts){
   }
   return count?score/count:0;
 }
+function quadGeometry(points,w,h){
+  const p=orderCorners(points); if(!p)return null;
+  const area=Math.abs((p[0].x*p[1].y+p[1].x*p[2].y+p[2].x*p[3].y+p[3].x*p[0].y-p[1].x*p[0].y-p[2].x*p[1].y-p[3].x*p[2].y-p[0].x*p[3].y)/2);
+  const ratio=area/(w*h);
+  const edges=[dist(p[0],p[1]),dist(p[1],p[2]),dist(p[2],p[3]),dist(p[3],p[0])];
+  const minEdge=Math.min(...edges),maxEdge=Math.max(...edges);
+  const angles=p.map((x,j)=>angleCos(p[(j+3)%4],x,p[(j+1)%4]));
+  const rightness=1-Math.min(1,angles.reduce((a,b)=>a+b,0)/4);
+  const rectangularity=area/(Math.max(1,edges.reduce((a,b)=>a+b,0)**2/16));
+  const border=Math.min(...p.map(x=>Math.min(x.x,w-x.x,ySafe(x.y,h))));
+  const borderRatio=Math.max(0,Math.min(1,border/Math.min(w,h)));
+  return {p,area,ratio,edges,minEdge,maxEdge,rightness,rectangularity,borderRatio};
+  function ySafe(y,hh){return hh-y}
+}
+function quadScore(g,w,h){
+  if(!g)return -1;
+  if(g.ratio<0.08||g.ratio>0.94)return -1;
+  if(g.minEdge<Math.min(w,h)*0.12)return -1;
+  if(g.maxEdge/g.minEdge>7)return -1;
+  if(g.rectangularity<0.55)return -1;
+  /* Prefer a large document, but penalise a quad that hugs the image boundary. */
+  const size=Math.min(1,g.ratio/0.55);
+  const borderPenalty=g.borderRatio<0.008?0.35:g.borderRatio<0.02?0.65:1;
+  return size*2.6 + g.rightness*1.7 + g.rectangularity*1.2 + borderPenalty;
+}
 function detectQuadFromMat(src,edges,mode){
-  const contours=new cv.MatVector(),hier=new cv.Mat();let best=null,bestScore=-1;
+  const contours=new cv.MatVector(),hier=new cv.Mat(); let best=null,bestScore=-1;
   try{
     cv.findContours(edges,contours,hier,cv.RETR_LIST,cv.CHAIN_APPROX_SIMPLE);
-    const imgArea=src.cols*src.rows;
     for(let i=0;i<contours.size();i++){
       const c=contours.get(i),peri=cv.arcLength(c,true),approx=new cv.Mat();
-      cv.approxPolyDP(c,approx,Math.max(2,.018*peri),true);
-      if(approx.rows===4&&cv.isContourConvex(approx)){
-        const area=Math.abs(cv.contourArea(approx)),ratio=area/imgArea;
-        if(ratio<.035||ratio>.985){approx.delete();c.delete();continue}
+      try{
+        cv.approxPolyDP(c,approx,Math.max(2,.012*peri),true);
+        if(approx.rows!==4||!cv.isContourConvex(approx))continue;
         const pts=[];for(let j=0;j<4;j++)pts.push({x:approx.intAt(j,0),y:approx.intAt(j,1)});
-        const p=orderCorners(pts);if(!p){approx.delete();c.delete();continue}
-        const angles=p.map((x,j)=>angleCos(p[(j+3)%4],x,p[(j+1)%4]));const rightness=1-Math.min(1,angles.reduce((a,b)=>a+b,0)/4);
-        const per=dist(p[0],p[1])+dist(p[1],p[2])+dist(p[2],p[3])+dist(p[3],p[0]);
-        const rect=per?Math.min(1,area/(per*per/16)):0;
-        const score=ratio*3+rightness*1.3+rect*.9+(mode==="adaptive"?.15:0);
-        if(score>bestScore){bestScore=score;best={points:p,score,areaRatio:ratio}}
-      }
-      approx.delete();c.delete();
+        const g=quadGeometry(pts,src.cols,src.rows); const score=quadScore(g,src.cols,src.rows)+(mode==='adaptive'?.08:0);
+        if(score>bestScore){bestScore=score;best={points:g.p,score,areaRatio:g.ratio}}
+      }finally{approx.delete();c.delete()}
     }
   }finally{contours.delete();hier.delete()}
   return best;
@@ -332,17 +350,27 @@ function detectByHough(src){
   let gray=null,edges=null,lines=null;
   try{
     gray=new cv.Mat();edges=new cv.Mat();lines=new cv.Mat();
-    cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY);cv.GaussianBlur(gray,gray,new cv.Size(5,5),0);cv.Canny(gray,edges,50,150);
-    lines=new cv.Mat();cv.HoughLinesP(edges,lines,1,Math.PI/180,Math.max(30,Math.round(Math.min(src.cols,src.rows)*.08)),Math.max(30,Math.round(Math.max(src.cols,src.rows)*.18)),20);
+    cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY);cv.GaussianBlur(gray,gray,new cv.Size(5,5),0);cv.Canny(gray,edges,40,140);
+    cv.HoughLinesP(edges,lines,1,Math.PI/180,Math.max(35,Math.round(Math.min(src.cols,src.rows)*.07)),Math.max(35,Math.round(Math.max(src.cols,src.rows)*.16)),18);
     const hs=[],vs=[];
-    for(let i=0;i<lines.rows;i++){const x1=lines.data32S[i*4],y1=lines.data32S[i*4+1],x2=lines.data32S[i*4+2],y2=lines.data32S[i*4+3];const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy),ang=Math.atan2(dy,dx);if(len<Math.min(src.cols,src.rows)*.12)continue;const deg=Math.abs(ang*180/Math.PI)%180;if(deg<28||deg>152)hs.push({x1,y1,x2,y2,len});else if(Math.abs(deg-90)<28)vs.push({x1,y1,x2,y2,len})}
+    for(let i=0;i<lines.rows;i++){
+      const x1=lines.data32S[i*4],y1=lines.data32S[i*4+1],x2=lines.data32S[i*4+2],y2=lines.data32S[i*4+3],dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy),deg=Math.abs(Math.atan2(dy,dx)*180/Math.PI)%180;
+      if(len<Math.min(src.cols,src.rows)*.14)continue;
+      if(deg<18||deg>162)hs.push({x1,y1,x2,y2,len});
+      else if(Math.abs(deg-90)<18)vs.push({x1,y1,x2,y2,len});
+    }
     hs.sort((a,b)=>b.len-a.len);vs.sort((a,b)=>b.len-a.len);
-    const h1=hs[0],h2=hs.find(l=>Math.abs(((l.y1+l.y2)/2)-((h1?.y1+h1.y2)/2))>src.rows*.25),v1=vs[0],v2=vs.find(l=>Math.abs(((l.x1+l.x2)/2)-((v1?.x1+v1.x2)/2))>src.cols*.25);
-    if(!h1||!h2||!v1||!v2)return null;
-    const inter=(a,b)=>{const A=a.x1,B=a.y1,C=a.x2,D=a.y2,E=b.x1,F=b.y1,G=b.x2,H=b.y2;const den=(A-C)*(F-H)-(B-D)*(E-G);if(Math.abs(den)<1e-6)return null;const px=((A*D-B*C)*(E-G)-(A-C)*(E*H-F*G))/den,py=((A*D-B*C)*(F-H)-(B-D)*(E*H-F*G))/den;return{x:px,y:py}};
-    const pts=[inter(h1,v1),inter(h1,v2),inter(h2,v2),inter(h2,v1)];if(pts.some(p=>!p||p.x<0||p.y<0||p.x>src.cols||p.y>src.rows))return null;
-    return {points:orderCorners(pts),score:.55,areaRatio:Math.abs(cv.contourArea(cv.matFromArray(4,1,cv.CV_32FC2,pts.flatMap(p=>[p.x,p.y]))))/(src.cols*src.rows)}
-  }catch(e){console.warn(e);return null}finally{[gray,edges,lines].forEach(x=>{try{x&&x.delete()}catch{}})}
+    for(const h1 of hs.slice(0,12))for(const h2 of hs.slice(0,20)){
+      if(Math.abs((h1.y1+h1.y2)/2-(h2.y1+h2.y2)/2)<src.rows*.25)continue;
+      for(const v1 of vs.slice(0,12))for(const v2 of vs.slice(0,20)){
+        if(Math.abs((v1.x1+v1.x2)/2-(v2.x1+v2.x2)/2)<src.cols*.25)continue;
+        const inter=(a,b)=>{const A=a.x1,B=a.y1,C=a.x2,D=a.y2,E=b.x1,F=b.y1,G=b.x2,H=b.y2,den=(A-C)*(F-H)-(B-D)*(E-G);if(Math.abs(den)<1e-6)return null;return{x:((A*D-B*C)*(E-G)-(A-C)*(E*H-F*G))/den,y:((A*D-B*C)*(F-H)-(B-D)*(E*H-F*G))/den}};
+        const pts=[inter(h1,v1),inter(h1,v2),inter(h2,v2),inter(h2,v1)];if(pts.some(q=>!q||q.x<0||q.y<0||q.x>src.cols||q.y>src.rows))continue;
+        const g=quadGeometry(pts,src.cols,src.rows),score=quadScore(g,src.cols,src.rows);if(score>0)return{points:g.p,score:.45+score/10,areaRatio:g.ratio};
+      }
+    }
+    return null;
+  }catch(e){console.warn('Hough:',e);return null}finally{[gray,edges,lines].forEach(x=>{try{x&&x.delete()}catch{}})}
 }
 function detectDocumentCorners(canvas){
   return waitForOpenCV().then(ok=>{
@@ -351,26 +379,31 @@ function detectDocumentCorners(canvas){
     try{
       src=cv.imread(small);gray=new cv.Mat();blur=new cv.Mat();edges=new cv.Mat();thr=new cv.Mat();
       cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY);cv.GaussianBlur(gray,blur,new cv.Size(5,5),0);
-      cv.Canny(blur,edges,45,150);
-      let best=detectQuadFromMat(src,edges,"canny");
-      cv.adaptiveThreshold(blur,thr,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY,31,9);
-      const b2=detectQuadFromMat(src,thr,"adaptive");if(!best||b2&&b2.score>best.score)best=b2;
-      if(!best){const h=detectByHough(src);if(h)best=h}
-      if(!best)return null;
+      cv.Canny(blur,edges,35,125);
+      let best=detectQuadFromMat(src,edges,'canny');
+      cv.adaptiveThreshold(blur,thr,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY,31,7);
+      const b2=detectQuadFromMat(src,thr,'adaptive');if(b2&&(!best||b2.score>best.score))best=b2;
+      if(!best||best.score<2.0){const h=detectByHough(src);if(h&&(!best||h.score>best.score))best=h}
+      if(!best||best.score<2.0)return null;
       const sx=canvas.width/small.width,sy=canvas.height/small.height;
-      return {points:best.points.map(p=>({x:p.x*sx,y:p.y*sy})),confidence:Math.min(1,Math.max(0,best.score/4.2)),areaRatio:best.areaRatio};
-    }catch(e){console.warn("Deteção:",e);return null}finally{[src,gray,blur,edges,thr].forEach(x=>{try{x&&x.delete()}catch{}})}
+      return {points:best.points.map(p=>({x:p.x*sx,y:p.y*sy})),confidence:Math.min(1,best.score/6),areaRatio:best.areaRatio};
+    }catch(e){console.warn('Deteção:',e);return null}finally{[src,gray,blur,edges,thr].forEach(x=>{try{x&&x.delete()}catch{}})}
   });
 }
 function perspectiveCrop(canvas,corners){
-  const p=orderCorners(corners),[tl,tr,br,bl]=p;
+  const p=orderCorners(corners),[tl,tr,br,bl]=p;if(!p)throw new Error('Cantos inválidos');
   const w=Math.max(dist(tl,tr),dist(bl,br)),h=Math.max(dist(tl,bl),dist(tr,br));
   let width=Math.max(300,Math.round(w)),height=Math.max(300,Math.round(h));
-  const scale=Math.min(1,MAX_IMAGE_SIDE/Math.max(width,height));width=Math.round(width*scale);height=Math.round(height*scale);
-  if(!window.cv)throw new Error("OpenCV indisponível");
+  const scale=Math.min(1,MAX_IMAGE_SIDE/Math.max(width,height));width=Math.max(300,Math.round(width*scale));height=Math.max(300,Math.round(height*scale));
+  if(!window.cv)throw new Error('OpenCV indisponível');
   const src=cv.imread(canvas),dst=new cv.Mat(),s=cv.matFromArray(4,1,cv.CV_32FC2,[tl.x,tl.y,tr.x,tr.y,br.x,br.y,bl.x,bl.y]),d=cv.matFromArray(4,1,cv.CV_32FC2,[0,0,width-1,0,width-1,height-1,0,height-1]),M=cv.getPerspectiveTransform(s,d);
   cv.warpPerspective(src,dst,M,new cv.Size(width,height),cv.INTER_CUBIC,cv.BORDER_REPLICATE);
-  const out=document.createElement("canvas");out.width=width;out.height=height;cv.imshow(out,dst);[src,dst,s,d,M].forEach(x=>x.delete());return out;
+  const out=document.createElement('canvas');out.width=width;out.height=height;cv.imshow(out,dst);[src,dst,s,d,M].forEach(x=>x.delete());return out;
+}
+async function processImage(sourceCanvas,pointsOverride=null){
+  const detected=pointsOverride?{points:orderCorners(pointsOverride),confidence:1}:await detectDocumentCorners(sourceCanvas);
+  if(detected&&detected.points){try{return{canvas:perspectiveCrop(sourceCanvas,detected.points),points:detected.points,confidence:detected.confidence,detected:true}}catch(e){console.warn('Recorte:',e)}}
+  return{canvas:fallbackCrop(sourceCanvas),points:null,confidence:0,detected:false};
 }
 function fallbackCrop(canvas){
   /* Fallback conservador: remove apenas bordas claramente exteriores; nunca assume A4. */
@@ -417,27 +450,31 @@ function prepareOCR(canvas){
    CROP EDITOR MANUAL
 ========================================================= */
 function openCropEditor(source,initialPoints,onDone){
-  const wrap=el("div",{class:"crop-editor"}),head=el("div",{class:"crop-head"}),stage=el("div",{class:"crop-stage"});
-  head.append(el("strong",{text:"Ajustar documento"}),el("span",{class:"small-note",text:"Arrasta os 4 cantos"}));
-  const canvas=document.createElement("canvas");canvas.width=source.width;canvas.height=source.height;stage.append(canvas);
-  const actions=el("div",{class:"crop-actions"});
-  const cancel=el("button",{class:"btn secondary",type:"button"},"Cancelar");
-  const accept=el("button",{class:"btn primary",type:"button"},"Aplicar recorte");
-  actions.append(cancel,accept);wrap.append(head,stage,actions);document.body.append(wrap);
-  const ctx=canvas.getContext("2d");let pts=orderCorners(initialPoints||[{x:source.width*.05,y:source.height*.05},{x:source.width*.95,y:source.height*.05},{x:source.width*.95,y:source.height*.95},{x:source.width*.05,y:source.height*.95}]);
-  function draw(){
-    const rect=stage.getBoundingClientRect(),scale=Math.min(rect.width/source.width,rect.height/source.height);canvas.style.width=(source.width*scale)+"px";canvas.style.height=(source.height*scale)+"px";
-    ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(source,0,0);ctx.save();ctx.fillStyle="#0008";ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<4;i++)ctx.lineTo(pts[i].x,pts[i].y);ctx.closePath();ctx.rect(0,0,canvas.width,canvas.height);ctx.fill("evenodd");ctx.restore();
-    ctx.strokeStyle="#ff3347";ctx.lineWidth=Math.max(5,source.width/500);ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<4;i++)ctx.lineTo(pts[i].x,pts[i].y);ctx.closePath();ctx.stroke();
-    pts.forEach((p,i)=>{ctx.fillStyle="#fff";ctx.strokeStyle="#e4001b";ctx.lineWidth=Math.max(3,source.width/650);ctx.beginPath();ctx.arc(p.x,p.y,Math.max(16,source.width/55),0,Math.PI*2);ctx.fill();ctx.stroke()});
+  const wrap=el('div',{class:'crop-editor'}),head=el('div',{class:'crop-head'}),stage=el('div',{class:'crop-stage'});
+  head.append(el('strong',{text:'Ajustar documento'}),el('span',{class:'small-note',text:'Arrasta os círculos vermelhos'}));
+  const viewport=el('div',{class:'crop-viewport'}),img=document.createElement('img');img.src=canvasDataURL(source,.92);viewport.append(img);stage.append(viewport);
+  const actions=el('div',{class:'crop-actions'}),cancel=el('button',{class:'btn secondary',type:'button',text:'Cancelar'}),accept=el('button',{class:'btn primary',type:'button',text:'Aplicar recorte'});actions.append(cancel,accept);wrap.append(head,stage,actions);document.body.append(wrap);
+  let pts=orderCorners(initialPoints||[
+    {x:source.width*.04,y:source.height*.04},{x:source.width*.96,y:source.height*.04},
+    {x:source.width*.96,y:source.height*.96},{x:source.width*.04,y:source.height*.96}
+  ]);
+  const handles=pts.map((_,i)=>{const h=el('button',{type:'button',class:'crop-handle',ariaLabel:`Canto ${i+1}`});viewport.append(h);return h});
+  function layout(){
+    const iw=img.naturalWidth||source.width,ih=img.naturalHeight||source.height,r=viewport.getBoundingClientRect(),scale=Math.min(r.width/iw,r.height/ih),dw=iw*scale,dh=ih*scale,left=(r.width-dw)/2,top=(r.height-dh)/2;
+    img.style.width=dw+'px';img.style.height=dh+'px';img.style.left=left+'px';img.style.top=top+'px';
+    handles.forEach((h,i)=>{h.style.left=(left+pts[i].x/iw*dw)+'px';h.style.top=(top+pts[i].y/ih*dh)+'px'});
   }
-  function localPoint(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*source.width/r.width,y:(e.clientY-r.top)*source.height/r.height}}
+  function pointFromEvent(e){const r=viewport.getBoundingClientRect(),iw=img.naturalWidth||source.width,ih=img.naturalHeight||source.height,scale=Math.min(r.width/iw,r.height/ih),dw=iw*scale,dh=ih*scale,left=(r.width-dw)/2,top=(r.height-dh)/2;return{x:Math.max(0,Math.min(iw,(e.clientX-r.left-left)/scale)),y:Math.max(0,Math.min(ih,(e.clientY-r.top-top)/scale))}}
   let active=-1;
-  canvas.addEventListener("pointerdown",e=>{const p=localPoint(e);let best=Infinity;pts.forEach((q,i)=>{const d=dist(p,q);if(d<best&&d<Math.max(70,source.width*.09)){best=d;active=i}});if(active>=0)canvas.setPointerCapture(e.pointerId)});
-  canvas.addEventListener("pointermove",e=>{if(active<0)return;const p=localPoint(e);pts[active]={x:Math.max(0,Math.min(source.width,p.x)),y:Math.max(0,Math.min(source.height,p.y))};draw()});
-  canvas.addEventListener("pointerup",()=>active=-1);window.addEventListener("resize",draw);
-  cancel.onclick=()=>{window.removeEventListener("resize",draw);wrap.remove()};accept.onclick=()=>{window.removeEventListener("resize",draw);wrap.remove();onDone(pts)};
-  draw();
+  handles.forEach((h,i)=>{
+    h.addEventListener('pointerdown',e=>{e.preventDefault();active=i;h.setPointerCapture?.(e.pointerId)});
+    h.addEventListener('pointermove',e=>{if(active!==i)return;e.preventDefault();pts[i]=pointFromEvent(e);layout()});
+    const end=()=>{if(active===i)active=-1};h.addEventListener('pointerup',end);h.addEventListener('pointercancel',end);h.addEventListener('lostpointercapture',end);
+  });
+  img.onload=layout;window.addEventListener('resize',layout);
+  cancel.onclick=()=>{window.removeEventListener('resize',layout);wrap.remove()};
+  accept.onclick=()=>{try{const ordered=orderCorners(pts);if(!ordered)throw new Error('Cantos inválidos');window.removeEventListener('resize',layout);wrap.remove();onDone(ordered)}catch(e){alert('Os quatro cantos não são válidos. Ajusta-os e tenta novamente.')}};
+  layout();
 }
 
 /* =========================================================
@@ -539,8 +576,19 @@ function renderReview(manual=false){
     const status=el("p",{class:"status",text:state.detectedPoints?"✓ Margens detetadas e perspetiva corrigida.":"⚠ Margens não confirmadas automaticamente. Ajusta os cantos se necessário."});card.append(status);
     const tabs=el("div",{class:"mode-tabs"});const modes=[["scan","Documento digitalizado"],["original","Original"],["bw","P&B / contraste"],["color","Cor melhorada"]];modes.forEach(([m,label],i)=>{const b=el("button",{type:"button",text:label});if((m==="scan"&&state.mode==="scan")||m===state.mode)b.classList.add("active");b.onclick=()=>{state.mode=m;state.preview=m==="original"?state.original:m==="scan"?state.scanned:enhanceScanner(state.scanned,m==="bw"?"bw":"color");img.src=canvasDataURL(state.preview,.9);$$(".mode-tabs button",tabs).forEach(x=>x.classList.remove("active"));b.classList.add("active")};tabs.append(b)});card.append(tabs);
     const tools=el("div",{class:"row"}),adjust=el("button",{class:"btn secondary small",type:"button",text:"Ajustar 4 cantos"}),retry=el("button",{class:"btn secondary small",type:"button",text:"Detetar novamente"});tools.append(adjust,retry);card.append(tools);
-    adjust.onclick=()=>openCropEditor(state.original,state.detectedPoints,pts=>{const c=perspectiveCrop(state.original,pts);state.detectedPoints=pts;state.scanned=enhanceScanner(c,"scan");state.ocrImage=state.scanned;state.mode="scan";renderReview(false);runOCR()});
-    retry.onclick=async()=>{const r=await processImage(state.original);state.detectedPoints=r.points;state.scanned=enhanceScanner(r.canvas,"scan");state.ocrImage=state.scanned;state.mode="scan";renderReview(false);runOCR()};
+    adjust.onclick=()=>{
+      if(!state.original){alert('A imagem original desta digitalização já não está disponível.');return}
+      openCropEditor(state.original,state.detectedPoints,async pts=>{
+        try{const c=perspectiveCrop(state.original,pts);state.detectedPoints=pts;state.scanned=enhanceScanner(c,'scan');state.ocrImage=state.scanned;state.mode='scan';renderReview(false);await runOCR()}
+        catch(e){console.error(e);alert('Não foi possível aplicar o recorte. Tenta novamente com os quatro cantos dentro da imagem.')}
+      })
+    };
+    retry.onclick=async()=>{
+      if(!state.original){alert('A imagem original desta digitalização já não está disponível.');return}
+      retry.disabled=true;adjust.disabled=true;status.textContent='A detetar novamente os quatro cantos…';
+      try{const r=await processImage(state.original);state.detectedPoints=r.points;state.scanned=enhanceScanner(r.canvas,'scan');state.ocrImage=state.scanned;state.mode='scan';renderReview(false);await runOCR()}
+      catch(e){console.error(e);status.textContent='Não foi possível detetar automaticamente. Usa “Ajustar 4 cantos”.';retry.disabled=false;adjust.disabled=false}
+    };
     main.append(card);
   }
   const form=el("section",{class:"card"}),status=el("p",{class:"status",id:"ocrStatus",text:manual?"Preenche os dados.":"A preparar OCR local…"}),badges=el("div",{class:"badge-row",id:"badges"});form.append(status,badges);
