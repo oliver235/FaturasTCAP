@@ -1,24 +1,25 @@
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#111111">
-<title>Faturas Toyota</title>
+<meta name="theme-color" content="#080809">
+
+<title>Faturas TOYOTA</title>
 
 <style>
 :root{
-  --red:#EB0A1E;
-  --red2:#ff3345;
-  --black:#080809;
+  --bg:#070708;
   --card:#151518;
-  --card2:#1d1d21;
+  --card2:#1c1c20;
   --line:rgba(255,255,255,.10);
-  --text:#f7f7f7;
-  --muted:#999ba0;
-  --green:#43d79a;
-  --yellow:#f5c542;
+  --text:#f5f5f6;
+  --muted:#96979b;
+  --red:#e50019;
+  --red2:#ff2438;
+  --green:#38d996;
+  --yellow:#f4c542;
   --safe:env(safe-area-inset-bottom,0px);
 }
 
@@ -29,18 +30,20 @@
 
 html,body{
   margin:0;
-  padding:0;
-  background:var(--black);
+  min-height:100%;
+  background:var(--bg);
   color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Arial,sans-serif;
-  min-height:100%;
 }
 
 body{
-  overflow-x:hidden;
+  min-height:100dvh;
 }
 
-button,input,select,textarea{
+button,
+input,
+select,
+textarea{
   font:inherit;
   color:inherit;
 }
@@ -48,7 +51,6 @@ button,input,select,textarea{
 button{
   border:0;
   cursor:pointer;
-  background:none;
 }
 
 .hidden{
@@ -57,49 +59,61 @@ button{
 
 .app{
   min-height:100dvh;
-  padding-bottom:calc(92px + var(--safe));
+  padding-bottom:100px;
 }
 
 .main{
-  padding:18px 18px 30px;
-  max-width:760px;
+  padding:18px 17px 30px;
+  max-width:900px;
   margin:auto;
 }
 
+.brand{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin:5px 0 28px;
+}
+
+.brand-name{
+  color:#e60018;
+  font-size:28px;
+  font-weight:900;
+  letter-spacing:.06em;
+  font-family:Arial,sans-serif;
+}
+
+.brand-small{
+  color:#85868a;
+  font-size:11px;
+  text-align:right;
+  line-height:1.25;
+}
+
 .kicker{
-  margin:8px 0 3px;
+  margin:0 0 5px;
   color:var(--muted);
   font-size:14px;
   font-weight:700;
 }
 
-.title{
-  margin:0 0 16px;
-  font-size:40px;
+h1{
+  margin:0 0 20px;
+  font-size:42px;
   line-height:1;
   letter-spacing:-.05em;
 }
 
-.brand{
-  display:inline-flex;
-  align-items:center;
-  gap:9px;
-  padding:7px 12px;
-  margin-bottom:18px;
-  border-radius:999px;
-  background:#111;
-  border:1px solid rgba(235,10,30,.42);
-  color:#fff;
-  font-size:13px;
-  font-weight:800;
+h2{
+  margin:0;
 }
 
-.brand-dot{
-  width:9px;
-  height:9px;
-  border-radius:50%;
-  background:var(--red);
-  box-shadow:0 0 12px rgba(235,10,30,.8);
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:16px;
+  margin-bottom:13px;
 }
 
 .cta{
@@ -108,34 +122,31 @@ button{
   align-items:center;
   gap:14px;
   text-align:left;
+  border-radius:22px;
   padding:18px;
   margin-bottom:12px;
-  border-radius:22px;
 }
 
 .cta.hot{
-  color:#fff;
-  background:linear-gradient(145deg,var(--red2),var(--red));
-  box-shadow:0 14px 36px rgba(235,10,30,.28);
+  color:white;
+  background:linear-gradient(180deg,#ff3d35,var(--red));
+  box-shadow:0 14px 35px rgba(229,0,25,.30);
 }
 
-.cta.cold{
+.cta.dark{
   background:var(--card);
   border:1px solid var(--line);
 }
 
-.orb{
+.cta-icon{
   width:48px;
   height:48px;
   flex:none;
   display:grid;
   place-items:center;
   border-radius:50%;
-  background:rgba(0,0,0,.25);
-}
-
-.cta.cold .orb{
-  background:#0c0c0e;
+  background:rgba(0,0,0,.22);
+  font-size:22px;
 }
 
 .cta b{
@@ -146,46 +157,115 @@ button{
 .cta span{
   display:block;
   margin-top:4px;
-  color:rgba(255,255,255,.78);
+  color:#a7a8ac;
   font-size:13px;
   line-height:1.35;
 }
 
-.cta.cold span{
-  color:var(--muted);
+.cta.hot span{
+  color:rgba(255,255,255,.82);
 }
 
-.card{
-  background:var(--card);
+.workspace{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 12px;
+  border-radius:99px;
+  border:1px solid rgba(229,0,25,.35);
+  color:#ffb1b8;
+  font-size:12px;
+  font-weight:800;
+  margin-bottom:20px;
+}
+
+.workspace i{
+  width:7px;
+  height:7px;
+  background:var(--red);
+  border-radius:50%;
+}
+
+.btn{
+  min-height:52px;
+  border-radius:999px;
+  padding:0 18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  font-weight:800;
+  width:100%;
+}
+
+.btn.primary{
+  color:#fff;
+  background:linear-gradient(180deg,#ff4039,var(--red));
+  box-shadow:0 10px 24px rgba(229,0,25,.25);
+}
+
+.btn.secondary{
+  color:#fff;
+  background:#202024;
   border:1px solid var(--line);
-  border-radius:22px;
-  padding:16px;
-  margin-bottom:12px;
+}
+
+.btn.danger{
+  color:#ffadb5;
+  background:#281316;
+  border:1px solid rgba(229,0,25,.35);
+}
+
+.btn.small{
+  min-height:40px;
+  font-size:13px;
+  padding:0 12px;
+}
+
+.row{
+  display:flex;
+  gap:9px;
+}
+
+.row>*{
+  flex:1;
 }
 
 .status{
-  margin:0 0 12px;
   color:var(--muted);
   font-size:13px;
   line-height:1.45;
 }
 
-.warn{
-  padding:12px;
-  border-radius:14px;
-  color:#f7d978;
-  background:rgba(245,197,66,.08);
-  border:1px solid rgba(245,197,66,.24);
-  font-size:13px;
+.good{
+  color:#8ceec5;
 }
 
-.okbox{
-  padding:12px;
+.warning{
+  color:#f6d879;
+}
+
+.bad{
+  color:#ff9da7;
+}
+
+input,
+select,
+textarea{
+  width:100%;
+  background:#0d0d0f;
+  border:1px solid var(--line);
   border-radius:14px;
-  color:#9bf0c9;
-  background:rgba(67,215,154,.08);
-  border:1px solid rgba(67,215,154,.24);
-  font-size:13px;
+  min-height:48px;
+  padding:12px 13px;
+  outline:none;
+}
+
+input:focus,
+select:focus,
+textarea:focus{
+  border-color:rgba(229,0,25,.65);
+  box-shadow:0 0 0 3px rgba(229,0,25,.12);
 }
 
 label{
@@ -193,189 +273,135 @@ label{
   flex-direction:column;
   gap:6px;
   margin-bottom:12px;
-  color:var(--muted);
+  color:#a3a4a8;
   font-size:12px;
   font-weight:800;
 }
 
-input,select,textarea{
-  width:100%;
-  min-height:48px;
-  padding:13px 14px;
-  background:#0c0c0e;
-  border:1px solid var(--line);
-  border-radius:14px;
-  outline:none;
-}
-
-input:focus,select:focus,textarea:focus{
-  border-color:rgba(235,10,30,.55);
-  box-shadow:0 0 0 3px rgba(235,10,30,.10);
-}
-
 textarea{
-  min-height:110px;
+  min-height:100px;
   resize:vertical;
-  font-family:ui-monospace,Menlo,monospace;
-  font-size:12px;
 }
 
-.row{
-  display:flex;
-  gap:10px;
-}
-
-.row>*{
-  flex:1;
-}
-
-.btn{
-  min-height:54px;
+.preview{
   width:100%;
   display:flex;
   justify-content:center;
   align-items:center;
-  gap:8px;
-  border-radius:999px;
-  font-weight:850;
+  background:#080809;
+  border-radius:18px;
+  overflow:hidden;
+  min-height:180px;
 }
 
-.btn.primary{
-  color:#fff;
-  background:linear-gradient(145deg,var(--red2),var(--red));
-  box-shadow:0 10px 24px rgba(235,10,30,.25);
+.preview img,
+.preview canvas{
+  display:block;
+  max-width:100%;
+  max-height:65vh;
+  width:auto;
+  height:auto;
+  object-fit:contain;
 }
 
-.btn.ghost,
-.btn.soft{
-  color:#fff;
-  background:var(--card2);
+.badge-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin:10px 0 15px;
+}
+
+.badge{
+  border-radius:99px;
+  padding:6px 10px;
+  background:#222226;
   border:1px solid var(--line);
+  color:#d3d3d6;
+  font-size:12px;
+  font-weight:800;
 }
 
-.btn.danger{
-  color:#ffb5bc;
-  background:#281114;
-  border:1px solid rgba(235,10,30,.30);
+.badge.ok{
+  color:#9bf0ca;
+  background:rgba(56,217,150,.09);
+  border-color:rgba(56,217,150,.25);
 }
 
-.btn.tiny{
-  min-height:40px;
-  padding:0 12px;
+.badge.warn{
+  color:#f6da7c;
+  background:rgba(244,197,66,.08);
+  border-color:rgba(244,197,66,.25);
+}
+
+.document-card{
+  border-top:1px solid var(--line);
+  padding:13px 0;
+  display:grid;
+  grid-template-columns:80px 1fr;
+  gap:12px;
+}
+
+.document-card:first-child{
+  border-top:0;
+}
+
+.document-thumb{
+  width:80px;
+  height:100px;
+  border-radius:10px;
+  background:#050505;
+  object-fit:contain;
+}
+
+.document-title{
+  font-weight:800;
+  margin-bottom:4px;
+}
+
+.document-meta{
+  color:var(--muted);
   font-size:13px;
+  line-height:1.45;
 }
 
-.nav{
+.bottom-nav{
   position:fixed;
+  z-index:20;
   left:0;
   right:0;
   bottom:0;
-  z-index:50;
   display:flex;
-  padding:6px 8px calc(8px + var(--safe));
-  background:rgba(10,10,12,.95);
+  padding:6px 7px calc(7px + var(--safe));
+  background:rgba(9,9,11,.95);
   border-top:1px solid var(--line);
   backdrop-filter:blur(18px);
 }
 
-.nav button{
+.bottom-nav button{
   flex:1;
   min-height:54px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:4px;
-  color:#777980;
+  color:#77787d;
+  background:none;
   font-size:11px;
   font-weight:800;
 }
 
-.nav button.active{
-  color:#fff;
-}
-
-.nav svg{
-  width:20px;
-  height:20px;
+.bottom-nav button.active{
+  color:white;
 }
 
 .fab{
   position:fixed;
+  z-index:21;
   right:18px;
-  bottom:calc(88px + var(--safe));
-  z-index:55;
+  bottom:calc(83px + var(--safe));
   width:62px;
   height:62px;
-  display:grid;
-  place-items:center;
   border-radius:50%;
-  color:#fff;
-  background:linear-gradient(145deg,var(--red2),var(--red));
-  box-shadow:0 12px 30px rgba(235,10,30,.40);
-}
-
-.search{
-  margin-bottom:12px;
-}
-
-.month-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:baseline;
-  gap:10px;
-}
-
-.month-head h2{
-  margin:0;
-  font-size:22px;
-  letter-spacing:-.03em;
-}
-
-.sum{
-  margin:0;
-  color:var(--red2);
-  font-size:21px;
-  font-weight:900;
-}
-
-.sub{
-  display:flex;
-  justify-content:space-between;
-  padding:8px 0;
-  color:var(--muted);
-  font-size:14px;
-}
-
-.sub strong{
-  color:#fff;
-}
-
-.item{
-  display:grid;
-  grid-template-columns:78px 1fr;
-  gap:12px;
-  padding:13px 0;
-  border-top:1px solid var(--line);
-}
-
-.item img{
-  width:78px;
-  height:78px;
-  object-fit:contain;
-  border-radius:12px;
-  background:#fff;
-}
-
-.item h3{
-  margin:0 0 4px;
-  font-size:16px;
-}
-
-.item p{
-  margin:0 0 3px;
-  color:var(--muted);
-  font-size:13px;
+  background:linear-gradient(180deg,#ff4039,var(--red));
+  color:white;
+  font-size:28px;
+  box-shadow:0 13px 30px rgba(229,0,25,.4);
 }
 
 /* CAMERA */
@@ -384,30 +410,30 @@ textarea{
   position:fixed;
   inset:0;
   z-index:100;
+  background:#000;
   display:flex;
   flex-direction:column;
-  background:#000;
 }
 
 .camera video{
+  flex:1;
   width:100%;
   height:100%;
-  flex:1;
   object-fit:cover;
 }
 
 .camera-bar{
   display:flex;
-  justify-content:space-between;
   align-items:center;
-  padding:15px 18px calc(18px + var(--safe));
-  background:#000;
+  justify-content:space-between;
+  padding:14px 18px calc(16px + var(--safe));
+  background:#050505;
 }
 
-.camera-link{
-  min-width:72px;
+.camera-action{
   color:#fff;
   font-weight:800;
+  min-width:70px;
 }
 
 .shutter{
@@ -415,178 +441,137 @@ textarea{
   height:74px;
   border-radius:50%;
   background:#fff;
-  border:6px solid #444;
+  border:6px solid #555;
 }
 
-/* PROCESSAMENTO */
+/* SCAN */
 
-.processing{
+.scan-overlay{
   position:fixed;
   inset:0;
-  z-index:110;
+  z-index:90;
+  background:#060607;
   display:flex;
   flex-direction:column;
-  justify-content:center;
-  padding:20px;
-  background:#050506;
+  padding:18px 17px calc(20px + var(--safe));
 }
 
-.processing-box{
-  max-width:480px;
-  width:100%;
-  margin:auto;
-  padding:16px;
-  border-radius:28px;
-  background:#151518;
+.scan-box{
+  margin:auto 0;
+  background:#141417;
   border:1px solid var(--line);
+  border-radius:26px;
+  padding:15px;
 }
 
-.processing-preview{
+.scan-preview{
   position:relative;
-  min-height:240px;
-  display:grid;
-  place-items:center;
+  min-height:220px;
+  max-height:52vh;
+  border-radius:18px;
   overflow:hidden;
-  border-radius:20px;
-  background:#101011;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
-.processing-preview canvas{
-  display:block;
-  max-width:90%;
-  max-height:340px;
+.scan-preview img,
+.scan-preview canvas{
+  max-width:100%;
+  max-height:50vh;
   object-fit:contain;
-  background:#fff;
 }
 
 .scan-line{
   position:absolute;
-  left:5%;
-  right:5%;
+  left:0;
+  right:0;
   height:3px;
   background:var(--red);
   box-shadow:0 0 18px var(--red);
-  animation:sweep 1.7s infinite;
+  animation:scanline 1.5s ease-in-out infinite;
 }
 
-@keyframes sweep{
+@keyframes scanline{
   0%{top:10%}
   50%{top:88%}
   100%{top:10%}
 }
 
-.processing h2{
-  margin:18px 0 5px;
+.scan-box h2{
   text-align:center;
   font-size:28px;
-  letter-spacing:-.04em;
+  margin:18px 0 6px;
 }
 
-.processing p{
-  margin:0 0 16px;
-  text-align:center;
+.scan-box p{
   color:var(--muted);
+  text-align:center;
+  margin:0 0 14px;
 }
 
-.step{
-  padding:13px 14px;
-  margin-bottom:8px;
+.scan-step{
+  background:#0d0d0f;
+  border:1px solid var(--line);
   border-radius:15px;
-  background:#0c0c0e;
-  border:1px solid var(--line);
-  color:#bfc0c4;
-  font-weight:750;
+  padding:12px;
+  margin-bottom:7px;
+  color:#999a9e;
+  font-weight:700;
+  font-size:14px;
 }
 
-.step.active{
+.scan-step.active{
   color:#fff;
-  border-color:rgba(235,10,30,.55);
+  border-color:rgba(229,0,25,.55);
 }
 
-.step.done{
-  color:#8ce8bf;
+.scan-step.done{
+  color:#9bf0ca;
 }
 
-/* REVIEW */
+/* EXPORT */
 
-.scan{
-  position:relative;
-  overflow:hidden;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:150px;
-  border-radius:18px;
-  background:#090909;
-}
-
-.scan canvas,
-.scan img{
-  display:block;
-  max-width:100%;
-  max-height:55vh;
-  object-fit:contain;
-  background:#fff;
-}
-
-.mini{
-  display:flex;
-  gap:8px;
-  margin:10px 0 16px;
-  overflow:auto;
-}
-
-.mini button{
-  flex:none;
-  padding:8px 12px;
-  border-radius:999px;
-  border:1px solid var(--line);
-  background:#121214;
-  color:#d4d4d7;
-  font-size:13px;
-  font-weight:750;
-}
-
-/* TOYOTA PRINT BRANDING */
-
-.print-brand{
-  display:flex;
-  align-items:center;
-  gap:9px;
-  color:#fff;
-  font-weight:900;
-}
-
-.print-logo{
-  width:35px;
-  height:35px;
-  border:2px solid var(--red);
-  border-radius:50%;
+.export-options{
   display:grid;
-  place-items:center;
-  color:var(--red);
-  font-weight:900;
-  font-size:13px;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
 }
 
-/* MOBILE */
+.export-options button{
+  padding:13px 5px;
+  background:#202024;
+  border:1px solid var(--line);
+  border-radius:14px;
+  color:#ccc;
+  font-weight:800;
+}
 
-@media(max-width:480px){
-  .title{
-    font-size:36px;
+.export-options button.active{
+  color:#fff;
+  background:#3a1116;
+  border-color:rgba(229,0,25,.65);
+}
+
+#printArea{
+  display:none;
+}
+
+/* DESKTOP */
+
+@media(min-width:700px){
+  .main{
+    padding-top:35px;
   }
 
-  .row{
-    gap:8px;
+  .cta{
+    max-width:700px;
   }
 
-  .item{
-    grid-template-columns:70px 1fr;
-  }
-
-  .item img{
-    width:70px;
-    height:70px;
+  .preview img,
+  .preview canvas{
+    max-height:750px;
   }
 }
 </style>
@@ -594,83 +579,129 @@ textarea{
 
 <body>
 
-<div id="app" class="app"></div>
+<div id="app" class="app">
 
+  <main id="main" class="main"></main>
+
+  <button id="fab" class="fab" type="button">+</button>
+
+  <nav class="bottom-nav" id="nav">
+    <button data-tab="home">Início</button>
+    <button data-tab="docs">Documentos</button>
+    <button data-tab="stats">Análise</button>
+    <button data-tab="export">Exportar</button>
+  </nav>
+
+</div>
+
+<input
+  id="cameraFile"
+  class="hidden"
+  type="file"
+  accept="image/*"
+  capture="environment">
+
+<input
+  id="galleryFile"
+  class="hidden"
+  type="file"
+  accept="image/*">
+
+<!-- OCR -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 
-<script>
-/* ============================================================
-   FATURAS TOYOTA
-   Captura + recorte + digitalização + OCR + arquivo + PDF
-   ============================================================ */
+<!-- OpenCV para detecção da folha -->
+<script async src="https://docs.opencv.org/4.9.0/opencv.js"></script>
 
-const CATS=[
+<script>
+/* =========================================================
+   CONFIGURAÇÃO
+========================================================= */
+
+const APP_NAME = "Faturas TOYOTA";
+const AUTHOR = "Desenvolvido por José Sousa";
+
+const CATEGORIES = [
   "Combustível",
   "Alimentação",
   "Restauração",
   "Estadias",
+  "Portagens",
+  "Material",
   "Outros"
 ];
 
-const ICON={
-home:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-<rect x="3" y="3" width="7" height="7" rx="1.5"/>
-<rect x="14" y="3" width="7" height="7" rx="1.5"/>
-<rect x="3" y="14" width="7" height="7" rx="1.5"/>
-<rect x="14" y="14" width="7" height="7" rx="1.5"/>
-</svg>`,
+/* =========================================================
+   HELPERS
+========================================================= */
 
-docs:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-<path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
-<path d="M14 3v6h6"/>
-</svg>`,
-
-chart:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>
-</svg>`,
-
-download:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-<path d="M12 4v12"/>
-<path d="M7 11l5 5 5-5"/>
-<path d="M5 20h14"/>
-</svg>`,
-
-camera:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-<path d="M4 8h3l2-3h6l2 3h3v11H4V8z"/>
-<circle cx="12" cy="13" r="3.2"/>
-</svg>`,
-
-upload:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-<path d="M12 16V5"/>
-<path d="M7 9l5-5 5 5"/>
-<path d="M5 20h14"/>
-</svg>`,
-
-form:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-<rect x="5" y="3" width="14" height="18" rx="2"/>
-<path d="M8 8h8M8 12h8M8 16h5"/>
-</svg>`
-};
+const $ = (sel,root=document) => root.querySelector(sel);
 
 function el(tag,attrs={},html=""){
   const n=document.createElement(tag);
-
   Object.entries(attrs).forEach(([k,v])=>{
-    n.setAttribute(k,v);
+    if(k==="class") n.className=v;
+    else if(k==="text") n.textContent=v;
+    else n.setAttribute(k,v);
   });
-
-  if(html!==null)n.innerHTML=html;
-
+  if(html) n.innerHTML=html;
   return n;
 }
 
-function normalizeText(s){
+function escapeHTML(v){
+  return String(v ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;");
+}
+
+function fold(s){
   return String(s||"")
-    .replace(/[\u2010-\u2015\u2212]/g,"-")
-    .replace(/\u00a0/g," ")
     .normalize("NFD")
     .replace(/\p{M}/gu,"")
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/\s+/g," ");
+}
+
+function euros(v){
+  if(v===null || v===undefined || !Number.isFinite(Number(v)))
+    return "—";
+
+  return Number(v).toLocaleString("pt-PT",{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  })+" €";
+}
+
+function parseMoney(v){
+  if(v===null || v===undefined || !String(v).trim())
+    return null;
+
+  let s=String(v)
+    .replace(/\s/g,"")
+    .replace("€","");
+
+  /*
+    Aceita:
+    6,50
+    6.50
+    1.234,50
+    1234,50
+  */
+
+  if(s.includes(","))
+    s=s.replace(/\./g,"").replace(",",".");
+  else{
+    const dots=(s.match(/\./g)||[]).length;
+
+    if(dots>1)
+      s=s.replace(/\./g,"");
+  }
+
+  const n=Number(s);
+
+  return Number.isFinite(n)?n:null;
 }
 
 function pad(n){
@@ -678,7 +709,8 @@ function pad(n){
 }
 
 function validDate(y,m,d){
-  if(y<1990||y>2099||m<1||m>12||d<1||d>31)return false;
+  if(y<1990 || y>2099 || m<1 || m>12 || d<1 || d>31)
+    return false;
 
   const x=new Date(Date.UTC(y,m-1,d));
 
@@ -688,831 +720,1147 @@ function validDate(y,m,d){
 }
 
 function expandYear(y){
-  return y>=100 ? y : y>=70 ? 1900+y : 2000+y;
+  if(y>=100) return y;
+  return y>=70 ? 1900+y : 2000+y;
 }
-
-/* ============================================================
-   DATA EXTRACTION
-   ============================================================ */
 
 function parseDate(text){
 
-  const s=normalizeText(text);
-  const found=[];
+  const s=fold(text);
+  const candidates=[];
 
-  function add(y,m,d,score){
+  const add=(y,m,d,score)=>{
     y=expandYear(y);
 
-    if(!validDate(y,m,d))return;
+    if(!validDate(y,m,d))
+      return;
 
-    found.push({
+    candidates.push({
       iso:`${y}-${pad(m)}-${pad(d)}`,
-      display:`${pad(d)}/${pad(m)}/${y}`,
       score
     });
+  };
+
+  /*
+    yyyy-mm-dd
+  */
+
+  for(const m of s.matchAll(
+    /(\d{4})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{1,2})/g
+  )){
+    add(+m[1],+m[2],+m[3],100);
   }
 
-  let m;
+  /*
+    dd-mm-yyyy
+  */
 
-  const r1=/(\d{4})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{1,2})/g;
+  for(const m of s.matchAll(
+    /(\d{1,2})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{2,4})/g
+  )){
+    const before=s.slice(Math.max(0,m.index-30),m.index);
 
-  while((m=r1.exec(s))){
-    const context=s.slice(Math.max(0,m.index-35),m.index+35);
-    add(+m[1],+m[2],+m[3],/emiss|data|document/.test(context)?120:30);
+    add(
+      +m[3],
+      +m[2],
+      +m[1],
+      /emissao|emissão|data|documento/.test(before) ? 120 : 50
+    );
   }
 
-  const r2=/(\d{1,2})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{2,4})/g;
+  candidates.sort((a,b)=>b.score-a.score);
 
-  while((m=r2.exec(s))){
-    const context=s.slice(Math.max(0,m.index-35),m.index+35);
-    add(+m[3],+m[2],+m[1],/emiss|data|document/.test(context)?120:30);
-  }
-
-  found.sort((a,b)=>b.score-a.score);
-
-  return found[0]||null;
+  return candidates[0] || null;
 }
 
-function parseMoney(value){
+/* =========================================================
+   NIF
+========================================================= */
 
-  if(value==null)return null;
+function nifValid(nif){
 
-  let s=String(value)
-    .replace(/[€$£]/g,"")
-    .replace(/\s/g,"")
-    .trim();
+  nif=String(nif).replace(/\D/g,"");
 
-  if(!s)return null;
+  if(!/^\d{9}$/.test(nif))
+    return false;
 
-  if(s.includes(",") && s.includes(".")){
-    if(s.lastIndexOf(",")>s.lastIndexOf(".")){
-      s=s.replace(/\./g,"").replace(",",".");
-    }else{
-      s=s.replace(/,/g,"");
-    }
-  }else if(s.includes(",")){
-    s=s.replace(/\./g,"").replace(",",".");
-  }else{
-    const parts=s.split(".");
-    if(parts.length===2 && parts[1].length===2){
-      s=parts[0]+"."+parts[1];
-    }else{
-      s=s.replace(/\./g,"");
+  let sum=0;
+
+  for(let i=0;i<8;i++)
+    sum += Number(nif[i])*(9-i);
+
+  const mod=sum%11;
+  const digit=mod<2?0:11-mod;
+
+  return digit===Number(nif[8]);
+}
+
+function parseNIF(text){
+
+  const lines=text.split(/\n/);
+
+  for(const line of lines){
+
+    const f=fold(line);
+
+    if(
+      !/\b(nif|nipc|contribuinte|tax\s*id)\b/.test(f)
+    )
+      continue;
+
+    /*
+      Evita apanhar o NIF do cliente
+      quando estiver claramente identificado.
+    */
+
+    if(
+      /\b(adquirente|cliente|consumidor|destinatario)\b/.test(f)
+    )
+      continue;
+
+    const nums=line.match(/\d[\d\s.-]{7,18}\d/g)||[];
+
+    for(const n of nums){
+
+      const clean=n.replace(/\D/g,"");
+
+      if(nifValid(clean))
+        return clean;
     }
   }
 
-  const n=Number(s);
+  /*
+    segunda tentativa:
+    procura qualquer NIF válido nas primeiras linhas
+  */
 
-  return Number.isFinite(n)?n:null;
+  for(const n of text.match(/\b\d[\d .-]{7,18}\d\b/g)||[]){
+
+    const clean=n.replace(/\D/g,"");
+
+    if(nifValid(clean))
+      return clean;
+  }
+
+  return "";
+}
+
+/* =========================================================
+   TOTAL / IVA
+========================================================= */
+
+function numberPattern(){
+  return "(\\d{1,3}(?:[. ]\\d{3})*(?:,\\d{2})|\\d+(?:,\\d{2})|\\d+\\.\\d{2})";
 }
 
 function parseTotal(text){
 
-  const lines=String(text||"").split(/\r?\n/);
+  const lines=text.split(/\n/);
   const found=[];
 
-  const keywords=[
-    "total a pagar",
-    "valor a pagar",
-    "total pago",
-    "valor pago",
-    "total",
-    "importe",
-    "a pagar",
-    "pagar"
+  const patterns=[
+    new RegExp(
+      "\\b(total\\s+a\\s+pagar|valor\\s+a\\s+pagar|montante\\s+a\\s+pagar|importe\\s+a\\s+pagar)\\b[^0-9]{0,30}"+numberPattern(),
+      "i"
+    ),
+
+    new RegExp(
+      "\\b(total|valor\\s+total|total\\s+documento)\\b[^0-9]{0,30}"+numberPattern(),
+      "i"
+    )
   ];
 
   for(let i=0;i<lines.length;i++){
 
-    const line=normalizeText(
+    const line=fold(
       lines[i]+" "+(lines[i+1]||"")
     );
 
-    const moneyRe=/(\d{1,3}(?:[.\s]\d{3})*[,.]\d{2}|\d+[,.]\d{2})/g;
+    if(
+      /\bsubtotal\b|\btotal\s+iva\b|\biva\s+total\b|\bdesconto\b/.test(line)
+    )
+      continue;
 
-    let match;
+    for(const re of patterns){
 
-    while((match=moneyRe.exec(line))){
+      const m=line.match(re);
 
-      const before=line.slice(
-        Math.max(0,match.index-45),
-        match.index
-      );
-
-      const keyword=keywords.find(k=>before.includes(k));
-
-      if(!keyword)continue;
-
-      const value=parseMoney(match[1]);
-
-      if(value==null)continue;
-
-      if(/subtotal|sub total|total iva|total imposto|iva a/.test(before)){
+      if(!m)
         continue;
-      }
 
-      found.push({
-        euros:value,
-        score:
-          keyword==="total a pagar" ? 150 :
-          keyword==="valor a pagar" ? 145 :
-          keyword==="a pagar" ? 140 :
-          keyword==="total pago" ? 135 :
-          keyword==="valor pago" ? 130 :
-          keyword==="total" ? 100 : 70,
-        line:i
-      });
+      const value=parseMoney(m[m.length-1]);
+
+      if(value!==null)
+        found.push({
+          value,
+          score:/a pagar/.test(m[1])?120:80
+        });
     }
   }
 
-  found.sort((a,b)=>
-    b.score-a.score ||
-    b.line-a.line
-  );
+  found.sort((a,b)=>b.score-a.score);
 
-  return found[0]||null;
+  return found[0]?.value ?? null;
 }
 
-function parseVat(text){
+function parseVAT(text){
 
-  const s=normalizeText(text);
-
-  const patterns=[
-    /\biva\b[^0-9]{0,15}(\d{1,3}(?:[.\s]\d{3})*[,.]\d{2}|\d+[,.]\d{2})/g,
-    /\btotal\s+iva\b[^0-9]{0,15}(\d{1,3}(?:[.\s]\d{3})*[,.]\d{2}|\d+[,.]\d{2})/g
-  ];
-
-  let result=null;
-
-  for(const re of patterns){
-
-    let m;
-
-    while((m=re.exec(s))){
-      const n=parseMoney(m[1]);
-      if(n!=null && n>=0)result=n;
-    }
-  }
-
-  return result;
-}
-
-function nifValid(n){
-
-  if(!/^\d{9}$/.test(n))return false;
-
-  let sum=0;
-
-  for(let i=0;i<8;i++){
-    sum+=Number(n[i])*(9-i);
-  }
-
-  const mod=sum%11;
-  const check=mod<2?0:11-mod;
-
-  return check===Number(n[8]);
-}
-
-function parseNif(text){
-
-  const lines=String(text||"").split(/\n/);
+  const lines=text.split(/\n/);
 
   for(const line of lines){
 
-    const f=normalizeText(line);
+    if(!/\biva\b/i.test(line))
+      continue;
 
-    if(!/\b(nif|nipc|contribuinte)\b/.test(f))continue;
+    const matches=line.match(
+      /\d{1,3}(?:[. ]\d{3})*(?:,\d{2})|\d+,\d{2}|\d+\.\d{2}/g
+    );
 
-    if(/\b(adquirente|cliente|hospede|consumidor)\b/.test(f))continue;
+    if(!matches)
+      continue;
 
-    const matches=line.match(/\d[\d\s.]{7,16}\d/g)||[];
+    /*
+      Normalmente o último valor da linha IVA
+      é o valor do imposto.
+    */
 
-    for(const m of matches){
+    const values=matches
+      .map(parseMoney)
+      .filter(v=>v!==null);
 
-      const digits=m.replace(/\D/g,"");
-
-      if(digits.length===9 && nifValid(digits)){
-        return digits;
-      }
-    }
+    if(values.length)
+      return values[values.length-1];
   }
 
   return null;
 }
 
+/* =========================================================
+   FORNECEDOR
+========================================================= */
+
+const KNOWN_SUPPLIERS=[
+  ["galp","Galp"],
+  ["repsol","Repsol"],
+  ["prio","PRIO"],
+  ["bp ","BP"],
+  ["cepsa","CEPSA"],
+  ["continente","Continente"],
+  ["pingo doce","Pingo Doce"],
+  ["lidl","Lidl"],
+  ["auchan","Auchan"],
+  ["mercadona","Mercadona"],
+  ["mcdonald","McDonald's"],
+  ["burger king","Burger King"],
+  ["pestana","Pestana"],
+  ["ibis","ibis"],
+  ["campanile","Campanile"],
+  ["decathlon","Decathlon"],
+  ["amazon","Amazon"]
+];
+
 function parseSupplier(text){
 
-  const known=[
-    ["galp","Galp"],
-    ["repsol","Repsol"],
-    ["cepsa","Cepsa"],
-    ["prio","PRIO"],
-    ["continente","Continente"],
-    ["pingo doce","Pingo Doce"],
-    ["lidl","Lidl"],
-    ["auchan","Auchan"],
-    ["mercadona","Mercadona"],
-    ["pestana","Pestana"],
-    ["ibis","Ibis"],
-    ["campanile","Campanile"],
-    ["mcdonald","McDonald's"]
-  ];
+  const f=fold(text);
 
-  const s=normalizeText(text);
+  for(const [key,name] of KNOWN_SUPPLIERS){
 
-  for(const [key,name] of known){
-    if(s.includes(key))return name;
+    if(f.includes(key))
+      return name;
   }
 
-  const lines=String(text||"")
+  const lines=text
     .split(/\n/)
     .map(x=>x.trim())
     .filter(Boolean);
 
+  /*
+    O fornecedor costuma aparecer nas primeiras linhas.
+  */
+
   for(const line of lines.slice(0,12)){
 
-    const f=normalizeText(line);
+    const x=fold(line);
 
-    if(f.length<4 || f.length>60)continue;
-
-    if(/\b(nif|nipc|iva|total|data|fatura|recibo|documento|telefone|tel)\b/.test(f)){
+    if(x.length<3 || x.length>60)
       continue;
-    }
 
-    const letters=f.replace(/[^a-z]/g,"");
+    if(
+      /\bnif\b|\bnipc\b|\biva\b|\btotal\b|\bfatura\b|\bfatura\b|\bdata\b|\bwww\b|\bhttp\b/.test(x)
+    )
+      continue;
 
-    if(letters.length>=5){
+    if(
+      /^\d+$/.test(x) ||
+      /^\d+[./-]\d+/.test(x)
+    )
+      continue;
+
+    const letters=(x.match(/[a-z]/g)||[]).length;
+
+    if(letters>=5)
       return line.slice(0,60);
-    }
   }
 
-  return null;
+  return "";
 }
+
+/* =========================================================
+   DOCUMENT NUMBER
+========================================================= */
 
 function parseDocumentNumber(text){
 
   const patterns=[
-    /\b(?:fatura|factura|recibo|documento)\s*(?:n[ºo°.]?|nr[.]?)?\s*[:\-]?\s*([A-Z0-9./-]{3,30})/i,
-    /\b(?:FT|FS|FR|NC|FAT)\s*(?:n[ºo°.]?|nr[.]?)?\s*[:\-]?\s*([A-Z0-9./-]{3,30})/i
+    /\b(?:fatura|factura|invoice|recibo|tal[aã]o)\s*(?:n[ºo°.]?|nr\.?|numero)?\s*[:#-]?\s*([A-Z0-9][A-Z0-9./-]{2,})/i,
+    /\b(?:FT|FR|FS|NC)\s*[:#.-]?\s*([A-Z0-9./-]{2,})/i
   ];
 
-  for(const p of patterns){
+  for(const re of patterns){
 
-    const m=String(text||"").match(p);
+    const m=text.match(re);
 
-    if(m){
-      return m[0]
-        .replace(/\s+/g," ")
-        .slice(0,40);
-    }
+    if(m)
+      return m[1].slice(0,40);
   }
 
-  return null;
+  return "";
 }
 
-function categorize(text){
+/* =========================================================
+   CATEGORIA
+========================================================= */
 
-  const s=normalizeText(text);
+function categoryFromText(text){
 
-  if(/\b(galp|repsol|cepsa|prio|gasolina|gasoleo|diesel|combustivel)\b/.test(s)){
+  const s=fold(text);
+
+  if(
+    /\b(galp|repsol|prio|cepsa|bp|gasolina|gasoleo|gasoleo|diesel|combustivel)\b/.test(s)
+  )
     return "Combustível";
-  }
 
-  if(/\b(hotel|hostel|airbnb|pousada|pestana|ibis|campanile|alojamento)\b/.test(s)){
+  if(
+    /\b(hotel|ibis|pestana|campanile|hostel|pousada|alojamento|quarto)\b/.test(s)
+  )
     return "Estadias";
-  }
 
-  if(/\b(restaurante|pastelaria|cafe|café|pizza|burger|padaria|mcdonald)\b/.test(s)){
+  if(
+    /\b(restaurante|cafe|café|pizza|burger|mcdonald|pastelaria|padaria|refeicao)\b/.test(s)
+  )
     return "Restauração";
-  }
 
-  if(/\b(continente|pingo doce|lidl|auchan|mercadona|supermercado)\b/.test(s)){
+  if(
+    /\b(continente|pingo doce|lidl|auchan|mercadona|supermercado)\b/.test(s)
+  )
     return "Alimentação";
-  }
+
+  if(
+    /\b(portagem|via verde|ascendi|brisa)\b/.test(s)
+  )
+    return "Portagens";
 
   return "Outros";
 }
 
-/* ============================================================
-   IMAGEM / DIGITALIZAÇÃO
-   ============================================================ */
+/* =========================================================
+   DATABASE
+========================================================= */
 
-function resizeCanvas(source,max=1800){
+function openDB(){
 
-  const scale=Math.min(
-    1,
-    max/Math.max(source.width,source.height)
+  return new Promise((resolve,reject)=>{
+
+    const request=indexedDB.open("faturas-toyota-db",3);
+
+    request.onupgradeneeded=()=>{
+
+      const db=request.result;
+
+      if(!db.objectStoreNames.contains("documents"))
+        db.createObjectStore("documents",{keyPath:"id"});
+    };
+
+    request.onsuccess=()=>resolve(request.result);
+
+    request.onerror=()=>reject(request.error);
+  });
+}
+
+async function saveDocument(doc){
+
+  const db=await openDB();
+
+  const tx=db.transaction("documents","readwrite");
+
+  tx.objectStore("documents").put(doc);
+
+  await new Promise((resolve,reject)=>{
+
+    tx.oncomplete=resolve;
+    tx.onerror=()=>reject(tx.error);
+  });
+
+  db.close();
+}
+
+async function getDocuments(){
+
+  const db=await openDB();
+
+  const tx=db.transaction("documents","readonly");
+
+  const req=tx.objectStore("documents").getAll();
+
+  const result=await new Promise((resolve,reject)=>{
+
+    req.onsuccess=()=>resolve(req.result||[]);
+    req.onerror=()=>reject(req.error);
+  });
+
+  db.close();
+
+  return result.sort((a,b)=>b.createdAt-a.createdAt);
+}
+
+async function deleteDocument(id){
+
+  const db=await openDB();
+
+  const tx=db.transaction("documents","readwrite");
+
+  tx.objectStore("documents").delete(id);
+
+  await new Promise((resolve,reject)=>{
+
+    tx.oncomplete=resolve;
+    tx.onerror=()=>reject(tx.error);
+  });
+
+  db.close();
+}
+
+/* =========================================================
+   IMAGE HELPERS
+========================================================= */
+
+async function fileToCanvas(file){
+
+  try{
+
+    const bitmap=await createImageBitmap(
+      file,
+      {imageOrientation:"from-image"}
+    );
+
+    const canvas=document.createElement("canvas");
+
+    canvas.width=bitmap.width;
+    canvas.height=bitmap.height;
+
+    canvas.getContext("2d").drawImage(bitmap,0,0);
+
+    bitmap.close();
+
+    return resizeCanvas(canvas,2200);
+
+  }catch{
+
+    const url=URL.createObjectURL(file);
+
+    try{
+
+      const img=await new Promise((resolve,reject)=>{
+
+        const image=new Image();
+
+        image.onload=()=>resolve(image);
+        image.onerror=reject;
+
+        image.src=url;
+      });
+
+      const canvas=document.createElement("canvas");
+
+      canvas.width=img.naturalWidth;
+      canvas.height=img.naturalHeight;
+
+      canvas.getContext("2d").drawImage(img,0,0);
+
+      return resizeCanvas(canvas,2200);
+
+    }finally{
+
+      URL.revokeObjectURL(url);
+    }
+  }
+}
+
+function resizeCanvas(canvas,max){
+
+  const biggest=Math.max(
+    canvas.width,
+    canvas.height
   );
 
-  if(scale>=.999)return source;
+  if(biggest<=max)
+    return canvas;
 
-  const c=document.createElement("canvas");
+  const scale=max/biggest;
 
-  c.width=Math.max(1,Math.round(source.width*scale));
-  c.height=Math.max(1,Math.round(source.height*scale));
+  const out=document.createElement("canvas");
 
-  const ctx=c.getContext("2d");
+  out.width=Math.round(canvas.width*scale);
+  out.height=Math.round(canvas.height*scale);
 
-  ctx.drawImage(
-    source,
-    0,0,
-    c.width,c.height
+  out.getContext("2d").drawImage(
+    canvas,
+    0,
+    0,
+    out.width,
+    out.height
   );
 
-  return c;
+  return out;
+}
+
+function canvasBlob(canvas,quality=.9){
+
+  return new Promise((resolve,reject)=>{
+
+    canvas.toBlob(
+      blob=>blob?resolve(blob):reject(new Error("Imagem inválida")),
+      "image/jpeg",
+      quality
+    );
+  });
+}
+
+function canvasDataURL(canvas,quality=.92){
+
+  return canvas.toDataURL(
+    "image/jpeg",
+    quality
+  );
+}
+
+/* =========================================================
+   OPENCV
+========================================================= */
+
+function waitForOpenCV(timeout=12000){
+
+  return new Promise(resolve=>{
+
+    const start=Date.now();
+
+    const check=()=>{
+
+      if(
+        window.cv &&
+        typeof cv.Mat==="function"
+      ){
+        resolve(true);
+        return;
+      }
+
+      if(Date.now()-start>timeout){
+        resolve(false);
+        return;
+      }
+
+      setTimeout(check,100);
+    };
+
+    check();
+  });
 }
 
 /*
-  A deteção antiga tentava classificar cada pixel.
-  Isso é frágil em fotografias reais.
-
-  Aqui procuramos primeiro as zonas claras do documento,
-  ignorando margens muito escuras e procurando o maior
-  retângulo plausível.
+  Encontra o maior quadrilátero claro/escuro
+  que provavelmente corresponde ao documento.
 */
 
-function detectDocument(source){
+function detectDocumentCorners(canvas){
 
-  const max=1200;
+  if(!window.cv || !cv.Mat)
+    return null;
+
+  let src=null;
+  let gray=null;
+  let blur=null;
+  let edges=null;
+  let contours=null;
+  let hierarchy=null;
+
+  try{
+
+    src=cv.imread(canvas);
+
+    gray=new cv.Mat();
+    blur=new cv.Mat();
+    edges=new cv.Mat();
+    contours=new cv.MatVector();
+    hierarchy=new cv.Mat();
+
+    cv.cvtColor(
+      src,
+      gray,
+      cv.COLOR_RGBA2GRAY
+    );
+
+    cv.GaussianBlur(
+      gray,
+      blur,
+      new cv.Size(5,5),
+      0,
+      0,
+      cv.BORDER_DEFAULT
+    );
+
+    cv.Canny(
+      blur,
+      edges,
+      60,
+      180
+    );
+
+    cv.findContours(
+      edges,
+      contours,
+      hierarchy,
+      cv.RETR_LIST,
+      cv.CHAIN_APPROX_SIMPLE
+    );
+
+    let best=null;
+    let bestArea=0;
+
+    const imageArea=canvas.width*canvas.height;
+
+    for(let i=0;i<contours.size();i++){
+
+      const contour=contours.get(i);
+
+      const peri=cv.arcLength(
+        contour,
+        true
+      );
+
+      const approx=new cv.Mat();
+
+      cv.approxPolyDP(
+        contour,
+        approx,
+        .02*peri,
+        true
+      );
+
+      if(approx.rows===4){
+
+        const area=Math.abs(
+          cv.contourArea(approx)
+        );
+
+        /*
+          Ignora quadrados demasiado pequenos
+          e a moldura inteira da fotografia.
+        */
+
+        if(
+          area>imageArea*.08 &&
+          area<imageArea*.97 &&
+          area>bestArea
+        ){
+
+          const points=[];
+
+          for(let j=0;j<4;j++){
+
+            points.push({
+              x:approx.intAt(j,0),
+              y:approx.intAt(j,1)
+            });
+          }
+
+          best=points;
+          bestArea=area;
+        }
+      }
+
+      approx.delete();
+      contour.delete();
+    }
+
+    return best;
+
+  }catch(err){
+
+    console.warn("OpenCV:",err);
+    return null;
+
+  }finally{
+
+    [src,gray,blur,edges,contours,hierarchy]
+      .forEach(x=>{
+
+        try{
+          if(x) x.delete();
+        }catch{}
+      });
+  }
+}
+
+/* =========================================================
+   GEOMETRIA / PERSPECTIVA
+========================================================= */
+
+function distance(a,b){
+
+  return Math.hypot(
+    b.x-a.x,
+    b.y-a.y
+  );
+}
+
+function orderCorners(points){
+
+  const sums=points.map(p=>p.x+p.y);
+  const diffs=points.map(p=>p.x-p.y);
+
+  const tl=points[sums.indexOf(Math.min(...sums))];
+  const br=points[sums.indexOf(Math.max(...sums))];
+  const tr=points[diffs.indexOf(Math.max(...diffs))];
+  const bl=points[diffs.indexOf(Math.min(...diffs))];
+
+  return [tl,tr,br,bl];
+}
+
+function perspectiveCrop(canvas,corners){
+
+  const p=orderCorners(corners);
+
+  const [tl,tr,br,bl]=p;
+
+  const top=distance(tl,tr);
+  const bottom=distance(bl,br);
+  const left=distance(tl,bl);
+  const right=distance(tr,br);
+
+  let width=Math.round(
+    Math.max(top,bottom)
+  );
+
+  let height=Math.round(
+    Math.max(left,right)
+  );
+
+  /*
+    Limita resolução para não gastar memória
+    excessivamente no telemóvel.
+  */
+
+  const maxSide=2400;
 
   const scale=Math.min(
     1,
-    max/Math.max(source.width,source.height)
+    maxSide/Math.max(width,height)
   );
 
-  const w=Math.max(1,Math.round(source.width*scale));
-  const h=Math.max(1,Math.round(source.height*scale));
+  width=Math.max(1,Math.round(width*scale));
+  height=Math.max(1,Math.round(height*scale));
 
-  const c=document.createElement("canvas");
-  c.width=w;
-  c.height=h;
+  const src=cv.imread(canvas);
 
-  const ctx=c.getContext("2d",{
-    willReadFrequently:true
-  });
+  const dst=new cv.Mat();
 
-  ctx.drawImage(source,0,0,w,h);
-
-  const img=ctx.getImageData(0,0,w,h);
-  const p=img.data;
-
-  /*
-    Média por colunas/linhas.
-    O documento normalmente é significativamente
-    mais claro que o fundo.
-  */
-
-  const col=new Float32Array(w);
-  const row=new Float32Array(h);
-
-  for(let y=0;y<h;y++){
-
-    for(let x=0;x<w;x++){
-
-      const i=(y*w+x)*4;
-
-      const r=p[i];
-      const g=p[i+1];
-      const b=p[i+2];
-
-      const lum=(r*0.299)+(g*0.587)+(b*0.114);
-
-      col[x]+=lum;
-      row[y]+=lum;
-    }
-  }
-
-  for(let x=0;x<w;x++)col[x]/=h;
-  for(let y=0;y<h;y++)row[y]/=w;
-
-  const global=(
-    col.reduce((a,b)=>a+b,0)/w+
-    row.reduce((a,b)=>a+b,0)/h
-  )/2;
-
-  /*
-    Threshold adaptativo.
-    Nunca deixa o documento desaparecer.
-  */
-
-  const threshold=Math.max(
-    115,
-    Math.min(205,global*.82)
+  const srcTri=cv.matFromArray(
+    4,
+    1,
+    cv.CV_32FC2,
+    [
+      tl.x,tl.y,
+      tr.x,tr.y,
+      br.x,br.y,
+      bl.x,bl.y
+    ]
   );
 
-  let left=0;
-  let right=w-1;
-  let top=0;
-  let bottom=h-1;
+  const dstTri=cv.matFromArray(
+    4,
+    1,
+    cv.CV_32FC2,
+    [
+      0,0,
+      width-1,0,
+      width-1,height-1,
+      0,height-1
+    ]
+  );
 
-  function columnScore(x){
+  const M=cv.getPerspectiveTransform(
+    srcTri,
+    dstTri
+  );
 
-    let hits=0;
+  cv.warpPerspective(
+    src,
+    dst,
+    M,
+    new cv.Size(width,height),
+    cv.INTER_LINEAR,
+    cv.BORDER_CONSTANT,
+    new cv.Scalar(255,255,255,255)
+  );
 
-    for(let y=0;y<h;y++){
+  const output=document.createElement("canvas");
+
+  output.width=width;
+  output.height=height;
+
+  cv.imshow(
+    output,
+    dst
+  );
+
+  src.delete();
+  dst.delete();
+  srcTri.delete();
+  dstTri.delete();
+  M.delete();
+
+  return output;
+}
+
+/*
+  Fallback caso o OpenCV não encontre a folha.
+  Usa o conteúdo útil da fotografia e remove
+  pequenas margens.
+*/
+
+function fallbackCrop(canvas){
+
+  const ctx=canvas.getContext(
+    "2d",
+    {willReadFrequently:true}
+  );
+
+  const w=canvas.width;
+  const h=canvas.height;
+
+  const data=ctx.getImageData(
+    0,0,w,h
+  ).data;
+
+  /*
+    Amostra o brilho nas bordas.
+    Isto ajuda quando o documento está sobre
+    uma mesa escura.
+  */
+
+  function rowBrightness(y){
+
+    let total=0;
+
+    for(let x=0;x<w;x+=8){
 
       const i=(y*w+x)*4;
 
-      const lum=
-        p[i]*.299+
-        p[i+1]*.587+
-        p[i+2]*.114;
-
-      if(lum>threshold)hits++;
+      total += (
+        data[i]+
+        data[i+1]+
+        data[i+2]
+      )/3;
     }
 
-    return hits/h;
+    return total/(Math.ceil(w/8));
   }
 
-  function rowScore(y){
+  function colBrightness(x){
 
-    let hits=0;
+    let total=0;
 
-    for(let x=0;x<w;x++){
+    for(let y=0;y<h;y+=8){
 
       const i=(y*w+x)*4;
 
-      const lum=
-        p[i]*.299+
-        p[i+1]*.587+
-        p[i+2]*.114;
-
-      if(lum>threshold)hits++;
+      total += (
+        data[i]+
+        data[i+1]+
+        data[i+2]
+      )/3;
     }
 
-    return hits/w;
+    return total/(Math.ceil(h/8));
   }
 
-  const edgeLimit=.48;
+  const top=rowBrightness(3);
+  const bottom=rowBrightness(h-4);
+  const left=colBrightness(3);
+  const right=colBrightness(w-4);
 
-  while(left<w*.18 && columnScore(left)<edgeLimit){
-    left++;
+  let x=0;
+  let y=0;
+  let cw=w;
+  let ch=h;
+
+  /*
+    Só corta se houver indícios de que
+    a fotografia tem margens exteriores.
+  */
+
+  if(
+    top<80 &&
+    bottom<80 &&
+    left<80 &&
+    right<80
+  ){
+
+    const margin=Math.round(
+      Math.min(w,h)*.025
+    );
+
+    x=margin;
+    y=margin;
+    cw=w-margin*2;
+    ch=h-margin*2;
   }
 
-  while(right>w*.82 && columnScore(right)<edgeLimit){
-    right--;
-  }
+  const out=document.createElement("canvas");
 
-  while(top<h*.18 && rowScore(top)<edgeLimit){
-    top++;
-  }
+  out.width=cw;
+  out.height=ch;
 
-  while(bottom>h*.82 && rowScore(bottom)<edgeLimit){
-    bottom--;
+  out.getContext("2d").drawImage(
+    canvas,
+    x,y,cw,ch,
+    0,0,cw,ch
+  );
+
+  return out;
+}
+
+/* =========================================================
+   DIGITALIZAÇÃO
+========================================================= */
+
+async function scanDocument(sourceCanvas){
+
+  /*
+    Primeiro tenta OpenCV.
+  */
+
+  const opencv=await waitForOpenCV();
+
+  if(opencv){
+
+    const corners=detectDocumentCorners(
+      sourceCanvas
+    );
+
+    if(corners){
+
+      try{
+
+        return {
+          canvas:perspectiveCrop(
+            sourceCanvas,
+            corners
+          ),
+          detected:true
+        };
+
+      }catch(err){
+
+        console.warn(err);
+      }
+    }
   }
 
   /*
-    Se a imagem inteira for relativamente uniforme,
-    não recortamos agressivamente.
+    Fallback.
   */
-
-  const rw=right-left+1;
-  const rh=bottom-top+1;
-
-  if(rw<w*.55 || rh<h*.45){
-    return {
-      x:0,
-      y:0,
-      w:source.width,
-      h:source.height,
-      confidence:false
-    };
-  }
-
-  /*
-    Pequena margem branca para que o conteúdo nunca fique
-    cortado pelo algoritmo.
-  */
-
-  const mx=Math.round(rw*.015);
-  const my=Math.round(rh*.015);
-
-  left=Math.max(0,left-mx);
-  top=Math.max(0,top-my);
-  right=Math.min(w-1,right+mx);
-  bottom=Math.min(h-1,bottom+my);
-
-  const inv=1/scale;
 
   return {
-    x:Math.round(left*inv),
-    y:Math.round(top*inv),
-    w:Math.round((right-left+1)*inv),
-    h:Math.round((bottom-top+1)*inv),
-    confidence:true
+    canvas:fallbackCrop(sourceCanvas),
+    detected:false
   };
 }
 
-/*
-  Digitalização segura:
-  - mantém a proporção original;
-  - fundo branco;
-  - melhora ligeiramente contraste;
-  - NÃO transforma a imagem toda em preto;
-  - preserva recibos pequenos.
-*/
+/* =========================================================
+   MELHORAMENTO PARA OCR
+========================================================= */
 
-function makeScan(source,rect){
-
-  const maxWidth=1800;
+function prepareOCR(canvas){
 
   const scale=Math.min(
-    1,
-    maxWidth/rect.w
+    1.5,
+    1800/Math.max(canvas.width,canvas.height)
   );
 
-  const w=Math.max(
-    1,
-    Math.round(rect.w*scale)
-  );
-
-  const h=Math.max(
-    1,
-    Math.round(rect.h*scale)
-  );
+  const w=Math.round(canvas.width*scale);
+  const h=Math.round(canvas.height*scale);
 
   const out=document.createElement("canvas");
 
   out.width=w;
   out.height=h;
 
-  const ctx=out.getContext("2d",{
-    willReadFrequently:true
-  });
-
-  /*
-    Branco primeiro.
-    Isto impede qualquer canvas transparente/preto.
-  */
-
-  ctx.fillStyle="#fff";
-  ctx.fillRect(0,0,w,h);
+  const ctx=out.getContext("2d");
 
   ctx.drawImage(
-    source,
-    rect.x,
-    rect.y,
-    rect.w,
-    rect.h,
+    canvas,
     0,
     0,
     w,
     h
   );
 
-  /*
-    Melhoria muito suave.
-    Não usamos threshold preto/branco porque isso destrói
-    recibos fotografados em condições difíceis.
-  */
+  const image=ctx.getImageData(
+    0,
+    0,
+    w,
+    h
+  );
 
-  try{
+  const d=image.data;
 
-    const img=ctx.getImageData(0,0,w,h);
-    const d=img.data;
+  for(let i=0;i<d.length;i+=4){
 
-    for(let i=0;i<d.length;i+=4){
+    const r=d[i];
+    const g=d[i+1];
+    const b=d[i+2];
 
-      let r=d[i];
-      let g=d[i+1];
-      let b=d[i+2];
-
-      /*
-        contraste suave
-      */
-
-      r=Math.max(0,Math.min(255,(r-128)*1.04+128));
-      g=Math.max(0,Math.min(255,(g-128)*1.04+128));
-      b=Math.max(0,Math.min(255,(b-128)*1.04+128));
-
-      d[i]=r;
-      d[i+1]=g;
-      d[i+2]=b;
-    }
-
-    ctx.putImageData(img,0,0);
-
-  }catch(e){
     /*
-      Se o processamento falhar, a imagem original recortada
-      continua válida.
+      Conversão para cinzento.
     */
+
+    let gray=
+      .299*r+
+      .587*g+
+      .114*b;
+
+    /*
+      Aumenta contraste.
+    */
+
+    gray=(gray-128)*1.45+128;
+
+    gray=Math.max(
+      0,
+      Math.min(255,gray)
+    );
+
+    d[i]=gray;
+    d[i+1]=gray;
+    d[i+2]=gray;
   }
+
+  ctx.putImageData(
+    image,
+    0,
+    0
+  );
 
   return out;
 }
 
-function canvasBlob(canvas){
+/* =========================================================
+   OCR
+========================================================= */
 
-  return new Promise((resolve,reject)=>{
+let ocrWorker=null;
+let ocrBusy=false;
 
-    canvas.toBlob(
-      blob=>{
-        if(blob)resolve(blob);
-        else reject(new Error("Não foi possível criar a imagem."));
-      },
-      "image/jpeg",
-      .90
-    );
-  });
-}
+async function getOCRWorker(){
 
-/* ============================================================
-   DATABASE
-   ============================================================ */
+  if(ocrWorker)
+    return ocrWorker;
 
-function openDB(){
-
-  return new Promise((resolve,reject)=>{
-
-    const request=indexedDB.open(
-      "faturas-toyota",
-      1
+  if(!window.Tesseract)
+    throw new Error(
+      "Tesseract não carregou."
     );
 
-    request.onupgradeneeded=()=>{
+  ocrWorker=await Tesseract.createWorker(
+    "por",
+    1,
+    {
+      logger:m=>{
 
-      const db=request.result;
+        if(m.status==="recognizing text"){
 
-      if(!db.objectStoreNames.contains("faturas")){
-        db.createObjectStore(
-          "faturas",
-          {keyPath:"id"}
-        );
+          const pct=Math.round(
+            (m.progress||0)*100
+          );
+
+          updateStatus(
+            `A ler a fatura… ${pct}%`
+          );
+        }
       }
-    };
-
-    request.onsuccess=()=>{
-      resolve(request.result);
-    };
-
-    request.onerror=()=>{
-      reject(request.error);
-    };
-  });
-}
-
-async function saveInvoice(invoice){
-
-  const db=await openDB();
-
-  const tx=db.transaction(
-    "faturas",
-    "readwrite"
+    }
   );
 
-  tx.objectStore("faturas").put(invoice);
-
-  await new Promise((resolve,reject)=>{
-
-    tx.oncomplete=resolve;
-    tx.onerror=()=>reject(tx.error);
-  });
-
-  db.close();
+  return ocrWorker;
 }
 
-async function getInvoices(){
+/* =========================================================
+   ESTADO
+========================================================= */
 
-  const db=await openDB();
+const state={
+  tab:"home",
+  original:null,
+  scanned:null,
+  ocrImage:null,
+  detected:false,
+  editing:null
+};
 
-  const tx=db.transaction(
-    "faturas",
-    "readonly"
+const main=$("#main");
+const nav=$("#nav");
+const fab=$("#fab");
+const cameraFile=$("#cameraFile");
+const galleryFile=$("#galleryFile");
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+function renderHeader(){
+
+  const header=el(
+    "div",
+    {class:"brand"}
   );
 
-  const request=
-    tx.objectStore("faturas").getAll();
+  header.innerHTML=`
+    <div class="brand-name">TOYOTA</div>
+    <div class="brand-small">
+      Faturas<br>
+      ${AUTHOR}
+    </div>
+  `;
 
-  const rows=await new Promise((resolve,reject)=>{
-
-    request.onsuccess=()=>{
-      resolve(request.result||[]);
-    };
-
-    request.onerror=()=>{
-      reject(request.error);
-    };
-  });
-
-  db.close();
-
-  return rows.sort(
-    (a,b)=>b.createdAt-a.createdAt
-  );
+  return header;
 }
 
-async function deleteInvoice(id){
-
-  const db=await openDB();
-
-  const tx=db.transaction(
-    "faturas",
-    "readwrite"
-  );
-
-  tx.objectStore("faturas").delete(id);
-
-  await new Promise((resolve,reject)=>{
-
-    tx.oncomplete=resolve;
-    tx.onerror=()=>reject(tx.error);
-  });
-
-  db.close();
-}
-
-/* ============================================================
-   APP
-   ============================================================ */
-
-const app=document.getElementById("app");
-
-const main=el("main",{class:"main"});
-
-const nav=el("nav",{class:"nav"});
-
-nav.innerHTML=`
-<button data-tab="home">
-${ICON.home}
-Início
-</button>
-
-<button data-tab="docs">
-${ICON.docs}
-Documentos
-</button>
-
-<button data-tab="analysis">
-${ICON.chart}
-Análise
-</button>
-
-<button data-tab="export">
-${ICON.download}
-Exportar
-</button>
-`;
-
-const fab=el(
-  "button",
-  {
-    class:"fab",
-    type:"button",
-    "aria-label":"Fotografar"
-  },
-  ICON.camera
-);
-
-const fileCamera=el("input",{
-  type:"file",
-  accept:"image/*",
-  capture:"environment",
-  class:"hidden"
-});
-
-const fileGallery=el("input",{
-  type:"file",
-  accept:"image/*",
-  class:"hidden"
-});
-
-app.append(
-  main,
-  nav,
-  fab,
-  fileCamera,
-  fileGallery
-);
-
-let currentTab="home";
-let sourceCanvas=null;
-let scanCanvas=null;
-let documentRect=null;
-let reading=false;
-let busy=false;
-let objectURLs=[];
-
-function revokeURLs(){
-
-  objectURLs.forEach(
-    url=>URL.revokeObjectURL(url)
-  );
-
-  objectURLs=[];
-}
+/* =========================================================
+   NAVEGAÇÃO
+========================================================= */
 
 function setTab(tab){
 
-  currentTab=tab;
+  state.tab=tab;
 
-  nav.querySelectorAll("button").forEach(btn=>{
-
-    btn.classList.toggle(
-      "active",
-      btn.dataset.tab===tab
-    );
-  });
+  nav.querySelectorAll("button")
+    .forEach(btn=>{
+      btn.classList.toggle(
+        "active",
+        btn.dataset.tab===tab
+      );
+    });
 
   fab.classList.toggle(
     "hidden",
@@ -1520,89 +1868,126 @@ function setTab(tab){
   );
 }
 
-/* ============================================================
+/* =========================================================
    HOME
-   ============================================================ */
+========================================================= */
 
 function showHome(){
 
   setTab("home");
-  revokeURLs();
 
-  main.replaceChildren();
+  main.innerHTML="";
 
   main.append(
-    el("p",{class:"kicker"},"Gestão de despesas"),
-    el("h1",{class:"title"},"Faturas"),
+    renderHeader(),
+
     el(
       "div",
-      {class:"brand"},
-      `<span class="brand-dot"></span>
-       Faturas Toyota`
+      {class:"workspace"},
+      "<i></i> Gestão de faturas"
+    ),
+
+    el(
+      "p",
+      {class:"kicker"},
+      "Novo registo"
+    ),
+
+    el(
+      "h1",
+      {},
+      "Adicionar"
     )
   );
 
   const camera=el(
     "button",
-    {class:"cta hot",type:"button"},
-    `<div class="orb">${ICON.camera}</div>
-     <div>
-       <b>Digitalizar fatura</b>
-       <span>Fotografa e transforma automaticamente o documento numa digitalização.</span>
-     </div>`
+    {class:"cta hot",type:"button"}
   );
+
+  camera.innerHTML=`
+    <div class="cta-icon">▣</div>
+    <div>
+      <b>Digitalizar fatura</b>
+      <span>
+        Fotografa a fatura e a aplicação
+        tenta recortar automaticamente a folha.
+      </span>
+    </div>
+  `;
+
+  camera.onclick=openCamera;
 
   const gallery=el(
     "button",
-    {class:"cta cold",type:"button"},
-    `<div class="orb">${ICON.upload}</div>
-     <div>
-       <b>Escolher fotografia</b>
-       <span>Seleciona uma fatura já fotografada.</span>
-     </div>`
+    {class:"cta dark",type:"button"}
   );
 
-  const native=el(
-    "button",
-    {class:"cta cold",type:"button"},
-    `<div class="orb">${ICON.camera}</div>
-     <div>
-       <b>Câmara nativa</b>
-       <span>Usa diretamente a câmara do telemóvel.</span>
-     </div>`
-  );
+  gallery.innerHTML=`
+    <div class="cta-icon">▧</div>
+    <div>
+      <b>Escolher fotografia</b>
+      <span>
+        Usa uma fotografia existente
+        na galeria.
+      </span>
+    </div>
+  `;
+
+  gallery.onclick=()=>galleryFile.click();
 
   const manual=el(
     "button",
-    {class:"cta cold",type:"button"},
-    `<div class="orb">${ICON.form}</div>
-     <div>
-       <b>Introdução manual</b>
-       <span>Regista uma despesa sem fotografia.</span>
-     </div>`
+    {class:"cta dark",type:"button"}
   );
 
-  camera.onclick=openCamera;
-  gallery.onclick=()=>fileGallery.click();
-  native.onclick=()=>fileCamera.click();
+  manual.innerHTML=`
+    <div class="cta-icon">✎</div>
+    <div>
+      <b>Introduzir manualmente</b>
+      <span>
+        Preenche os dados sem utilizar OCR.
+      </span>
+    </div>
+  `;
+
   manual.onclick=openManual;
 
   main.append(
     camera,
     gallery,
-    native,
     manual
   );
+
+  const info=el(
+    "section",
+    {class:"card"}
+  );
+
+  info.innerHTML=`
+    <strong>Como funciona</strong>
+    <p class="status">
+      1. Fotografa a fatura.<br>
+      2. A aplicação tenta encontrar os quatro cantos.<br>
+      3. Corrige a perspetiva.<br>
+      4. Guarda apenas a digitalização.<br>
+      5. O OCR tenta preencher os campos.<br>
+      6. Confirma os dados antes de guardar.
+    </p>
+  `;
+
+  main.append(info);
 }
 
-/* ============================================================
+/* =========================================================
    CAMERA
-   ============================================================ */
+========================================================= */
 
 async function openCamera(){
 
   if(!navigator.mediaDevices?.getUserMedia){
-    fileCamera.click();
+
+    cameraFile.click();
     return;
   }
 
@@ -1610,26 +1995,25 @@ async function openCamera(){
 
   try{
 
-    stream=
-      await navigator.mediaDevices.getUserMedia({
-        audio:false,
-        video:{
-          facingMode:{ideal:"environment"},
-          width:{ideal:1920},
-          height:{ideal:2560}
-        }
-      });
+    stream=await navigator.mediaDevices.getUserMedia({
+      audio:false,
+      video:{
+        facingMode:{ideal:"environment"},
+        width:{ideal:2560},
+        height:{ideal:1920}
+      }
+    });
 
-  }catch(e){
+  }catch{
 
-    fileCamera.click();
+    cameraFile.click();
     return;
   }
 
   nav.classList.add("hidden");
   fab.classList.add("hidden");
 
-  const camera=el(
+  const wrap=el(
     "div",
     {class:"camera"}
   );
@@ -1638,13 +2022,11 @@ async function openCamera(){
     "video",
     {
       autoplay:"true",
-      playsinline:"true"
+      playsinline:"true",
+      muted:"true"
     }
   );
 
-  video.autoplay=true;
-  video.playsInline=true;
-  video.muted=true;
   video.srcObject=stream;
 
   const bar=el(
@@ -1654,7 +2036,7 @@ async function openCamera(){
 
   const close=el(
     "button",
-    {class:"camera-link",type:"button"},
+    {class:"camera-action",type:"button"},
     "Fechar"
   );
 
@@ -1669,7 +2051,7 @@ async function openCamera(){
 
   const gallery=el(
     "button",
-    {class:"camera-link",type:"button"},
+    {class:"camera-action",type:"button"},
     "Galeria"
   );
 
@@ -1679,22 +2061,22 @@ async function openCamera(){
     gallery
   );
 
-  camera.append(
+  wrap.append(
     video,
     bar
   );
 
-  document.body.append(camera);
+  document.body.append(wrap);
 
   await video.play().catch(()=>{});
 
   function closeCamera(){
 
     stream.getTracks().forEach(
-      track=>track.stop()
+      t=>t.stop()
     );
 
-    camera.remove();
+    wrap.remove();
 
     nav.classList.remove("hidden");
   }
@@ -1703,594 +2085,396 @@ async function openCamera(){
 
   gallery.onclick=()=>{
     closeCamera();
-    fileGallery.click();
+    galleryFile.click();
   };
 
-  shutter.onclick=()=>{
+  shutter.onclick=async()=>{
 
-    const w=video.videoWidth;
-    const h=video.videoHeight;
+    if(!video.videoWidth)
+      return;
 
-    if(!w||!h)return;
+    const canvas=document.createElement(
+      "canvas"
+    );
 
-    const c=document.createElement("canvas");
+    canvas.width=video.videoWidth;
+    canvas.height=video.videoHeight;
 
-    c.width=w;
-    c.height=h;
-
-    const ctx=c.getContext("2d");
-
-    ctx.drawImage(
+    canvas.getContext("2d").drawImage(
       video,
       0,
-      0,
-      w,
-      h
+      0
     );
 
     closeCamera();
 
-    startProcessing(
-      resizeCanvas(c)
+    await startScan(
+      resizeCanvas(canvas,2200)
     );
   };
 }
 
-/* ============================================================
+/* =========================================================
    PROCESSAMENTO
-   ============================================================ */
+========================================================= */
 
-async function startProcessing(full){
+async function startScan(canvas){
 
-  sourceCanvas=full;
-
-  nav.classList.add("hidden");
-  fab.classList.add("hidden");
+  state.original=canvas;
+  state.scanned=null;
+  state.ocrImage=null;
 
   const overlay=el(
     "div",
-    {class:"processing"}
+    {class:"scan-overlay"}
   );
 
   const box=el(
     "div",
-    {class:"processing-box"}
+    {class:"scan-box"}
   );
 
   const preview=el(
     "div",
-    {class:"processing-preview"}
+    {class:"scan-preview"}
   );
 
-  const canvas=document.createElement("canvas");
+  const img=document.createElement("img");
 
-  const scale=Math.min(
-    1,
-    480/Math.max(full.width,full.height)
-  );
-
-  canvas.width=Math.max(
-    1,
-    Math.round(full.width*scale)
-  );
-
-  canvas.height=Math.max(
-    1,
-    Math.round(full.height*scale)
-  );
-
-  canvas.getContext("2d").drawImage(
-    full,
-    0,
-    0,
-    canvas.width,
-    canvas.height
+  img.src=canvasDataURL(
+    canvas,
+    .82
   );
 
   preview.append(
-    canvas,
+    img,
     el("div",{class:"scan-line"})
-  );
-
-  const h=el(
-    "h2",
-    {},
-    "A digitalizar"
-  );
-
-  const p=el(
-    "p",
-    {},
-    "A procurar as margens do documento."
-  );
-
-  const s1=el(
-    "div",
-    {class:"step active"},
-    "① A detetar o documento"
-  );
-
-  const s2=el(
-    "div",
-    {class:"step"},
-    "② A recortar a fotografia"
-  );
-
-  const s3=el(
-    "div",
-    {class:"step"},
-    "③ A preparar a imagem para OCR"
   );
 
   box.append(
     preview,
-    h,
-    p,
-    s1,
-    s2,
-    s3
-  );
-
-  overlay.append(box);
-  document.body.append(overlay);
-
-  await wait(250);
-
-  /*
-    Deteção.
-  */
-
-  documentRect=detectDocument(full);
-
-  if(!documentRect){
-    documentRect={
-      x:0,
-      y:0,
-      w:full.width,
-      h:full.height,
-      confidence:false
-    };
-  }
-
-  s1.classList.remove("active");
-  s1.classList.add("done");
-
-  s2.classList.add("active");
-
-  await wait(250);
-
-  /*
-    RECORTE REAL
-  */
-
-  scanCanvas=
-    makeScan(
-      full,
-      documentRect
-    );
-
-  /*
-    Mostra imediatamente o resultado no preview.
-  */
-
-  const previewScale=Math.min(
-    1,
-    480/Math.max(
-      scanCanvas.width,
-      scanCanvas.height
+    el("h2",{},"A digitalizar"),
+    el(
+      "p",
+      {},
+      "A procurar as margens da fatura…"
     )
   );
 
-  canvas.width=Math.max(
-    1,
-    Math.round(scanCanvas.width*previewScale)
+  const step1=el(
+    "div",
+    {class:"scan-step active"},
+    "1 · Procurar a folha"
   );
 
-  canvas.height=Math.max(
-    1,
-    Math.round(scanCanvas.height*previewScale)
+  const step2=el(
+    "div",
+    {class:"scan-step"},
+    "2 · Corrigir perspetiva"
   );
 
-  canvas.getContext("2d").drawImage(
-    scanCanvas,
-    0,
-    0,
-    canvas.width,
-    canvas.height
+  const step3=el(
+    "div",
+    {class:"scan-step"},
+    "3 · Preparar leitura"
   );
 
-  p.textContent=
-    documentRect.confidence
-      ? "Documento detetado e recortado."
-      : "Não consegui confirmar as margens. Mantive a fotografia inteira para não cortar informação.";
+  box.append(
+    step1,
+    step2,
+    step3
+  );
 
-  s2.classList.remove("active");
-  s2.classList.add("done");
+  overlay.append(box);
 
-  s3.classList.add("active");
+  document.body.append(overlay);
 
-  await wait(350);
+  await new Promise(r=>setTimeout(r,250));
+
+  try{
+
+    const result=await scanDocument(canvas);
+
+    state.scanned=result.canvas;
+    state.detected=result.detected;
+
+    step1.classList.remove("active");
+    step1.classList.add("done");
+
+    step2.classList.add("active");
+
+    await new Promise(r=>setTimeout(r,300));
+
+    step2.classList.remove("active");
+    step2.classList.add("done");
+
+    step3.classList.add("active");
+
+    await new Promise(r=>setTimeout(r,250));
+
+  }catch(err){
+
+    console.error(err);
+
+    state.scanned=fallbackCrop(canvas);
+    state.detected=false;
+  }
 
   overlay.remove();
 
-  paintReview(
-    !documentRect.confidence
-  );
+  renderReview();
 
   runOCR();
 }
 
-function wait(ms){
-  return new Promise(
-    resolve=>setTimeout(resolve,ms)
-  );
-}
-
-/* ============================================================
+/* =========================================================
    REVIEW
-   ============================================================ */
+========================================================= */
 
-function paintReview(warning=false){
+function renderReview(manual=false){
 
   setTab("home");
 
-  nav.classList.remove("hidden");
-  fab.classList.add("hidden");
-
-  main.replaceChildren();
+  main.innerHTML="";
 
   const top=el(
     "div",
-    {
-      style:"display:flex;align-items:center;gap:12px;margin-bottom:12px"
-    }
+    {class:"brand"}
   );
 
-  const close=el(
-    "button",
-    {
-      class:"btn soft tiny",
-      type:"button"
-    },
-    "✕ Fechar"
-  );
-
-  const title=el(
-    "p",
-    {
-      class:"status",
-      style:"margin:0"
-    },
-    "Rever digitalização"
-  );
-
-  top.append(
-    close,
-    title
-  );
-
-  close.onclick=()=>{
-    sourceCanvas=null;
-    scanCanvas=null;
-    documentRect=null;
-    showHome();
-  };
+  top.innerHTML=`
+    <div class="brand-name">TOYOTA</div>
+    <div class="brand-small">
+      ${AUTHOR}
+    </div>
+  `;
 
   main.append(top);
 
-  const imageCard=el(
+  const title=el(
+    "h1",
+    {},
+    manual ? "Novo registo" : "Confirmar"
+  );
+
+  main.append(title);
+
+  if(!manual){
+
+    const card=el(
+      "section",
+      {class:"card"}
+    );
+
+    const preview=el(
+      "div",
+      {class:"preview"}
+    );
+
+    const image=document.createElement("img");
+
+    image.src=canvasDataURL(
+      state.scanned,
+      .9
+    );
+
+    preview.append(image);
+
+    card.append(preview);
+
+    const status=el(
+      "p",
+      {
+        class:"status",
+        id:"cropStatus"
+      },
+      state.detected
+        ? "✓ Documento recortado automaticamente."
+        : "⚠ Não foi possível confirmar todas as margens. Verifica a imagem."
+    );
+
+    card.append(status);
+
+    const tools=el(
+      "div",
+      {class:"row"}
+    );
+
+    const recrop=el(
+      "button",
+      {
+        class:"btn secondary small",
+        type:"button"
+      },
+      "Tentar recortar"
+    );
+
+    const original=el(
+      "button",
+      {
+        class:"btn secondary small",
+        type:"button"
+      },
+      "Ver original"
+    );
+
+    tools.append(
+      recrop,
+      original
+    );
+
+    card.append(tools);
+
+    recrop.onclick=async()=>{
+
+      if(!state.original)
+        return;
+
+      const result=await scanDocument(
+        state.original
+      );
+
+      state.scanned=result.canvas;
+      state.detected=result.detected;
+
+      image.src=canvasDataURL(
+        state.scanned,
+        .9
+      );
+
+      status.textContent=
+        state.detected
+        ? "✓ Documento recortado automaticamente."
+        : "⚠ Não foi possível confirmar todas as margens.";
+    };
+
+    original.onclick=()=>{
+
+      image.src=canvasDataURL(
+        state.original,
+        .82
+      );
+    };
+
+    main.append(card);
+  }
+
+  const form=el(
     "section",
     {class:"card"}
   );
 
-  const scan=el(
-    "div",
-    {class:"scan"}
-  );
+  form.innerHTML=`
 
-  const image=document.createElement("canvas");
-
-  function draw(){
-
-    if(!scanCanvas)return;
-
-    image.width=scanCanvas.width;
-    image.height=scanCanvas.height;
-
-    const ctx=image.getContext("2d");
-
-    ctx.fillStyle="#fff";
-    ctx.fillRect(
-      0,
-      0,
-      image.width,
-      image.height
-    );
-
-    ctx.drawImage(
-      scanCanvas,
-      0,
-      0
-    );
-  }
-
-  draw();
-
-  scan.append(image);
-
-  const controls=el(
-    "div",
-    {class:"mini"}
-  );
-
-  const narrower=el(
-    "button",
-    {type:"button"},
-    "Apertar margens"
-  );
-
-  const wider=el(
-    "button",
-    {type:"button"},
-    "Alargar margens"
-  );
-
-  const original=el(
-    "button",
-    {type:"button"},
-    "Foto original"
-  );
-
-  const full=el(
-    "button",
-    {type:"button"},
-    "Foto inteira"
-  );
-
-  controls.append(
-    narrower,
-    wider,
-    original,
-    full
-  );
-
-  imageCard.append(
-    scan,
-    controls
-  );
-
-  if(warning){
-
-    imageCard.append(
-      el(
-        "p",
-        {class:"warn"},
-        "As margens não foram identificadas com confiança. A imagem foi mantida inteira para evitar cortar dados. Podes ajustar as margens manualmente."
-      )
-    );
-  }
-
-  main.append(imageCard);
-
-  narrower.onclick=()=>{
-
-    if(!sourceCanvas||!documentRect)return;
-
-    const dx=documentRect.w*.035;
-    const dy=documentRect.h*.035;
-
-    documentRect={
-      x:documentRect.x+dx,
-      y:documentRect.y+dy,
-      w:Math.max(10,documentRect.w-dx*2),
-      h:Math.max(10,documentRect.h-dy*2),
-      confidence:true
-    };
-
-    scanCanvas=
-      makeScan(
-        sourceCanvas,
-        documentRect
-      );
-
-    draw();
-  };
-
-  wider.onclick=()=>{
-
-    if(!sourceCanvas||!documentRect)return;
-
-    const dx=documentRect.w*.05;
-    const dy=documentRect.h*.05;
-
-    const x=Math.max(
-      0,
-      documentRect.x-dx
-    );
-
-    const y=Math.max(
-      0,
-      documentRect.y-dy
-    );
-
-    const right=Math.min(
-      sourceCanvas.width,
-      documentRect.x+
-      documentRect.w+
-      dx
-    );
-
-    const bottom=Math.min(
-      sourceCanvas.height,
-      documentRect.y+
-      documentRect.h+
-      dy
-    );
-
-    documentRect={
-      x,
-      y,
-      w:right-x,
-      h:bottom-y,
-      confidence:true
-    };
-
-    scanCanvas=
-      makeScan(
-        sourceCanvas,
-        documentRect
-      );
-
-    draw();
-  };
-
-  original.onclick=()=>{
-
-    if(!sourceCanvas)return;
-
-    image.width=sourceCanvas.width;
-    image.height=sourceCanvas.height;
-
-    const ctx=image.getContext("2d");
-
-    ctx.fillStyle="#fff";
-    ctx.fillRect(
-      0,
-      0,
-      image.width,
-      image.height
-    );
-
-    ctx.drawImage(
-      sourceCanvas,
-      0,
-      0
-    );
-  };
-
-  full.onclick=()=>{
-
-    if(!sourceCanvas)return;
-
-    documentRect={
-      x:0,
-      y:0,
-      w:sourceCanvas.width,
-      h:sourceCanvas.height,
-      confidence:true
-    };
-
-    scanCanvas=
-      makeScan(
-        sourceCanvas,
-        documentRect
-      );
-
-    draw();
-  };
-
-  createForm();
-}
-
-/* ============================================================
-   FORM
-   ============================================================ */
-
-function createForm(){
-
-  const card=el(
-    "section",
-    {class:"card"}
-  );
-
-  card.innerHTML=`
-    <p class="status" data-status>
-      A preparar leitura...
+    <p id="ocrStatus" class="status">
+      ${manual
+        ?"Preenche os dados."
+        :"A preparar OCR…"}
     </p>
 
-    <div class="chips" data-chips></div>
+    <div id="badges" class="badge-row"></div>
 
     <label>
       Fornecedor
-      <input data-supplier maxlength="80" placeholder="Ex.: Toyota / Galp">
+      <input id="supplier" maxlength="80"
+        placeholder="Ex.: Galp">
     </label>
 
     <label>
       NIF
-      <input data-nif inputmode="numeric" maxlength="11" placeholder="9 dígitos">
+      <input id="nif"
+        inputmode="numeric"
+        maxlength="9"
+        placeholder="123456789">
     </label>
 
     <label>
       Data de emissão
-      <input data-date type="date">
+      <input id="date" type="date">
     </label>
 
     <label>
       IVA (€)
-      <input data-vat inputmode="decimal" placeholder="1,23">
+      <input id="vat"
+        inputmode="decimal"
+        placeholder="1,23">
     </label>
 
     <label>
       Total (€)
-      <input data-total inputmode="decimal" placeholder="6,69">
+      <input id="total"
+        inputmode="decimal"
+        placeholder="6,69">
     </label>
 
     <label>
       Categoria
-      <select data-category>
-        ${CATS.map(c=>`
-          <option>${c}</option>
-        `).join("")}
+      <select id="category">
+        ${CATEGORIES.map(c=>
+          `<option>${c}</option>`
+        ).join("")}
       </select>
     </label>
 
     <label>
       Nº documento
-      <input data-document maxlength="40" placeholder="FT 123/2026">
+      <input id="docNumber"
+        maxlength="40"
+        placeholder="FT 123/2025">
     </label>
 
     <details>
-      <summary>Dados adicionais</summary>
+      <summary>Informação adicional</summary>
 
       <label>
         Viatura
-        <input data-vehicle maxlength="50">
+        <input id="vehicle">
       </label>
 
       <label>
         Quilómetros
-        <input data-km maxlength="20" inputmode="decimal">
+        <input id="km"
+          inputmode="numeric">
       </label>
 
       <label>
         Projeto
-        <input data-project maxlength="80">
+        <input id="project">
       </label>
 
       <label>
         Notas
-        <input data-notes maxlength="180">
+        <input id="notes">
       </label>
     </details>
 
-    <label>
-      Texto reconhecido pelo OCR
-      <textarea data-ocr readonly></textarea>
-    </label>
+    ${
+      manual
+      ? ""
+      :
+      `
+      <details>
+        <summary>Texto reconhecido pelo OCR</summary>
+        <textarea id="ocrText" readonly></textarea>
+      </details>
+      `
+    }
   `;
+
+  main.append(form);
 
   const actions=el(
     "div",
     {class:"row"}
   );
 
-  const repeat=el(
+  const cancel=el(
     "button",
     {
-      class:"btn ghost",
+      class:"btn secondary",
       type:"button"
     },
-    "↺ Repetir"
+    "Cancelar"
   );
 
   const save=el(
@@ -2299,195 +2483,105 @@ function createForm(){
       class:"btn primary",
       type:"button"
     },
-    "✓ Guardar"
+    "Guardar fatura"
   );
 
   actions.append(
-    repeat,
+    cancel,
     save
   );
 
-  main.append(
-    card,
-    actions
-  );
+  main.append(actions);
 
-  repeat.onclick=openCamera;
+  cancel.onclick=showHome;
 
-  save.onclick=()=>saveCurrent(card);
-
-  const reread=el(
-    "button",
-    {
-      class:"btn soft",
-      type:"button",
-      style:"margin-top:10px"
-    },
-    "↻ Ler novamente"
-  );
-
-  reread.onclick=runOCR;
-
-  main.append(reread);
+  save.onclick=saveCurrentDocument;
 }
 
-function getFields(){
-
-  const q=s=>main.querySelector(s);
-
-  return {
-    status:q("[data-status]"),
-    chips:q("[data-chips]"),
-    supplier:q("[data-supplier]"),
-    nif:q("[data-nif]"),
-    date:q("[data-date]"),
-    vat:q("[data-vat]"),
-    total:q("[data-total]"),
-    category:q("[data-category]"),
-    document:q("[data-document]"),
-    vehicle:q("[data-vehicle]"),
-    km:q("[data-km]"),
-    project:q("[data-project]"),
-    notes:q("[data-notes]"),
-    ocr:q("[data-ocr]")
-  };
-}
-
-/* ============================================================
+/* =========================================================
    OCR
-   ============================================================ */
+========================================================= */
+
+function updateStatus(text){
+
+  const s=$("#ocrStatus");
+
+  if(s)
+    s.textContent=text;
+}
 
 async function runOCR(){
 
-  if(!scanCanvas || reading)return;
+  if(!state.scanned || ocrBusy)
+    return;
 
-  reading=true;
-
-  const f=getFields();
-
-  const status=text=>{
-    if(f.status)f.status.textContent=text;
-  };
+  ocrBusy=true;
 
   try{
 
-    if(!window.Tesseract){
-      throw new Error(
-        "O OCR não carregou. Verifica a ligação à internet."
-      );
-    }
-
-    status(
-      "A carregar o leitor de documentos..."
+    updateStatus(
+      "A preparar a imagem para leitura…"
     );
 
-    /*
-      OCR trabalha melhor com uma imagem razoavelmente grande.
-    */
-
-    const ocrCanvas=
-      resizeCanvas(
-        scanCanvas,
-        2200
-      );
-
-    const blob=
-      await canvasBlob(
-        ocrCanvas
-      );
-
-    status(
-      "A reconhecer os dados..."
+    state.ocrImage=prepareOCR(
+      state.scanned
     );
 
-    const worker=
-      await Tesseract.createWorker(
-        "por",
-        1,
-        {
-          logger:m=>{
+    const worker=await getOCRWorker();
 
-            if(
-              m.status===
-              "recognizing text"
-            ){
+    const blob=await canvasBlob(
+      state.ocrImage,
+      .95
+    );
 
-              status(
-                `A ler a fatura... ${Math.round(
-                  (m.progress||0)*100
-                )}%`
-              );
-            }
-          }
-        }
-      );
+    updateStatus(
+      "A ler a fatura…"
+    );
 
-    const result=
-      await worker.recognize(
-        blob
-      );
+    const result=await worker.recognize(
+      blob
+    );
 
-    await worker.terminate();
+    const text=result.data.text||"";
 
-    const text=
-      result?.data?.text||"";
+    const ocr=$("#ocrText");
 
-    if(f.ocr){
-      f.ocr.value=text.trim();
-    }
+    if(ocr)
+      ocr.value=text.trim();
 
     /*
-      Extrair campos.
+      Extrair dados
     */
 
     const supplier=parseSupplier(text);
-    const nif=parseNif(text);
+    const nif=parseNIF(text);
     const date=parseDate(text);
     const total=parseTotal(text);
-    const vat=parseVat(text);
-    const documentNumber=parseDocumentNumber(text);
-    const category=categorize(text);
+    const vat=parseVAT(text);
+    const doc=parseDocumentNumber(text);
+    const category=categoryFromText(text);
 
-    if(
-      supplier &&
-      !f.supplier.value
-    ){
-      f.supplier.value=supplier;
-    }
+    if(supplier)
+      $("#supplier").value=supplier;
 
-    if(
-      nif &&
-      !f.nif.value
-    ){
-      f.nif.value=nif;
-    }
+    if(nif)
+      $("#nif").value=nif;
 
-    if(
-      date &&
-      !f.date.value
-    ){
-      f.date.value=date.iso;
-    }
+    if(date)
+      $("#date").value=date.iso;
 
-    if(
-      total &&
-      !f.total.value
-    ){
-      f.total.value=
-        total.euros.toLocaleString(
+    if(total!==null)
+      $("#total").value=
+        total.toLocaleString(
           "pt-PT",
           {
             minimumFractionDigits:2,
             maximumFractionDigits:2
           }
         );
-    }
 
-    if(
-      vat!=null &&
-      !f.vat.value
-    ){
-      f.vat.value=
+    if(vat!==null)
+      $("#vat").value=
         vat.toLocaleString(
           "pt-PT",
           {
@@ -2495,318 +2589,307 @@ async function runOCR(){
             maximumFractionDigits:2
           }
         );
-    }
 
-    if(
-      documentNumber &&
-      !f.document.value
-    ){
-      f.document.value=documentNumber;
-    }
+    if(doc)
+      $("#docNumber").value=doc;
 
-    if(category!=="Outros"){
-      f.category.value=category;
-    }
+    if(category!=="Outros")
+      $("#category").value=category;
 
-    /*
-      Chips de confirmação.
-    */
+    renderBadges({
+      supplier,
+      nif,
+      date,
+      total,
+      vat,
+      doc,
+      category
+    });
 
-    f.chips.replaceChildren();
-
-    function chip(text,kind){
-
-      const c=el(
-        "span",
-        {
-          style:`
-            display:inline-flex;
-            padding:6px 10px;
-            border-radius:999px;
-            background:${kind==="ok"
-              ?"rgba(67,215,154,.10)"
-              :"rgba(245,197,66,.10)"};
-            border:1px solid ${kind==="ok"
-              ?"rgba(67,215,154,.28)"
-              :"rgba(245,197,66,.28)"};
-            color:${kind==="ok"
-              ?" #9bf0c9"
-              :"#f7d978"};
-            margin:3px;
-            font-size:12px;
-            font-weight:800;
-          `
-        },
-        text
-      );
-
-      f.chips.append(c);
-    }
-
-    chip(
-      date
-        ? "✓ Data "+date.display
-        : "⚠ Data por preencher",
-      date?"ok":"warn"
+    updateStatus(
+      "Leitura concluída. Confirma os campos antes de guardar."
     );
 
-    chip(
-      total
-        ? "✓ Total "+total.euros.toFixed(2)+" €"
-        : "⚠ Total por preencher",
-      total?"ok":"warn"
+  }catch(err){
+
+    console.error(err);
+
+    updateStatus(
+      "O OCR não conseguiu ler todos os dados. Podes corrigi-los manualmente."
     );
-
-    if(nif){
-      chip(
-        "✓ NIF "+nif,
-        "ok"
-      );
-    }
-
-    if(supplier){
-      chip(
-        "✓ "+supplier,
-        "ok"
-      );
-    }
-
-    status(
-      [
-        supplier||"Fornecedor por confirmar",
-        date
-          ? "Data "+date.display
-          : "Data por confirmar",
-        total
-          ? "Total "+total.euros.toFixed(2)+" €"
-          : "Total por confirmar"
-      ].join(" · ")
-      +" — confirma os dados antes de guardar."
-    );
-
-  }catch(error){
-
-    status(
-      "O OCR não conseguiu concluir a leitura. Podes preencher os campos manualmente."
-    );
-
-    if(f.ocr){
-      f.ocr.value=
-        error?.message||
-        String(error);
-    }
 
   }finally{
 
-    reading=false;
+    ocrBusy=false;
   }
 }
 
-/* ============================================================
+function renderBadges(data){
+
+  const box=$("#badges");
+
+  if(!box)
+    return;
+
+  box.innerHTML="";
+
+  function badge(text,ok){
+
+    const b=el(
+      "span",
+      {
+        class:"badge "+(ok?"ok":"warn")
+      },
+      text
+    );
+
+    box.append(b);
+  }
+
+  badge(
+    data.supplier
+      ? "Fornecedor ✓"
+      : "Fornecedor por confirmar",
+    !!data.supplier
+  );
+
+  badge(
+    data.nif
+      ? "NIF ✓"
+      : "NIF por confirmar",
+    !!data.nif
+  );
+
+  badge(
+    data.date
+      ? "Data ✓"
+      : "Data por confirmar",
+    !!data.date
+  );
+
+  badge(
+    data.total!==null
+      ? "Total ✓"
+      : "Total por confirmar",
+    data.total!==null
+  );
+
+  if(data.vat!==null)
+    badge("IVA ✓",true);
+}
+
+/* =========================================================
+   MANUAL
+========================================================= */
+
+function openManual(){
+
+  state.original=null;
+  state.scanned=document.createElement("canvas");
+
+  state.scanned.width=100;
+  state.scanned.height=140;
+
+  const ctx=state.scanned.getContext("2d");
+
+  ctx.fillStyle="#fff";
+  ctx.fillRect(
+    0,
+    0,
+    100,
+    140
+  );
+
+  renderReview(true);
+}
+
+/* =========================================================
    GUARDAR
-   ============================================================ */
+========================================================= */
 
-async function saveCurrent(card){
-
-  if(busy || !scanCanvas)return;
-
-  const f=getFields();
+async function saveCurrentDocument(){
 
   const total=parseMoney(
-    f.total.value
+    $("#total").value
   );
 
   const vat=parseMoney(
-    f.vat.value
+    $("#vat").value
   );
 
-  const issued=
-    /^\d{4}-\d{2}-\d{2}$/.test(f.date.value)
-      ?f.date.value
-      :null;
+  const date=$("#date").value;
 
   if(
-    f.total.value.trim() &&
-    total==null
+    $("#total").value.trim() &&
+    total===null
   ){
 
-    f.status.textContent=
-      "O total não é válido.";
-
-    return;
-  }
-
-  if(
-    f.vat.value.trim() &&
-    vat==null
-  ){
-
-    f.status.textContent=
-      "O IVA não é válido.";
-
-    return;
-  }
-
-  const nif=
-    (f.nif.value||"")
-      .replace(/\D/g,"");
-
-  /*
-    Verificação de duplicado.
-  */
-
-  try{
-
-    const existing=
-      await getInvoices();
-
-    const duplicate=
-      existing.some(
-        x=>
-          nif &&
-          x.nif===nif &&
-          x.issuedDate===issued &&
-          x.total===total
-      );
-
-    if(
-      duplicate &&
-      !confirm(
-        "Já existe uma fatura com o mesmo NIF, data e total.\n\nGuardar mesmo assim?"
-      )
-    ){
-      return;
-    }
-
-  }catch(e){}
-
-  busy=true;
-
-  try{
-
-    /*
-      IMPORTANTE:
-      guardamos scanCanvas, NÃO sourceCanvas.
-    */
-
-    const image=
-      await canvasBlob(
-        scanCanvas
-      );
-
-    const invoice={
-      id:
-        crypto.randomUUID
-          ?crypto.randomUUID()
-          :Date.now()+"-"+Math.random(),
-
-      createdAt:Date.now(),
-
-      issuedDate:issued,
-
-      month:
-        issued
-          ?issued.slice(0,7)
-          :"sem-data",
-
-      supplier:
-        f.supplier.value.trim(),
-
-      nif,
-
-      vat,
-
-      total,
-
-      category:
-        f.category.value,
-
-      documentNumber:
-        f.document.value.trim(),
-
-      vehicle:
-        f.vehicle?.value.trim()||"",
-
-      km:
-        f.km?.value.trim()||"",
-
-      project:
-        f.project?.value.trim()||"",
-
-      notes:
-        f.notes?.value.trim()||"",
-
-      ocrText:
-        f.ocr?.value||"",
-
-      /*
-        A imagem guardada é a digitalização.
-      */
-
-      image
-    };
-
-    await saveInvoice(
-      invoice
+    updateStatus(
+      "O total não é válido."
     );
 
-    sourceCanvas=null;
-    scanCanvas=null;
-    documentRect=null;
+    return;
+  }
 
-    await showDocuments();
+  if(
+    $("#vat").value.trim() &&
+    vat===null
+  ){
 
-  }catch(error){
+    updateStatus(
+      "O IVA não é válido."
+    );
 
-    f.status.textContent=
-      "Não foi possível guardar a fatura.";
+    return;
+  }
 
-  }finally{
+  const nif=$("#nif")
+    .value
+    .replace(/\D/g,"");
 
-    busy=false;
+  if(
+    nif &&
+    nif.length===9 &&
+    !nifValid(nif)
+  ){
+
+    if(!confirm(
+      "O NIF introduzido não passa a validação. Guardar mesmo assim?"
+    ))
+      return;
+  }
+
+  if(!state.scanned)
+    return;
+
+  const docs=await getDocuments();
+
+  const duplicate=docs.some(d=>
+    d.nif &&
+    d.nif===nif &&
+    d.issuedDate===date &&
+    d.total===total
+  );
+
+  if(
+    duplicate &&
+    !confirm(
+      "Já existe uma fatura com o mesmo NIF, data e total. Guardar outra?"
+    )
+  )
+    return;
+
+  const image=await canvasBlob(
+    state.scanned,
+    .92
+  );
+
+  const doc={
+    id:crypto.randomUUID(),
+
+    createdAt:Date.now(),
+
+    issuedDate:/^\d{4}-\d{2}-\d{2}$/.test(date)
+      ? date
+      : null,
+
+    month:/^\d{4}-\d{2}-\d{2}$/.test(date)
+      ? date.slice(0,7)
+      : "sem-data",
+
+    supplier:$("#supplier").value.trim(),
+
+    nif,
+
+    vat,
+
+    total,
+
+    category:$("#category").value,
+
+    docNumber:$("#docNumber").value.trim(),
+
+    vehicle:$("#vehicle").value.trim(),
+
+    km:$("#km").value.trim(),
+
+    project:$("#project").value.trim(),
+
+    notes:$("#notes").value.trim(),
+
+    ocrText:$("#ocrText")?.value || "",
+
+    image,
+
+    /*
+      Informação útil para o PDF
+    */
+
+    scannedWidth:state.scanned.width,
+    scannedHeight:state.scanned.height
+  };
+
+  try{
+
+    await saveDocument(doc);
+
+    state.original=null;
+    state.scanned=null;
+
+    showDocuments();
+
+  }catch(err){
+
+    console.error(err);
+
+    updateStatus(
+      "Não foi possível guardar a fatura."
+    );
   }
 }
 
-/* ============================================================
+/* =========================================================
    DOCUMENTOS
-   ============================================================ */
+========================================================= */
 
 async function showDocuments(){
 
   setTab("docs");
-  revokeURLs();
 
-  main.replaceChildren();
+  main.innerHTML="";
 
   main.append(
+    renderHeader(),
     el("p",{class:"kicker"},"Arquivo"),
-    el("h1",{class:"title"},"Documentos")
+    el("h1",{},"Documentos")
   );
 
-  let rows;
+  let docs=[];
 
   try{
-    rows=await getInvoices();
-  }catch(e){
+
+    docs=await getDocuments();
+
+  }catch{
 
     main.append(
       el(
         "p",
-        {class:"warn"},
-        "Não foi possível abrir o arquivo."
+        {class:"status bad"},
+        "Não foi possível abrir a base de dados."
       )
     );
 
     return;
   }
 
-  if(!rows.length){
+  if(!docs.length){
 
     main.append(
       el(
-        "p",
-        {class:"status"},
-        "Ainda não tens documentos guardados."
+        "section",
+        {class:"card"},
+        "<strong>Ainda não existem faturas.</strong><p class='status'>Digitaliza a primeira fatura para começar.</p>"
       )
     );
 
@@ -2816,46 +2899,37 @@ async function showDocuments(){
   const search=el(
     "input",
     {
-      class:"search",
       type:"search",
-      placeholder:"Procurar fornecedor, NIF, categoria..."
+      placeholder:"Procurar fornecedor, NIF ou documento"
     }
   );
 
-  const list=el("div");
+  main.append(search);
 
-  main.append(
-    search,
-    list
+  const list=el(
+    "div"
   );
 
-  function paint(){
+  main.append(list);
 
-    revokeURLs();
+  async function render(){
 
-    const query=
-      normalizeText(
-        search.value
-      );
+    list.innerHTML="";
 
-    const visible=
-      rows.filter(row=>{
+    const q=fold(search.value);
 
-        const text=[
-          row.supplier,
-          row.nif,
-          row.category,
-          row.documentNumber,
-          row.notes,
-          row.project
-        ].join(" ");
+    const visible=docs.filter(d=>{
 
-        return !query ||
-          normalizeText(text)
-            .includes(query);
-      });
+      const text=fold([
+        d.supplier,
+        d.nif,
+        d.docNumber,
+        d.category,
+        d.notes
+      ].join(" "));
 
-    list.replaceChildren();
+      return !q || text.includes(q);
+    });
 
     if(!visible.length){
 
@@ -2863,7 +2937,7 @@ async function showDocuments(){
         el(
           "p",
           {class:"status"},
-          "Nenhum documento encontrado."
+          "Nenhuma fatura encontrada."
         )
       );
 
@@ -2872,147 +2946,107 @@ async function showDocuments(){
 
     const groups=new Map();
 
-    visible.forEach(row=>{
+    visible.forEach(d=>{
 
-      const key=row.month||"sem-data";
+      const key=d.month||"sem-data";
 
-      if(!groups.has(key)){
+      if(!groups.has(key))
         groups.set(key,[]);
-      }
 
-      groups.get(key).push(row);
+      groups.get(key).push(d);
     });
 
-    const keys=
-      [...groups.keys()].sort(
-        (a,b)=>
-          a==="sem-data"
-            ?1
-            :b==="sem-data"
-              ?-1
-              :b.localeCompare(a)
-      );
+    const keys=[...groups.keys()]
+      .sort((a,b)=>b.localeCompare(a));
 
-    keys.forEach(month=>{
+    for(const month of keys){
 
-      const items=
-        groups.get(month);
+      const items=groups.get(month);
 
       let total=0;
-      let vat=0;
 
-      const cats=new Map();
-
-      items.forEach(item=>{
-
-        if(item.total!=null){
-
-          total+=item.total;
-
-          cats.set(
-            item.category,
-            (cats.get(item.category)||0)
-            +item.total
-          );
-        }
-
-        if(item.vat!=null){
-          vat+=item.vat;
-        }
+      items.forEach(i=>{
+        if(i.total!==null)
+          total+=Number(i.total);
       });
 
-      const card=
-        el(
-          "section",
-          {class:"card"}
+      const card=el(
+        "section",
+        {class:"card"}
+      );
+
+      card.innerHTML=`
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:end;
+          margin-bottom:10px">
+          <div>
+            <strong>${monthLabel(month)}</strong>
+            <div class="status">
+              ${items.length} documento${items.length!==1?"s":""}
+            </div>
+          </div>
+          <strong style="color:#ff394b">
+            ${euros(total)}
+          </strong>
+        </div>
+      `;
+
+      for(const item of items){
+
+        const article=el(
+          "article",
+          {class:"document-card"}
         );
 
-      const head=el(
-        "div",
-        {class:"month-head"}
-      );
-
-      head.append(
-        el(
-          "h2",
-          {},
-          monthLabel(month)
-        ),
-        el(
-          "p",
-          {class:"sum"},
-          formatEuro(total)
-        )
-      );
-
-      card.append(
-        head,
-        el(
-          "p",
-          {class:"status"},
-          `${items.length} documento(s) · IVA ${formatEuro(vat)}`
-        )
-      );
-
-      CATS.forEach(category=>{
-
-        if(!cats.has(category))return;
-
-        card.append(
-          el(
-            "div",
-            {class:"sub"},
-            `<span>${category}</span>
-             <strong>${formatEuro(cats.get(category))}</strong>`
-          )
+        const image=document.createElement(
+          "img"
         );
-      });
 
-      items.forEach(item=>{
+        image.className="document-thumb";
 
-        const url=
-          URL.createObjectURL(
-            item.image
-          );
+        image.src=URL.createObjectURL(
+          item.image
+        );
 
-        objectURLs.push(url);
+        const info=el(
+          "div"
+        );
 
-        const article=
-          el(
-            "article",
-            {class:"item"}
-          );
-
-        const when=
-          item.issuedDate
-            ?item.issuedDate
+        const date=item.issuedDate
+          ? item.issuedDate
               .split("-")
               .reverse()
               .join("/")
-            :"Sem data";
-
-        const info=el("div");
+          : "Sem data";
 
         info.innerHTML=`
-          <h3>${safe(item.supplier||"Documento")}</h3>
-          <p>${when} · ${safe(item.category)} · ${formatEuro(item.total)}</p>
-          ${item.nif
-            ?`<p>NIF ${safe(item.nif)}</p>`
-            :""}
+          <div class="document-title">
+            ${escapeHTML(
+              item.supplier || "Fornecedor não identificado"
+            )}
+          </div>
+
+          <div class="document-meta">
+            ${date}<br>
+            ${escapeHTML(item.category)}
+            · ${euros(item.total)}
+            ${item.nif
+              ? `<br>NIF ${escapeHTML(item.nif)}`
+              : ""}
+          </div>
         `;
 
         const buttons=el(
           "div",
-          {
-            class:"row",
-            style:"margin-top:8px"
-          }
+          {class:"row"}
         );
 
         const edit=el(
           "button",
           {
-            class:"btn soft tiny",
+            class:"btn secondary small",
             type:"button"
           },
           "Corrigir"
@@ -3021,22 +3055,24 @@ async function showDocuments(){
         const del=el(
           "button",
           {
-            class:"btn danger tiny",
+            class:"btn danger small",
             type:"button"
           },
           "Apagar"
         );
 
-        edit.onclick=
-          ()=>openEdit(item);
+        edit.onclick=()=>editDocument(item);
 
         del.onclick=async()=>{
 
-          if(!confirm("Apagar este documento?")){
+          if(
+            !confirm(
+              "Apagar esta fatura?"
+            )
+          )
             return;
-          }
 
-          await deleteInvoice(
+          await deleteDocument(
             item.id
           );
 
@@ -3050,47 +3086,62 @@ async function showDocuments(){
 
         info.append(buttons);
 
-        const img=el(
-          "img",
-          {
-            src:url,
-            alt:"Documento digitalizado"
-          }
-        );
-
         article.append(
-          img,
+          image,
           info
         );
 
         card.append(article);
-      });
+      }
 
       list.append(card);
-    });
+    }
   }
 
-  search.oninput=paint;
+  search.oninput=render;
 
-  paint();
+  render();
 }
 
-/* ============================================================
+function monthLabel(key){
+
+  if(key==="sem-data")
+    return "Sem data";
+
+  const names=[
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro"
+  ];
+
+  const [year,month]=key.split("-");
+
+  return `${names[Number(month)-1]} ${year}`;
+}
+
+/* =========================================================
    EDITAR
-   ============================================================ */
+========================================================= */
 
-function openEdit(item){
+async function editDocument(doc){
 
-  revokeURLs();
+  setTab("docs");
 
-  main.replaceChildren();
+  main.innerHTML="";
 
   main.append(
-    el(
-      "h1",
-      {class:"title"},
-      "Corrigir"
-    )
+    renderHeader(),
+    el("p",{class:"kicker"},"Documento"),
+    el("h1",{},"Corrigir")
   );
 
   const card=el(
@@ -3098,67 +3149,80 @@ function openEdit(item){
     {class:"card"}
   );
 
-  const url=
-    URL.createObjectURL(
-      item.image
-    );
+  const img=document.createElement("img");
 
-  objectURLs.push(url);
+  img.style.width="100%";
+  img.style.maxHeight="65vh";
+  img.style.objectFit="contain";
+  img.style.background="#050505";
+  img.style.borderRadius="16px";
 
-  card.innerHTML=`
-    <div class="scan">
-      <img
-        src="${url}"
-        alt="Documento digitalizado"
-      >
-    </div>
+  img.src=URL.createObjectURL(
+    doc.image
+  );
 
-    <br>
+  card.append(
+    el("div",{class:"preview"})
+  );
 
-    <label>
-      Fornecedor
-      <input data-supplier value="${safeAttr(item.supplier||"")}">
-    </label>
+  $(".preview",card).append(img);
 
-    <label>
-      NIF
-      <input data-nif value="${safeAttr(item.nif||"")}">
-    </label>
+  card.insertAdjacentHTML(
+    "beforeend",
+    `
+      <label>
+        Fornecedor
+        <input id="editSupplier"
+          value="${escapeHTML(doc.supplier)}">
+      </label>
 
-    <label>
-      Data
-      <input data-date type="date" value="${item.issuedDate||""}">
-    </label>
+      <label>
+        NIF
+        <input id="editNif"
+          inputmode="numeric"
+          value="${escapeHTML(doc.nif)}">
+      </label>
 
-    <label>
-      IVA (€)
-      <input data-vat value="${moneyInput(item.vat)}">
-    </label>
+      <label>
+        Data
+        <input id="editDate"
+          type="date"
+          value="${escapeHTML(doc.issuedDate||"")}">
+      </label>
 
-    <label>
-      Total (€)
-      <input data-total value="${moneyInput(item.total)}">
-    </label>
+      <label>
+        IVA (€)
+        <input id="editVat"
+          value="${doc.vat??""}">
+      </label>
 
-    <label>
-      Categoria
-      <select data-category>
-        ${CATS.map(c=>
-          `<option ${c===item.category?"selected":""}>${c}</option>`
-        ).join("")}
-      </select>
-    </label>
+      <label>
+        Total (€)
+        <input id="editTotal"
+          value="${doc.total??""}">
+      </label>
 
-    <label>
-      Nº documento
-      <input data-document value="${safeAttr(item.documentNumber||"")}">
-    </label>
+      <label>
+        Categoria
+        <select id="editCategory">
+          ${CATEGORIES.map(c=>
+            `<option ${c===doc.category?"selected":""}>${c}</option>`
+          ).join("")}
+        </select>
+      </label>
 
-    <label>
-      Notas
-      <input data-notes value="${safeAttr(item.notes||"")}">
-    </label>
-  `;
+      <label>
+        Nº documento
+        <input id="editDoc"
+          value="${escapeHTML(doc.docNumber)}">
+      </label>
+
+      <label>
+        Notas
+        <textarea id="editNotes">${escapeHTML(doc.notes)}</textarea>
+      </label>
+    `
+  );
 
   const save=el(
     "button",
@@ -3166,755 +3230,293 @@ function openEdit(item){
       class:"btn primary",
       type:"button"
     },
-    "✓ Atualizar"
+    "Guardar alterações"
   );
 
   const back=el(
     "button",
     {
-      class:"btn ghost",
-      type:"button",
-      style:"margin-top:10px"
+      class:"btn secondary",
+      type:"button"
     },
     "Voltar"
-  );
-
-  const status=el(
-    "p",
-    {class:"status"}
   );
 
   main.append(
     card,
     save,
-    back,
-    status
+    back
   );
 
   back.onclick=showDocuments;
 
   save.onclick=async()=>{
 
-    try{
+    const date=$("#editDate").value;
 
-      const date=
-        card.querySelector(
-          "[data-date]"
-        ).value;
+    const updated={
+      ...doc,
 
-      const total=
-        parseMoney(
-          card.querySelector(
-            "[data-total]"
-          ).value
-        );
+      supplier:$("#editSupplier").value.trim(),
 
-      const vat=
-        parseMoney(
-          card.querySelector(
-            "[data-vat]"
-          ).value
-        );
+      nif:$("#editNif")
+        .value
+        .replace(/\D/g,""),
 
-      const updated={
-        ...item,
+      issuedDate:/^\d{4}-\d{2}-\d{2}$/.test(date)
+        ? date
+        : null,
 
-        issuedDate:
-          /^\d{4}-\d{2}-\d{2}$/.test(date)
-            ?date
-            :null,
+      month:/^\d{4}-\d{2}-\d{2}$/.test(date)
+        ? date.slice(0,7)
+        : "sem-data",
 
-        month:
-          /^\d{4}-\d{2}-\d{2}$/.test(date)
-            ?date.slice(0,7)
-            :"sem-data",
+      vat:parseMoney(
+        $("#editVat").value
+      ),
 
-        supplier:
-          card.querySelector(
-            "[data-supplier]"
-          ).value.trim(),
+      total:parseMoney(
+        $("#editTotal").value
+      ),
 
-        nif:
-          card.querySelector(
-            "[data-nif]"
-          ).value.replace(/\D/g,""),
+      category:$("#editCategory").value,
 
-        vat,
+      docNumber:$("#editDoc").value.trim(),
 
-        total,
+      notes:$("#editNotes").value.trim()
+    };
 
-        category:
-          card.querySelector(
-            "[data-category]"
-          ).value,
+    await saveDocument(updated);
 
-        documentNumber:
-          card.querySelector(
-            "[data-document]"
-          ).value.trim(),
-
-        notes:
-          card.querySelector(
-            "[data-notes]"
-          ).value.trim()
-      };
-
-      await saveInvoice(
-        updated
-      );
-
-      showDocuments();
-
-    }catch(e){
-
-      status.textContent=
-        "Não foi possível atualizar.";
-    }
+    showDocuments();
   };
 }
 
-/* ============================================================
+/* =========================================================
    ANÁLISE
-   ============================================================ */
+========================================================= */
 
-async function showAnalysis(exportMode=false){
+async function showStats(){
 
-  setTab(
-    exportMode
-      ?"export"
-      :"analysis"
-  );
+  setTab("stats");
 
-  main.replaceChildren();
+  main.innerHTML="";
 
   main.append(
-    el(
-      "p",
-      {class:"kicker"},
-      exportMode
-        ?"Preparar documentos"
-        :"Resumo"
-    ),
-    el(
-      "h1",
-      {class:"title"},
-      exportMode
-        ?"Exportar"
-        :"Análise"
-    )
+    renderHeader(),
+    el("p",{class:"kicker"},"Resumo"),
+    el("h1",{},"Análise")
   );
 
-  let rows;
+  const docs=await getDocuments();
 
-  try{
-    rows=await getInvoices();
-  }catch(e){
-
-    main.append(
-      el(
-        "p",
-        {class:"warn"},
-        "Não foi possível abrir os dados."
-      )
-    );
-
-    return;
-  }
-
-  if(!rows.length){
+  if(!docs.length){
 
     main.append(
       el(
         "p",
         {class:"status"},
-        "Ainda não existem faturas."
+        "Ainda não existem documentos."
       )
     );
 
     return;
   }
 
-  const months=
-    [...new Set(
-      rows.map(
-        r=>r.month||"sem-data"
-      )
-    )].sort(
-      (a,b)=>
-        a==="sem-data"
-          ?1
-          :b==="sem-data"
-            ?-1
-            :b.localeCompare(a)
-    );
-
-  const card=el(
-    "section",
-    {class:"card"}
-  );
+  const months=[
+    ...new Set(
+      docs.map(d=>d.month||"sem-data")
+    )
+  ].sort((a,b)=>b.localeCompare(a));
 
   const select=el(
     "select"
   );
 
-  months.forEach(month=>{
+  months.forEach(m=>{
 
-    select.append(
-      el(
-        "option",
-        {value:month},
-        monthLabel(month)
-      )
+    const option=el(
+      "option",
+      {value:m},
+      monthLabel(m)
     );
+
+    select.append(option);
   });
 
-  const stats=el("div");
+  main.append(select);
 
-  const actions=el(
-    "div",
-    {class:"row"}
+  const summary=el(
+    "section",
+    {class:"card"}
   );
 
-  const pdf=el(
-    "button",
-    {class:"btn primary",type:"button"},
-    "PDF para impressão"
-  );
+  main.append(summary);
 
-  const csv=el(
-    "button",
-    {class:"btn ghost",type:"button"},
-    "CSV / Excel"
-  );
+  function render(){
 
-  actions.append(
-    pdf,
-    csv
-  );
+    const month=select.value;
 
-  card.append(
-    select,
-    stats,
-    actions
-  );
-
-  main.append(card);
-
-  function items(){
-
-    return rows.filter(
-      r=>
-        (r.month||"sem-data")
-        ===select.value
+    const items=docs.filter(
+      d=>(d.month||"sem-data")===month
     );
-  }
-
-  function update(){
-
-    const data=items();
 
     let total=0;
     let vat=0;
 
     const cats=new Map();
 
-    data.forEach(item=>{
+    items.forEach(i=>{
 
-      if(item.total!=null){
+      if(i.total!==null){
 
-        total+=item.total;
+        total+=Number(i.total);
 
         cats.set(
-          item.category,
-          (cats.get(item.category)||0)
-          +item.total
+          i.category,
+          (cats.get(i.category)||0)+Number(i.total)
         );
       }
 
-      if(item.vat!=null){
-        vat+=item.vat;
-      }
+      if(i.vat!==null)
+        vat+=Number(i.vat);
     });
 
-    stats.innerHTML=`
-      <div class="month-head">
-        <h2>${data.length} documentos</h2>
-        <p class="sum">${formatEuro(total)}</p>
+    summary.innerHTML=`
+      <div class="month">
+        <h2>${items.length} documentos</h2>
+        <strong style="font-size:25px;color:#ff394b">
+          ${euros(total)}
+        </strong>
       </div>
 
       <p class="status">
-        IVA: ${formatEuro(vat)}
+        IVA identificado: ${euros(vat)}
       </p>
-
-      ${CATS.filter(c=>cats.has(c))
-        .map(c=>`
-          <div class="sub">
-            <span>${c}</span>
-            <strong>${formatEuro(cats.get(c))}</strong>
-          </div>
-        `).join("")}
     `;
+
+    [...cats.entries()]
+      .sort((a,b)=>b[1]-a[1])
+      .forEach(([cat,value])=>{
+
+        summary.innerHTML+=`
+          <div style="
+            display:flex;
+            justify-content:space-between;
+            padding:10px 0;
+            border-top:1px solid var(--line)">
+            <span>${escapeHTML(cat)}</span>
+            <strong>${euros(value)}</strong>
+          </div>
+        `;
+      });
   }
 
-  select.onchange=update;
+  select.onchange=render;
 
-  update();
-
-  csv.onclick=async()=>{
-
-    const data=items();
-
-    const lines=[
-      [
-        "Data",
-        "Fornecedor",
-        "NIF",
-        "Documento",
-        "Categoria",
-        "IVA",
-        "Total",
-        "Notas"
-      ].join(";")
-    ];
-
-    data.forEach(item=>{
-
-      const cell=v=>
-        `"${String(v??"")
-          .replace(/"/g,'""')}"`;
-
-      const date=
-        item.issuedDate
-          ?item.issuedDate
-            .split("-")
-            .reverse()
-            .join("/")
-          :"";
-
-      lines.push(
-        [
-          date,
-          item.supplier,
-          item.nif,
-          item.documentNumber,
-          item.category,
-          item.vat??"",
-          item.total??"",
-          item.notes
-        ].map(cell).join(";")
-      );
-    });
-
-    download(
-      `faturas-${select.value}.csv`,
-      new Blob(
-        ["\uFEFF"+lines.join("\r\n")],
-        {
-          type:"text/csv;charset=utf-8"
-        }
-      )
-    );
-  };
-
-  pdf.onclick=async()=>{
-
-    pdf.textContent=
-      "A criar PDF...";
-
-    try{
-
-      if(!window.jspdf){
-
-        await loadScript(
-          "https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"
-        );
-      }
-
-      const data=items();
-
-      /*
-        PDF A4 com várias faturas por página.
-
-        Cada documento mantém a proporção da digitalização.
-        O algoritmo tenta colocar duas imagens por página
-        quando estas são pequenas, evitando desperdício.
-      */
-
-      const PDF=
-        window.jspdf.jsPDF;
-
-      const doc=
-        new PDF({
-          unit:"mm",
-          format:"a4",
-          orientation:"portrait"
-        });
-
-      const pageW=
-        doc.internal.pageSize.getWidth();
-
-      const pageH=
-        doc.internal.pageSize.getHeight();
-
-      const margin=8;
-
-      let y=8;
-
-      /*
-        Cabeçalho compacto.
-      */
-
-      function header(){
-
-        doc.setFillColor(
-          10,
-          10,
-          10
-        );
-
-        doc.roundedRect(
-          margin,
-          y,
-          pageW-margin*2,
-          12,
-          2,
-          2,
-          "F"
-        );
-
-        doc.setTextColor(
-          255,
-          255,
-          255
-        );
-
-        doc.setFont(
-          "helvetica",
-          "bold"
-        );
-
-        doc.setFontSize(10);
-
-        doc.text(
-          "FATURAS TOYOTA",
-          margin+5,
-          y+7.5
-        );
-
-        doc.setFontSize(8);
-
-        doc.text(
-          monthLabel(select.value),
-          pageW-margin-5,
-          y+7.5,
-          {align:"right"}
-        );
-
-        y+=16;
-      }
-
-      header();
-
-      /*
-        Layout:
-        - recibos pequenos podem ocupar meia página;
-        - documentos maiores ocupam largura total;
-        - nunca reduzimos demasiado uma fatura.
-      */
-
-      for(let index=0;index<data.length;index++){
-
-        const item=data[index];
-
-        const imgData=
-          await blobToDataURL(
-            item.image
-          );
-
-        const props=
-          doc.getImageProperties(
-            imgData
-          );
-
-        const ratio=
-          props.width/props.height;
-
-        let boxW=
-          pageW-margin*2;
-
-        let boxH=
-          boxW/ratio;
-
-        /*
-          Limite para documentos muito altos.
-        */
-
-        const maxH=105;
-
-        if(boxH>maxH){
-
-          boxH=maxH;
-          boxW=boxH*ratio;
-        }
-
-        /*
-          Se a fatura for pequena/estreita,
-          colocamos duas por página sempre que possível.
-        */
-
-        const compact=
-          ratio<1.15 &&
-          boxH<100;
-
-        if(compact){
-
-          const halfW=
-            (pageW-margin*2-4)/2;
-
-          const h=
-            Math.min(
-              100,
-              halfW/ratio
-            );
-
-          if(y+h+12>pageH-8){
-
-            doc.addPage();
-            y=8;
-            header();
-          }
-
-          const x1=margin;
-          const x2=margin+halfW+4;
-
-          const x=
-            index%2===0
-              ?x1
-              :x2;
-
-          doc.setFillColor(
-            245,
-            245,
-            245
-          );
-
-          doc.roundedRect(
-            x,
-            y,
-            halfW,
-            h,
-            1.5,
-            1.5,
-            "F"
-          );
-
-          doc.addImage(
-            imgData,
-            "JPEG",
-            x+1,
-            y+1,
-            halfW-2,
-            h-2,
-            undefined,
-            "FAST"
-          );
-
-          if(index%2===1){
-            y+=h+6;
-          }
-
-        }else{
-
-          if(y+boxH+12>pageH-8){
-
-            doc.addPage();
-            y=8;
-            header();
-          }
-
-          const x=
-            (pageW-boxW)/2;
-
-          doc.setFillColor(
-            245,
-            245,
-            245
-          );
-
-          doc.roundedRect(
-            x,
-            y,
-            boxW,
-            boxH,
-            1.5,
-            1.5,
-            "F"
-          );
-
-          doc.addImage(
-            imgData,
-            "JPEG",
-            x+1,
-            y+1,
-            boxW-2,
-            boxH-2,
-            undefined,
-            "FAST"
-          );
-
-          y+=boxH+5;
-        }
-
-        /*
-          Informação textual muito pequena,
-          apenas para identificação.
-        */
-
-        if(
-          y+7<pageH-5 &&
-          !compact
-        ){
-
-          doc.setTextColor(
-            70,
-            70,
-            70
-          );
-
-          doc.setFont(
-            "helvetica",
-            "normal"
-          );
-
-          doc.setFontSize(6.5);
-
-          const date=
-            item.issuedDate
-              ?item.issuedDate
-                .split("-")
-                .reverse()
-                .join("/")
-              :"";
-
-          const line=
-            [
-              date,
-              item.supplier,
-              item.nif
-                ?"NIF "+item.nif
-                :"",
-              item.total!=null
-                ?formatEuro(item.total)
-                :""
-            ].filter(Boolean).join(" · ");
-
-          doc.text(
-            line.slice(0,130),
-            margin,
-            y
-          );
-
-          y+=6;
-        }
-      }
-
-      /*
-        Rodapé com número de páginas.
-      */
-
-      const pageCount=
-        doc.getNumberOfPages();
-
-      for(
-        let p=1;
-        p<=pageCount;
-        p++
-      ){
-
-        doc.setPage(p);
-
-        doc.setTextColor(
-          130,
-          130,
-          130
-        );
-
-        doc.setFontSize(6);
-
-        doc.text(
-          `Faturas Toyota · Página ${p}/${pageCount}`,
-          pageW/2,
-          pageH-4,
-          {align:"center"}
-        );
-      }
-
-      const blob=
-        doc.output("blob");
-
-      await shareOrDownload(
-        `faturas-${select.value}.pdf`,
-        blob,
-        "application/pdf"
-      );
-
-    }catch(error){
-
-      alert(
-        "Não foi possível criar o PDF.\n\n"+
-        (error?.message||"Erro desconhecido")
-      );
-
-    }finally{
-
-      pdf.textContent=
-        "PDF para impressão";
-    }
-  };
+  render();
 }
 
-/* ============================================================
-   MANUAL
-   ============================================================ */
+/* =========================================================
+   EXPORTAÇÃO
+========================================================= */
 
-function openManual(){
+async function showExport(){
 
-  sourceCanvas=null;
+  setTab("export");
 
-  /*
-    Canvas branco mínimo para permitir guardar um registo
-    manual sem imagem.
-  */
+  main.innerHTML="";
 
-  const c=document.createElement("canvas");
-
-  c.width=600;
-  c.height=800;
-
-  const ctx=c.getContext("2d");
-
-  ctx.fillStyle="#fff";
-  ctx.fillRect(
-    0,
-    0,
-    c.width,
-    c.height
+  main.append(
+    renderHeader(),
+    el("p",{class:"kicker"},"Impressão e ficheiros"),
+    el("h1",{},"Exportar")
   );
 
-  scanCanvas=c;
+  const docs=await getDocuments();
 
-  documentRect={
-    x:0,
-    y:0,
-    w:c.width,
-    h:c.height,
-    confidence:true
-  };
+  if(!docs.length){
 
-  nav.classList.remove("hidden");
-  fab.classList.add("hidden");
+    main.append(
+      el(
+        "p",
+        {class:"status"},
+        "Ainda não existem faturas para exportar."
+      )
+    );
 
-  main.replaceChildren();
+    return;
+  }
+
+  const months=[
+    ...new Set(
+      docs.map(d=>d.month||"sem-data")
+    )
+  ].sort((a,b)=>b.localeCompare(a));
+
+  const monthSelect=el(
+    "select"
+  );
+
+  months.forEach(m=>{
+
+    monthSelect.append(
+      el(
+        "option",
+        {value:m},
+        monthLabel(m)
+      )
+    );
+  });
+
+  const copies=el(
+    "select"
+  );
+
+  for(let i=1;i<=5;i++){
+
+    copies.append(
+      el(
+        "option",
+        {value:i},
+        `${i} cópia${i>1?"s":""}`
+      )
+    );
+  }
+
+  const layout=el(
+    "div",
+    {class:"export-options"}
+  );
+
+  let perPage=2;
+
+  [1,2,4].forEach(n=>{
+
+    const b=el(
+      "button",
+      {type:"button"},
+      `${n} / folha`
+    );
+
+    if(n===2)
+      b.classList.add("active");
+
+    b.onclick=()=>{
+
+      perPage=n;
+
+      layout
+        .querySelectorAll("button")
+        .forEach(x=>
+          x.classList.remove("active")
+        );
+
+      b.classList.add("active");
+    };
+
+    layout.append(b);
+  });
 
   const card=el(
     "section",
@@ -3922,531 +3524,244 @@ function openManual(){
   );
 
   card.innerHTML=`
+    <strong>Impressão económica</strong>
     <p class="status">
-      Introdução manual. Preenche apenas os dados disponíveis.
+      A imagem utilizada no PDF é a digitalização
+      já recortada, não a fotografia original.
+      Podes colocar 1, 2 ou 4 documentos em cada
+      folha A4.
     </p>
-
-    <label>
-      Fornecedor
-      <input data-supplier>
-    </label>
-
-    <label>
-      NIF
-      <input data-nif>
-    </label>
-
-    <label>
-      Data
-      <input data-date type="date">
-    </label>
-
-    <label>
-      IVA (€)
-      <input data-vat inputmode="decimal">
-    </label>
-
-    <label>
-      Total (€)
-      <input data-total inputmode="decimal">
-    </label>
-
-    <label>
-      Categoria
-      <select data-category>
-        ${CATS.map(c=>`<option>${c}</option>`).join("")}
-      </select>
-    </label>
-
-    <label>
-      Nº documento
-      <input data-document>
-    </label>
-
-    <label>
-      Notas
-      <input data-notes>
-    </label>
   `;
 
-  const save=el(
+  card.append(
+    el("label",{}, "Mês"),
+    monthSelect,
+    el("label",{}, "Número de cópias"),
+    copies,
+    el(
+      "label",
+      {},
+      "Documentos por folha A4"
+    ),
+    layout
+  );
+
+  const pdf=el(
     "button",
     {
       class:"btn primary",
       type:"button"
     },
-    "✓ Guardar"
+    "Criar PDF para impressão"
   );
 
-  const back=el(
+  const csv=el(
     "button",
     {
-      class:"btn ghost",
-      type:"button",
-      style:"margin-top:10px"
+      class:"btn secondary",
+      type:"button"
     },
-    "Cancelar"
+    "Exportar Excel / CSV"
   );
 
   main.append(
-    el("h1",{class:"title"},"Novo registo"),
     card,
-    save,
-    back
+    pdf,
+    csv
   );
 
-  back.onclick=showHome;
+  pdf.onclick=async()=>{
 
-  save.onclick=
-    ()=>saveCurrentManual(card);
-}
+    const month=monthSelect.value;
 
-async function saveCurrentManual(card){
-
-  const q=s=>card.querySelector(s);
-
-  const date=q("[data-date]").value;
-
-  const total=
-    parseMoney(
-      q("[data-total]").value
+    const selected=docs.filter(
+      d=>(d.month||"sem-data")===month
     );
 
-  const vat=
-    parseMoney(
-      q("[data-vat]").value
+    await createPDF(
+      selected,
+      perPage,
+      Number(copies.value),
+      month
+    );
+  };
+
+  csv.onclick=()=>{
+
+    const month=monthSelect.value;
+
+    const selected=docs.filter(
+      d=>(d.month||"sem-data")===month
     );
 
-  const nif=
-    q("[data-nif]")
-      .value
-      .replace(/\D/g,"");
-
-  try{
-
-    const image=
-      await canvasBlob(
-        scanCanvas
-      );
-
-    await saveInvoice({
-
-      id:
-        crypto.randomUUID
-          ?crypto.randomUUID()
-          :Date.now()+"",
-
-      createdAt:Date.now(),
-
-      issuedDate:
-        /^\d{4}-\d{2}-\d{2}$/.test(date)
-          ?date
-          :null,
-
-      month:
-        /^\d{4}-\d{2}-\d{2}$/.test(date)
-          ?date.slice(0,7)
-          :"sem-data",
-
-      supplier:
-        q("[data-supplier]").value.trim(),
-
-      nif,
-
-      vat,
-
-      total,
-
-      category:
-        q("[data-category]").value,
-
-      documentNumber:
-        q("[data-document]").value.trim(),
-
-      notes:
-        q("[data-notes]").value.trim(),
-
-      ocrText:"",
-
-      image
-    });
-
-    scanCanvas=null;
-
-    showDocuments();
-
-  }catch(e){
-
-    alert(
-      "Não foi possível guardar."
+    exportCSV(
+      selected,
+      month
     );
-  }
+  };
 }
 
-/* ============================================================
-   FILE INPUT
-   ============================================================ */
+/* =========================================================
+   PDF
+========================================================= */
 
-fileCamera.onchange=async()=>{
+async function loadJsPDF(){
 
-  const file=
-    fileCamera.files?.[0];
+  if(window.jspdf)
+    return window.jspdf.jsPDF;
 
-  fileCamera.value="";
+  await new Promise((resolve,reject)=>{
 
-  if(!file)return;
-
-  try{
-
-    const c=
-      await fileToCanvas(file);
-
-    startProcessing(c);
-
-  }catch(e){
-
-    alert(
-      "Não consegui abrir a fotografia."
-    );
-  }
-};
-
-fileGallery.onchange=async()=>{
-
-  const file=
-    fileGallery.files?.[0];
-
-  fileGallery.value="";
-
-  if(!file)return;
-
-  try{
-
-    const c=
-      await fileToCanvas(file);
-
-    startProcessing(c);
-
-  }catch(e){
-
-    alert(
-      "Não consegui abrir a fotografia."
-    );
-  }
-};
-
-async function fileToCanvas(file){
-
-  const canvas=document.createElement("canvas");
-
-  try{
-
-    const bitmap=
-      await createImageBitmap(
-        file,
-        {
-          imageOrientation:"from-image"
-        }
-      );
-
-    canvas.width=bitmap.width;
-    canvas.height=bitmap.height;
-
-    canvas
-      .getContext("2d")
-      .drawImage(
-        bitmap,
-        0,
-        0
-      );
-
-    bitmap.close();
-
-  }catch(e){
-
-    const url=
-      URL.createObjectURL(file);
-
-    try{
-
-      const img=
-        await new Promise(
-          (resolve,reject)=>{
-
-            const image=
-              new Image();
-
-            image.onload=
-              ()=>resolve(image);
-
-            image.onerror=
-              reject;
-
-            image.src=url;
-          }
-        );
-
-      canvas.width=
-        img.naturalWidth;
-
-      canvas.height=
-        img.naturalHeight;
-
-      canvas
-        .getContext("2d")
-        .drawImage(
-          img,
-          0,
-          0
-        );
-
-    }finally{
-
-      URL.revokeObjectURL(url);
-    }
-  }
-
-  return resizeCanvas(
-    canvas,
-    2200
-  );
-}
-
-/* ============================================================
-   UTILITÁRIOS
-   ============================================================ */
-
-function formatEuro(value){
-
-  if(
-    value==null ||
-    !Number.isFinite(value)
-  ){
-    return "—";
-  }
-
-  return value.toLocaleString(
-    "pt-PT",
-    {
-      minimumFractionDigits:2,
-      maximumFractionDigits:2
-    }
-  )+" €";
-}
-
-function moneyInput(value){
-
-  if(value==null)return "";
-
-  return value.toLocaleString(
-    "pt-PT",
-    {
-      minimumFractionDigits:2,
-      maximumFractionDigits:2
-    }
-  );
-}
-
-function monthLabel(month){
-
-  if(month==="sem-data"){
-    return "Sem data";
-  }
-
-  const names=[
-    "janeiro",
-    "fevereiro",
-    "março",
-    "abril",
-    "maio",
-    "junho",
-    "julho",
-    "agosto",
-    "setembro",
-    "outubro",
-    "novembro",
-    "dezembro"
-  ];
-
-  const [year,m]=month.split("-");
-
-  return `${names[
-    Number(m)-1
-  ]} ${year}`;
-}
-
-function safe(value){
-
-  return String(value??"")
-    .replace(/[&<>"']/g,m=>({
-      "&":"&amp;",
-      "<":"&lt;",
-      ">":"&gt;",
-      '"':"&quot;",
-      "'":"&#039;"
-    }[m]));
-}
-
-function safeAttr(value){
-  return safe(value);
-}
-
-function download(filename,blob){
-
-  const url=
-    URL.createObjectURL(
-      blob
+    const script=document.createElement(
+      "script"
     );
 
-  const a=
-    document.createElement("a");
+    script.src=
+      "https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js";
 
-  a.href=url;
-  a.download=filename;
+    script.onload=resolve;
+    script.onerror=reject;
 
-  document.body.append(a);
+    document.head.append(script);
+  });
 
-  a.click();
-
-  a.remove();
-
-  setTimeout(
-    ()=>URL.revokeObjectURL(url),
-    1000
-  );
+  return window.jspdf.jsPDF;
 }
 
-async function shareOrDownload(
-  filename,
-  blob,
-  type
+function getImageDataURL(blob){
+
+  return new Promise((resolve,reject)=>{
+
+    const reader=new FileReader();
+
+    reader.onload=()=>resolve(
+      reader.result
+    );
+
+    reader.onerror=reject;
+
+    reader.readAsDataURL(blob);
+  });
+}
+
+/*
+  Esta função calcula o tamanho correto
+  da digitalização dentro da célula.
+
+  A imagem NÃO é esticada.
+*/
+
+function fitImage(
+  imageWidth,
+  imageHeight,
+  cellWidth,
+  cellHeight
 ){
 
-  const file=
-    new File(
-      [blob],
-      filename,
-      {type}
+  const ratio=Math.min(
+    cellWidth/imageWidth,
+    cellHeight/imageHeight
+  );
+
+  return {
+    width:imageWidth*ratio,
+    height:imageHeight*ratio
+  };
+}
+
+async function createPDF(
+  docs,
+  perPage,
+  copies,
+  month
+){
+
+  if(!docs.length){
+
+    alert(
+      "Não existem documentos neste mês."
     );
 
-  if(
-    navigator.canShare?.({
-      files:[file]
-    })
-  ){
-
-    try{
-
-      await navigator.share({
-        files:[file],
-        title:filename
-      });
-
-      return;
-
-    }catch(e){
-
-      if(
-        e.name==="AbortError"
-      ){
-        return;
-      }
-    }
+    return;
   }
 
-  download(
-    filename,
-    blob
-  );
-}
+  const PDF=await loadJsPDF();
 
-function blobToDataURL(blob){
+  const pdf=new PDF({
+    orientation:"portrait",
+    unit:"mm",
+    format:"a4"
+  });
 
-  return new Promise(
-    (resolve,reject)=>{
+  const pageWidth=
+    pdf.internal.pageSize.getWidth();
 
-      const reader=
-        new FileReader();
+  const pageHeight=
+    pdf.internal.pageSize.getHeight();
 
-      reader.onload=
-        ()=>resolve(
-          reader.result
-        );
+  /*
+    Margens pequenas para aproveitar papel.
+  */
 
-      reader.onerror=
-        reject;
+  const margin=7;
 
-      reader.readAsDataURL(
-        blob
-      );
-    }
-  );
-}
+  /*
+    Número total de documentos
+    considerando as cópias pedidas.
+  */
 
-function loadScript(src){
+  const queue=[];
 
-  return new Promise(
-    (resolve,reject)=>{
+  for(let c=0;c<copies;c++){
 
-      const script=
-        document.createElement("script");
-
-      script.src=src;
-
-      script.onload=resolve;
-      script.onerror=reject;
-
-      document.head.append(script);
-    }
-  );
-}
-
-/* ============================================================
-   NAVEGAÇÃO
-   ============================================================ */
-
-nav.addEventListener(
-  "click",
-  event=>{
-
-    const button=
-      event.target.closest(
-        "button"
-      );
-
-    if(!button)return;
-
-    switch(button.dataset.tab){
-
-      case "home":
-        showHome();
-        break;
-
-      case "docs":
-        showDocuments();
-        break;
-
-      case "analysis":
-        showAnalysis(false);
-        break;
-
-      case "export":
-        showAnalysis(true);
-        break;
-    }
+    for(const doc of docs)
+      queue.push(doc);
   }
-);
 
-fab.onclick=
-  openCamera;
+  /*
+    1 por página:
+    documento grande.
 
-/* ============================================================
-   ARRANQUE
-   ============================================================ */
+    2 por página:
+    divisão vertical.
 
-showHome();
+    4 por página:
+    grelha 2x2.
+  */
 
-</script>
+  let columns=1;
+  let rows=1;
 
-</body>
-</html>
+  if(perPage===2){
+    columns=1;
+    rows=2;
+  }
+
+  if(perPage===4){
+    columns=2;
+    rows=2;
+  }
+
+  const cellWidth=
+    (pageWidth-margin*2)/columns;
+
+  const cellHeight=
+    (pageHeight-margin*2)/rows;
+
+  for(let i=0;i<queue.length;i++){
+
+    if(i>0)
+      pdf.addPage();
+
+    const doc=queue[i];
+
+    const data=await getImageDataURL(
+      doc.image
+    );
+
+    /*
+      Criar uma imagem temporária
+      para saber as dimensões reais.
+    */
+
+    const img=await loadImage
