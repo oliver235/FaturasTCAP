@@ -4,23 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#000000">
-
+<meta name="theme-color" content="#111111">
 <title>Faturas pela TCAP</title>
 
 <style>
 :root{
-  --bg:#050505;
-  --card:#121214;
-  --card2:#1a1a1d;
-  --line:rgba(255,255,255,.10);
-  --text:#f7f7f7;
-  --muted:#929398;
-  --red:#EB0A1E;
-  --red2:#ff3346;
-  --green:#35d58a;
-  --yellow:#f5c542;
+  --bg:#08090a;
+  --card:#151619;
+  --card2:#1c1d20;
+  --line:rgba(255,255,255,.09);
+  --ink:#f7f7f7;
+  --muted:#92949a;
+  --red:#eb0a1e;
+  --red2:#ff3547;
+  --blue:#5ba4ff;
+  --green:#39d98a;
+  --yellow:#f3c74f;
   --safe:env(safe-area-inset-bottom,0px);
 }
 
@@ -29,32 +28,28 @@
   -webkit-tap-highlight-color:transparent;
 }
 
-html,
-body{
+html,body{
   margin:0;
   padding:0;
-  min-height:100%;
   background:var(--bg);
-  color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Arial,sans-serif;
+  color:var(--ink);
+  min-height:100%;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
 }
 
 body{
   min-height:100dvh;
 }
 
-button,
-input,
-select,
-textarea{
+button,input,select,textarea{
   font:inherit;
   color:inherit;
 }
 
 button{
   border:0;
-  background:none;
   cursor:pointer;
+  background:none;
 }
 
 .hidden{
@@ -68,8 +63,6 @@ button{
 
 .main{
   padding:18px 18px 30px;
-  max-width:850px;
-  margin:auto;
 }
 
 .kicker{
@@ -79,60 +72,11 @@ button{
   margin:8px 0 4px;
 }
 
-.page-title{
-  margin:0 0 18px;
+.title{
   font-size:40px;
   line-height:1;
   letter-spacing:-.05em;
-}
-
-.brand{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin-bottom:18px;
-}
-
-.brand-mark{
-  width:38px;
-  height:38px;
-  border:2px solid #fff;
-  border-radius:50%;
-  display:grid;
-  place-items:center;
-  position:relative;
-  flex:none;
-}
-
-.brand-mark:before,
-.brand-mark:after{
-  content:"";
-  position:absolute;
-  border:1.5px solid #fff;
-  border-radius:50%;
-}
-
-.brand-mark:before{
-  width:21px;
-  height:10px;
-}
-
-.brand-mark:after{
-  width:10px;
-  height:21px;
-}
-
-.brand-name{
-  font-weight:900;
-  letter-spacing:.04em;
-}
-
-.brand-sub{
-  color:var(--red2);
-  font-size:11px;
-  font-weight:800;
-  letter-spacing:.12em;
-  text-transform:uppercase;
+  margin:0 0 18px;
 }
 
 .workspace{
@@ -142,26 +86,60 @@ button{
   padding:7px 12px;
   border-radius:999px;
   border:1px solid rgba(235,10,30,.35);
-  color:#ffd4d8;
-  background:rgba(235,10,30,.07);
-  font-size:12px;
+  color:#ffd5d9;
+  font-size:13px;
   font-weight:800;
   margin-bottom:18px;
 }
 
 .workspace i{
-  width:7px;
-  height:7px;
+  width:8px;
+  height:8px;
   border-radius:50%;
   background:var(--red);
-  box-shadow:0 0 10px rgba(235,10,30,.8);
+  box-shadow:0 0 10px rgba(235,10,30,.7);
+}
+
+.toyota-mark{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.toyota-symbol{
+  width:34px;
+  height:24px;
+  border:2px solid white;
+  border-radius:50%;
+  position:relative;
+}
+
+.toyota-symbol:before{
+  content:"";
+  position:absolute;
+  left:8px;
+  right:8px;
+  top:4px;
+  bottom:4px;
+  border:1px solid white;
+  border-radius:50%;
+}
+
+.toyota-symbol:after{
+  content:"";
+  position:absolute;
+  width:2px;
+  top:2px;
+  bottom:2px;
+  left:15px;
+  background:white;
 }
 
 .cta{
+  width:100%;
   display:flex;
   align-items:center;
   gap:14px;
-  width:100%;
   text-align:left;
   padding:18px;
   border-radius:22px;
@@ -169,9 +147,8 @@ button{
 }
 
 .cta.hot{
-  background:linear-gradient(180deg,#ff394d,var(--red));
-  color:#fff;
-  box-shadow:0 14px 36px rgba(235,10,30,.30);
+  background:linear-gradient(180deg,var(--red2),var(--red));
+  box-shadow:0 15px 38px rgba(235,10,30,.28);
 }
 
 .cta.cold{
@@ -182,16 +159,16 @@ button{
 .cta .orb{
   width:48px;
   height:48px;
-  border-radius:50%;
   flex:none;
   display:grid;
   place-items:center;
-  background:rgba(0,0,0,.22);
+  border-radius:50%;
+  background:rgba(0,0,0,.18);
   border:1px solid rgba(255,255,255,.12);
 }
 
 .cta.cold .orb{
-  background:#09090a;
+  background:#0c0d0f;
 }
 
 .cta b{
@@ -202,63 +179,14 @@ button{
 .cta span{
   display:block;
   margin-top:4px;
-  color:rgba(255,255,255,.78);
   font-size:13px;
   line-height:1.35;
+  opacity:.82;
 }
 
 .cta.cold span{
   color:var(--muted);
-}
-
-.fab{
-  position:fixed;
-  right:18px;
-  bottom:calc(86px + var(--safe));
-  z-index:20;
-  width:62px;
-  height:62px;
-  border-radius:50%;
-  background:linear-gradient(180deg,#ff394d,var(--red));
-  color:#fff;
-  display:grid;
-  place-items:center;
-  box-shadow:0 12px 30px rgba(235,10,30,.42);
-}
-
-.nav{
-  position:fixed;
-  left:0;
-  right:0;
-  bottom:0;
-  z-index:19;
-  display:flex;
-  padding:6px 8px calc(8px + var(--safe));
-  background:rgba(7,7,8,.94);
-  border-top:1px solid var(--line);
-  backdrop-filter:blur(20px);
-}
-
-.nav button{
-  flex:1;
-  min-height:54px;
-  color:#737479;
-  font-size:11px;
-  font-weight:800;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:4px;
-}
-
-.nav button[aria-current="page"]{
-  color:#fff;
-}
-
-.nav svg{
-  width:20px;
-  height:20px;
+  opacity:1;
 }
 
 .card{
@@ -269,35 +197,9 @@ button{
   margin-bottom:12px;
 }
 
-.status{
-  margin:0 0 12px;
-  color:var(--muted);
-  font-size:13px;
-  line-height:1.45;
-}
-
-.warn{
-  background:rgba(245,197,66,.08);
-  border:1px solid rgba(245,197,66,.22);
-  color:#f8d97a;
-  border-radius:14px;
-  padding:11px 12px;
-  font-size:13px;
-  line-height:1.4;
-}
-
-.success{
-  background:rgba(53,213,138,.08);
-  border:1px solid rgba(53,213,138,.22);
-  color:#a9f3cf;
-  border-radius:14px;
-  padding:11px 12px;
-  font-size:13px;
-}
-
 .scan-wrap{
   position:relative;
-  background:#070707;
+  background:#080808;
   border-radius:18px;
   overflow:hidden;
   margin-bottom:12px;
@@ -309,55 +211,64 @@ button{
 .scan-wrap img{
   display:block;
   width:100%;
-  max-height:60vh;
+  height:auto;
+  max-height:65vh;
   object-fit:contain;
-  background:#111;
 }
 
-.scan-badge{
-  position:absolute;
-  top:12px;
-  left:12px;
+.scan-info{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  color:var(--muted);
+  font-size:12px;
+  margin-top:8px;
+}
+
+.chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:10px 0;
+}
+
+.chip{
   padding:7px 10px;
   border-radius:999px;
-  background:rgba(0,0,0,.72);
-  backdrop-filter:blur(10px);
-  font-size:11px;
-  font-weight:900;
-  letter-spacing:.04em;
-}
-
-.mini{
-  display:flex;
-  gap:8px;
-  margin:10px 0 16px;
-  overflow:auto;
-}
-
-.mini button{
-  flex:none;
-  padding:9px 12px;
-  border-radius:999px;
+  background:var(--card2);
   border:1px solid var(--line);
-  background:#151518;
-  color:#ccc;
+  color:#d7d7da;
   font-size:12px;
   font-weight:800;
 }
 
-.mini button.active{
-  border-color:rgba(235,10,30,.65);
-  color:#fff;
-  background:rgba(235,10,30,.10);
+.chip.ok{
+  color:#a3f1cb;
+  background:rgba(57,217,138,.08);
+  border-color:rgba(57,217,138,.25);
 }
 
-.row{
-  display:flex;
-  gap:10px;
+.chip.warn{
+  color:#f8d979;
+  background:rgba(243,199,79,.08);
+  border-color:rgba(243,199,79,.25);
 }
 
-.row>*{
-  flex:1;
+.status{
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.45;
+  margin:0 0 12px;
+}
+
+.warn{
+  color:#f8d979;
+  background:rgba(243,199,79,.08);
+  border:1px solid rgba(243,199,79,.25);
+  border-radius:14px;
+  padding:11px 12px;
+  font-size:13px;
+  line-height:1.4;
 }
 
 label{
@@ -374,95 +285,130 @@ input,
 select,
 textarea{
   width:100%;
-  background:#0b0b0d;
-  border:1px solid var(--line);
-  border-radius:14px;
-  padding:13px 14px;
   min-height:48px;
+  padding:13px 14px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:#0d0e10;
   outline:none;
 }
 
 input:focus,
 select:focus,
 textarea:focus{
-  border-color:rgba(235,10,30,.6);
+  border-color:rgba(235,10,30,.55);
   box-shadow:0 0 0 3px rgba(235,10,30,.12);
 }
 
 textarea{
-  min-height:120px;
+  min-height:110px;
   resize:vertical;
   font-family:ui-monospace,Menlo,monospace;
   font-size:12px;
 }
 
+.row{
+  display:flex;
+  gap:10px;
+}
+
+.row>*{
+  flex:1;
+}
+
 .btn{
+  width:100%;
+  min-height:52px;
+  border-radius:999px;
   display:flex;
   align-items:center;
   justify-content:center;
   gap:8px;
-  width:100%;
-  min-height:52px;
-  border-radius:999px;
-  font-weight:900;
+  font-weight:850;
 }
 
 .btn.primary{
-  background:linear-gradient(180deg,#ff394d,var(--red));
   color:#fff;
-  box-shadow:0 10px 24px rgba(235,10,30,.26);
+  background:linear-gradient(180deg,var(--red2),var(--red));
+  box-shadow:0 10px 25px rgba(235,10,30,.25);
 }
 
-.btn.ghost,
-.btn.soft{
+.btn.ghost{
   background:var(--card2);
   border:1px solid var(--line);
 }
 
 .btn.danger{
-  background:#281014;
-  color:#ffb5bd;
-  border:1px solid rgba(235,10,30,.3);
+  background:#2a1114;
+  border:1px solid rgba(235,10,30,.28);
+  color:#ffb7bd;
 }
 
 .btn.tiny{
   min-height:40px;
+  padding:0 10px;
   font-size:12px;
 }
 
-.chips{
+.fab{
+  position:fixed;
+  z-index:20;
+  right:18px;
+  bottom:calc(86px + var(--safe));
+  width:62px;
+  height:62px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  color:#fff;
+  background:linear-gradient(180deg,var(--red2),var(--red));
+  box-shadow:0 14px 30px rgba(235,10,30,.4);
+}
+
+.nav{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:19;
   display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  margin:8px 0 14px;
+  padding:6px 8px calc(8px + var(--safe));
+  background:rgba(10,10,12,.95);
+  border-top:1px solid var(--line);
+  backdrop-filter:blur(20px);
 }
 
-.chip{
-  padding:7px 10px;
-  border-radius:999px;
-  background:#1b1b1e;
-  border:1px solid var(--line);
-  font-size:12px;
+.nav button{
+  flex:1;
+  min-height:54px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  color:#777980;
+  font-size:11px;
   font-weight:800;
 }
 
-.chip.ok{
-  color:#a8f3cf;
-  background:rgba(53,213,138,.08);
-  border-color:rgba(53,213,138,.25);
+.nav button[aria-current="page"]{
+  color:#fff;
 }
 
-.chip.warn{
-  color:#f8d97a;
-  background:rgba(245,197,66,.08);
-  border-color:rgba(245,197,66,.25);
+.nav svg{
+  width:20px;
+  height:20px;
+}
+
+.search{
+  margin-bottom:12px;
 }
 
 .month{
   display:flex;
   align-items:baseline;
   justify-content:space-between;
-  gap:12px;
+  gap:10px;
 }
 
 .month h2{
@@ -474,7 +420,7 @@ textarea{
 .sum{
   margin:0;
   color:var(--red2);
-  font-size:22px;
+  font-size:21px;
   font-weight:900;
 }
 
@@ -487,98 +433,118 @@ textarea{
 }
 
 .sub strong{
-  color:#fff;
+  color:var(--ink);
 }
 
 .item{
   display:grid;
-  grid-template-columns:82px 1fr;
+  grid-template-columns:76px 1fr;
   gap:12px;
-  padding:14px 0;
+  padding:13px 0;
   border-top:1px solid var(--line);
 }
 
 .item img{
-  width:82px;
-  height:96px;
-  object-fit:cover;
+  width:76px;
+  height:92px;
+  object-fit:contain;
   border-radius:12px;
-  background:#000;
+  background:#050505;
 }
 
 .item h3{
-  margin:0 0 5px;
+  margin:0 0 4px;
   font-size:16px;
 }
 
 .item p{
-  margin:3px 0;
+  margin:0;
   color:var(--muted);
-  font-size:12px;
+  font-size:13px;
 }
 
-.search{
-  width:100%;
-  margin-bottom:12px;
-}
-
-.icon-btn{
-  width:42px;
-  height:42px;
-  border-radius:50%;
-  background:#1a1a1d;
-  display:grid;
-  place-items:center;
-}
-
-.review-top{
+.mini{
   display:flex;
-  align-items:center;
-  gap:12px;
+  gap:8px;
+  overflow:auto;
+  margin:10px 0 16px;
+}
+
+.mini button{
+  flex:none;
+  padding:9px 12px;
+  border-radius:999px;
+  color:#d6d6d9;
+  background:#121316;
+  border:1px solid var(--line);
+  font-size:12px;
+  font-weight:800;
+}
+
+.mini button.active{
+  border-color:rgba(235,10,30,.55);
+  color:#fff;
+}
+
+details{
+  margin:4px 0 12px;
+}
+
+summary{
+  cursor:pointer;
+  font-weight:800;
   margin-bottom:12px;
 }
 
-.cam{
+/* CAMERA */
+
+.camera{
   position:fixed;
   inset:0;
-  background:#000;
   z-index:100;
+  background:#000;
   display:flex;
   flex-direction:column;
 }
 
-.cam video{
+.camera video{
   flex:1;
   width:100%;
   object-fit:cover;
 }
 
-.cam-guide{
+.camera-guide{
   position:absolute;
-  left:9%;
-  right:9%;
-  top:15%;
-  bottom:18%;
-  border:2px solid rgba(255,255,255,.85);
-  border-radius:14px;
-  box-shadow:0 0 0 9999px rgba(0,0,0,.18);
-  pointer-events:none;
+  left:8%;
+  right:8%;
+  top:12%;
+  bottom:17%;
+  border:2px solid rgba(255,255,255,.75);
+  border-radius:8px;
+  box-shadow:
+    0 0 0 9999px rgba(0,0,0,.28),
+    0 0 30px rgba(255,255,255,.18);
 }
 
-.cam-guide:after{
-  content:"Alinha a fatura dentro da moldura";
+.camera-guide:before,
+.camera-guide:after{
+  content:"";
   position:absolute;
-  top:-34px;
   left:0;
   right:0;
-  text-align:center;
-  color:#fff;
-  font-size:12px;
-  font-weight:800;
-  text-shadow:0 1px 3px #000;
+  height:2px;
+  background:rgba(235,10,30,.9);
 }
 
-.cam-bar{
+.camera-guide:before{
+  top:0;
+}
+
+.camera-guide:after{
+  bottom:0;
+}
+
+.camera-bar{
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -586,59 +552,62 @@ textarea{
   background:#000;
 }
 
-.shutter{
-  width:72px;
-  height:72px;
-  border-radius:50%;
-  background:#fff;
-  border:6px solid #333;
-}
-
 .link{
+  min-width:75px;
   color:#fff;
   font-weight:800;
-  min-width:72px;
 }
 
-.overlay{
+.shutter{
+  width:74px;
+  height:74px;
+  border-radius:50%;
+  background:#fff;
+  border:7px solid #404044;
+}
+
+/* SCANNER OVERLAY */
+
+.scanner{
   position:fixed;
   inset:0;
   z-index:90;
-  background:#050505;
+  background:#08090a;
   display:flex;
   flex-direction:column;
   padding:18px 18px calc(24px + var(--safe));
 }
 
-.ov-card{
+.scanner-card{
   margin:auto 0;
-  background:#121214;
-  border:1px solid var(--line);
-  border-radius:28px;
   padding:16px;
+  border-radius:28px;
+  background:#141518;
+  border:1px solid var(--line);
 }
 
-.ov-preview{
+.scanner-preview{
   position:relative;
   height:250px;
   border-radius:20px;
   overflow:hidden;
   background:#000;
-  display:grid;
-  place-items:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
-.ov-preview canvas{
-  max-width:90%;
-  max-height:95%;
+.scanner-preview canvas{
+  max-width:100%;
+  max-height:100%;
   object-fit:contain;
 }
 
-.scanline{
+.scanner-line{
   position:absolute;
-  left:0;
-  right:0;
-  height:3px;
+  left:5%;
+  right:5%;
+  height:2px;
   background:var(--red);
   box-shadow:0 0 18px var(--red);
   animation:sweep 1.5s ease-in-out infinite;
@@ -646,155 +615,106 @@ textarea{
 
 @keyframes sweep{
   0%{top:10%}
-  50%{top:88%}
+  50%{top:90%}
   100%{top:10%}
 }
 
-.ov-card h2{
+.scanner-card h2{
   margin:18px 0 6px;
   text-align:center;
   font-size:28px;
+  letter-spacing:-.04em;
 }
 
-.ov-card p{
-  text-align:center;
+.scanner-card .lead{
   color:var(--muted);
+  text-align:center;
+  margin:0 0 16px;
+  font-size:13px;
 }
 
-.step-row{
+.step{
   display:flex;
   align-items:center;
   gap:10px;
   padding:13px;
-  border-radius:16px;
+  border-radius:15px;
+  background:#0d0e10;
   border:1px solid var(--line);
-  background:#0b0b0d;
   margin-bottom:8px;
-  color:#aaa;
+  color:#a8a9ad;
   font-size:14px;
   font-weight:800;
 }
 
-.step-row.on{
+.step.on{
   color:#fff;
   border-color:rgba(235,10,30,.55);
 }
 
-.step-row.done{
-  color:#b9b9bd;
+.step.done{
+  color:#a8f0ca;
+  border-color:rgba(57,217,138,.25);
 }
 
-.tick{
+.step .tick{
   margin-left:auto;
-  color:var(--red);
 }
 
-.editor-tools{
+/* PDF */
+
+.print-options{
   display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:8px;
-  margin-bottom:12px;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
 }
 
-.editor-tools button{
-  min-height:44px;
-  border-radius:12px;
-  background:#19191c;
+.print-option{
+  padding:13px;
+  border-radius:16px;
+  background:#0e0f11;
   border:1px solid var(--line);
+}
+
+.print-option b{
+  display:block;
+  margin-bottom:4px;
+}
+
+.print-option span{
+  color:var(--muted);
   font-size:12px;
-  font-weight:800;
 }
 
-.loading{
-  position:fixed;
-  inset:0;
-  z-index:200;
-  background:rgba(0,0,0,.72);
-  display:grid;
-  place-items:center;
-  backdrop-filter:blur(8px);
+.copies{
+  display:flex;
+  align-items:center;
+  gap:10px;
 }
 
-.loading-box{
-  width:min(320px,calc(100% - 40px));
-  background:#161619;
+.copies button{
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  background:var(--card2);
   border:1px solid var(--line);
-  border-radius:22px;
-  padding:22px;
+}
+
+.copies input{
   text-align:center;
 }
 
-.spinner{
-  width:34px;
-  height:34px;
-  border-radius:50%;
-  border:3px solid #333;
-  border-top-color:var(--red);
-  margin:0 auto 14px;
-  animation:spin .8s linear infinite;
-}
+/* RESPONSIVE */
 
-@keyframes spin{
-  to{transform:rotate(360deg)}
-}
-
-/* =========================================================
-   ÁREA DE IMPRESSÃO
-   ========================================================= */
-
-.print-sheet{
-  display:none;
-}
-
-/*
-  O PDF é criado em A4 e organiza 4 documentos por folha.
-  A imagem de cada fatura é mantida em proporção.
-*/
-@media print{
-  body{
-    background:#fff!important;
-    color:#000!important;
+@media(min-width:700px){
+  .main{
+    max-width:900px;
+    margin:auto;
   }
 
-  body>*{
-    display:none!important;
-  }
-
-  #printRoot{
-    display:block!important;
-  }
-
-  .print-page{
-    width:210mm;
-    height:297mm;
-    padding:7mm;
-    page-break-after:always;
-    background:#fff;
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    grid-template-rows:1fr 1fr;
-    gap:5mm;
-  }
-
-  .print-doc{
-    border:1px solid #bbb;
-    padding:4mm;
-    overflow:hidden;
-    display:flex;
-    flex-direction:column;
-  }
-
-  .print-doc-head{
-    display:flex;
-    justify-content:space-between;
-    font-size:8pt;
-    margin-bottom:2mm;
-  }
-
-  .print-doc img{
-    width:100%;
-    height:calc(100% - 12mm);
-    object-fit:contain;
+  .cta{
+    max-width:650px;
   }
 }
 </style>
@@ -804,16 +724,20 @@ textarea{
 
 <div id="app" class="app"></div>
 
-<div id="printRoot" class="print-sheet"></div>
-
+<!-- OCR -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 
+<!-- OpenCV: deteção dos cantos e correção da perspetiva -->
+<script async src="https://docs.opencv.org/4.x/opencv.js"></script>
+
 <script>
+"use strict";
+
 /* =========================================================
    CONFIGURAÇÃO
-   ========================================================= */
+========================================================= */
 
-const CATS=[
+const CATEGORIES = [
   "Combustível",
   "Alimentação",
   "Restauração",
@@ -821,60 +745,92 @@ const CATS=[
   "Outros"
 ];
 
-const ico={
-  home:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-    <rect x="3" y="3" width="7" height="7" rx="1.5"/>
-    <rect x="14" y="3" width="7" height="7" rx="1.5"/>
-    <rect x="3" y="14" width="7" height="7" rx="1.5"/>
-    <rect x="14" y="14" width="7" height="7" rx="1.5"/>
-  </svg>`,
+const DB_NAME = "faturas-tcap-scanner";
+const DB_VERSION = 4;
+const STORE = "faturas";
 
-  docs:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-    <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
-    <path d="M14 3v6h6"/>
-  </svg>`,
+let currentTab = "nova";
+let sourceCanvas = null;
+let scanCanvas = null;
+let corners = null;
+let readingOCR = false;
+let busy = false;
+let objectUrls = [];
 
-  chart:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-    <path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>
-  </svg>`,
+/* =========================================================
+   ÍCONES
+========================================================= */
 
-  down:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-    <path d="M12 4v12M7 11l5 5 5-5M5 20h14"/>
-  </svg>`,
+const ICONS = {
 
-  cam:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-    <path d="M4 8h3l2-3h6l2 3h3v11H4V8z"/>
-    <circle cx="12" cy="13" r="3.2"/>
-  </svg>`,
+home: `
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+<rect x="3" y="3" width="7" height="7" rx="1.5"/>
+<rect x="14" y="3" width="7" height="7" rx="1.5"/>
+<rect x="3" y="14" width="7" height="7" rx="1.5"/>
+<rect x="14" y="14" width="7" height="7" rx="1.5"/>
+</svg>`,
 
-  up:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-    <path d="M12 16V5M7 9l5-5 5 5M5 20h14"/>
-  </svg>`,
+docs: `
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+<path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
+<path d="M14 3v6h6"/>
+</svg>`,
 
-  form:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-    <rect x="5" y="3" width="14" height="18" rx="2"/>
-    <path d="M8 8h8M8 12h8M8 16h5"/>
-  </svg>`
+chart: `
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>
+</svg>`,
+
+download: `
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+<path d="M12 4v12"/>
+<path d="M7 11l5 5 5-5"/>
+<path d="M5 20h14"/>
+</svg>`,
+
+camera: `
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+<path d="M4 8h3l2-3h6l2 3h3v11H4V8z"/>
+<circle cx="12" cy="13" r="3.2"/>
+</svg>`,
+
+upload: `
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+<path d="M12 16V5"/>
+<path d="M7 9l5-5 5 5"/>
+<path d="M5 20h14"/>
+</svg>`,
+
+form: `
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+<rect x="5" y="3" width="14" height="18" rx="2"/>
+<path d="M8 8h8M8 12h8M8 16h5"/>
+</svg>`
 };
 
-function $(tag,attrs={},html){
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function el(tag, attrs={}, html=null){
   const n=document.createElement(tag);
 
-  for(const k in attrs){
-    n.setAttribute(k,attrs[k]);
+  for(const key in attrs){
+    n.setAttribute(key,attrs[key]);
   }
 
-  if(html!==undefined){
+  if(html!==null){
     n.innerHTML=html;
   }
 
   return n;
 }
 
-function fold(s=""){
-  return String(s)
+function normalize(text){
+  return String(text||"")
     .replace(/[\u2010-\u2015\u2212]/g,"-")
-    .replace(/[\u00a0\u202f]/g," ")
+    .replace(/\u00a0/g," ")
     .normalize("NFD")
     .replace(/\p{M}/gu,"")
     .toLowerCase();
@@ -884,2256 +840,59 @@ function pad(n){
   return String(n).padStart(2,"0");
 }
 
-function validDate(y,m,d){
-  if(y<1990||y>2099||m<1||m>12||d<1||d>31)return false;
+function euros(value){
 
-  const t=new Date(Date.UTC(y,m-1,d));
-
-  return t.getUTCFullYear()===y &&
-         t.getUTCMonth()===m-1 &&
-         t.getUTCDate()===d;
-}
-
-function expandY(y){
-  return y>=100?y:y>=70?1900+y:2000+y;
-}
-
-/* =========================================================
-   DATAS
-   ========================================================= */
-
-function parseDate(text){
-
-  const s=fold(text);
-  const found=[];
-
-  const push=(y,m,d,score)=>{
-    y=expandY(y);
-
-    if(!validDate(y,m,d))return;
-
-    found.push({
-      iso:`${y}-${pad(m)}-${pad(d)}`,
-      display:`${pad(d)}/${pad(m)}/${y}`,
-      score
-    });
-  };
-
-  for(const m of s.matchAll(
-    /(\d{4})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{1,2})/g
-  )){
-    const around=s.slice(
-      Math.max(0,m.index-35),
-      m.index+35
-    );
-
-    push(
-      +m[1],
-      +m[2],
-      +m[3],
-      /emiss|data|fatura|documento/.test(around)?120:20
-    );
+  if(value===null || value===undefined || !Number.isFinite(value)){
+    return "—";
   }
 
-  for(const m of s.matchAll(
-    /(\d{1,2})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{2,4})/g
-  )){
-    const around=s.slice(
-      Math.max(0,m.index-35),
-      m.index+35
-    );
-
-    push(
-      +m[3],
-      +m[2],
-      +m[1],
-      /emiss|data|fatura|documento/.test(around)?120:20
-    );
-  }
-
-  found.sort((a,b)=>b.score-a.score);
-
-  return found[0]||null;
-}
-
-/* =========================================================
-   DINHEIRO
-   ========================================================= */
-
-function euro(s){
-
-  if(!s)return null;
-
-  let x=String(s)
-    .replace(/[€$]/g,"")
-    .replace(/\s/g,"")
-    .trim();
-
-  if(x.includes(",") && x.includes(".")){
-    x=x.replace(/\./g,"").replace(",",".");
-  }else if(x.includes(",")){
-    x=x.replace(",",".");
-  }
-
-  const n=Number(x);
-
-  return Number.isFinite(n)?n:null;
-}
-
-function userMoney(s){
-
-  if(!s || !s.trim())return null;
-
-  return euro(s);
-}
-
-function euros(v){
-
-  if(v==null || !Number.isFinite(v))return "—";
-
-  return v.toLocaleString("pt-PT",{
+  return value.toLocaleString("pt-PT",{
     minimumFractionDigits:2,
     maximumFractionDigits:2
   })+" €";
 }
 
-/* =========================================================
-   TOTAL
-   ========================================================= */
+function moneyFromInput(value){
 
-function parseTotal(text){
-
-  const lines=text.split(/\r?\n/);
-  const found=[];
-
-  const normal=l=>
-    fold(l)
-      .replace(/t[o0]ta[l1]/g,"total")
-      .replace(/(\d)\s*[,.]\s*(\d{2})\b/g,"$1,$2");
-
-  const money=`
-    (\\d{1,3}(?:\\.\\d{3})*,\\d{2})
-    |
-    (\\d+[,\\.]\\d{2})
-  `.replace(/\s/g,"");
-
-  const re=new RegExp(
-    "\\b(total\\s+a\\s+pagar|valor\\s+a\\s+pagar|"+
-    "total\\s+pago|valor\\s+pago|importe|a\\s+pagar|total)"+
-    "[^0-9]{0,45}"+money,
-    "gi"
-  );
-
-  for(let i=0;i<lines.length;i++){
-
-    const blob=normal(
-      lines[i]+" "+(lines[i+1]||"")
-    );
-
-    if(/subtotal|total\\s+(de\\s+)?iva|total\\s+imposto/.test(blob)){
-      continue;
-    }
-
-    for(const m of blob.matchAll(re)){
-
-      const raw=m[m.length-1];
-      const value=euro(raw);
-
-      if(value!=null){
-        found.push({
-          euros:value,
-          score:/pagar|pago/.test(m[1])?120:60,
-          index:i
-        });
-      }
-    }
-  }
-
-  /*
-    Fallback:
-    procura valores no fim das linhas.
-  */
-
-  if(!found.length){
-
-    for(let i=0;i<lines.length;i++){
-
-      const line=normal(lines[i]);
-
-      const matches=[
-        ...line.matchAll(
-          /(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/g
-        )
-      ];
-
-      for(const m of matches){
-
-        const value=euro(m[1]);
-
-        if(
-          value!=null &&
-          value>0 &&
-          value<100000
-        ){
-          found.push({
-            euros:value,
-            score:5+i*.01,
-            index:i
-          });
-        }
-      }
-    }
-  }
-
-  found.sort((a,b)=>b.score-a.score||b.index-a.index);
-
-  return found[0]||null;
-}
-
-/* =========================================================
-   IVA
-   ========================================================= */
-
-function parseVat(text){
-
-  const lines=text.split(/\r?\n/);
-
-  for(let i=0;i<lines.length;i++){
-
-    const s=fold(lines[i]);
-
-    if(!/\biva\b/.test(s))continue;
-
-    const all=s+" "+fold(lines[i+1]||"");
-
-    const m=all.match(
-      /(?:iva)[^0-9]{0,25}(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/
-    );
-
-    if(m){
-
-      const v=euro(m[1]);
-
-      if(v!=null && v>0)return v;
-    }
-  }
-
-  return null;
-}
-
-/* =========================================================
-   NIF
-   ========================================================= */
-
-function nifOk(n){
-
-  if(!/^\d{9}$/.test(n))return false;
-
-  let sum=0;
-
-  for(let i=0;i<8;i++){
-    sum+=Number(n[i])*(9-i);
-  }
-
-  const mod=sum%11;
-  const check=mod<2?0:11-mod;
-
-  return check===Number(n[8]);
-}
-
-function parseNif(text){
-
-  for(const line of text.split(/\n/)){
-
-    const f=fold(line);
-
-    if(
-      !/\b(nif|nipc|contribuinte)\b/.test(f) ||
-      /\b(adquirente|cliente|consumidor|hospede)\b/.test(f)
-    ){
-      continue;
-    }
-
-    for(const m of line.matchAll(/\d[\d\s.]{7,14}\d/g)){
-
-      const d=m[0].replace(/\D/g,"");
-
-      if(d.length===9 && nifOk(d)){
-        return d;
-      }
-    }
-  }
-
-  /*
-    Fallback:
-    procurar qualquer NIF válido.
-  */
-
-  const digits=text.replace(/\D/g,"");
-
-  for(let i=0;i<=digits.length-9;i++){
-
-    const n=digits.slice(i,i+9);
-
-    if(nifOk(n))return n;
-  }
-
-  return null;
-}
-
-/* =========================================================
-   FORNECEDOR
-   ========================================================= */
-
-function parseSupplier(text){
-
-  const known=[
-    ["toyota","Toyota"],
-    ["galp","Galp"],
-    ["repsol","Repsol"],
-    ["cepsa","Cepsa"],
-    ["prio","Prio"],
-    ["bp","BP"],
-    ["continente","Continente"],
-    ["pingo doce","Pingo Doce"],
-    ["lidl","Lidl"],
-    ["auchan","Auchan"],
-    ["mercadona","Mercadona"],
-    ["ibis","Ibis"],
-    ["pestana","Pestana"],
-    ["campanile","Campanile"],
-    ["mcdonald","McDonald's"]
-  ];
-
-  const s=fold(text);
-
-  for(const [key,name] of known){
-
-    if(s.includes(key)){
-      return name;
-    }
-  }
-
-  const lines=text
-    .split(/\r?\n/)
-    .map(x=>x.trim())
-    .filter(Boolean);
-
-  for(const line of lines.slice(0,14)){
-
-    const f=fold(line);
-
-    if(
-      f.length<4 ||
-      f.length>55 ||
-      /\b(nif|nipc|iva|total|data|fatura|documento|telefone|tel|www|http)\b/.test(f)
-    ){
-      continue;
-    }
-
-    const letters=(f.match(/[a-z]/g)||[]).length;
-
-    if(letters>=5){
-      return line.slice(0,60);
-    }
-  }
-
-  return null;
-}
-
-/* =========================================================
-   DOCUMENTO
-   ========================================================= */
-
-function parseDoc(text){
-
-  const patterns=[
-    /\b(?:FT|FS|FR|NC|FAT)\s*(?:Nr\.?|N[ºo.]?)?\s*[:.]?\s*[A-Z0-9][A-Z0-9./-]{2,}/i,
-    /\b(?:fatura|documento)\s*(?:n[ºo.]?|nr\.?)?\s*[:.]?\s*[A-Z0-9./-]{3,}/i
-  ];
-
-  for(const p of patterns){
-
-    const m=text.match(p);
-
-    if(m){
-      return m[0]
-        .replace(/\s+/g," ")
-        .slice(0,40);
-    }
-  }
-
-  return null;
-}
-
-/* =========================================================
-   CATEGORIA
-   ========================================================= */
-
-function categorize(text){
-
-  const s=fold(text);
-
-  if(
-    /\b(galp|repsol|cepsa|prio|bp|gasolina|gasoleo|combustivel|diesel|posto)\b/.test(s)
-  ){
-    return "Combustível";
-  }
-
-  if(
-    /\b(hotel|hostel|airbnb|pousada|ibis|pestana|campanile|alojamento)\b/.test(s)
-  ){
-    return "Estadias";
-  }
-
-  if(
-    /\b(restaurante|pastelaria|cafe|café|mcdonald|burger|pizza|padaria|refeicao)\b/.test(s)
-  ){
-    return "Restauração";
-  }
-
-  if(
-    /\b(continente|pingo doce|lidl|auchan|mercadona|supermercado)\b/.test(s)
-  ){
-    return "Alimentação";
-  }
-
-  return "Outros";
-}
-
-/* =========================================================
-   BASE DE DADOS
-   ========================================================= */
-
-function openDb(){
-
-  return new Promise((resolve,reject)=>{
-
-    const req=indexedDB.open("faturas-tcap",3);
-
-    req.onupgradeneeded=()=>{
-      const db=req.result;
-
-      if(!db.objectStoreNames.contains("faturas")){
-        db.createObjectStore("faturas",{keyPath:"id"});
-      }
-    };
-
-    req.onsuccess=()=>resolve(req.result);
-    req.onerror=()=>reject(req.error);
-  });
-}
-
-async function saveF(f){
-
-  const db=await openDb();
-
-  const tx=db.transaction("faturas","readwrite");
-
-  tx.objectStore("faturas").put(f);
-
-  await new Promise((resolve,reject)=>{
-    tx.oncomplete=resolve;
-    tx.onerror=()=>reject(tx.error);
-  });
-
-  db.close();
-}
-
-async function listF(){
-
-  const db=await openDb();
-
-  const tx=db.transaction("faturas","readonly");
-  const req=tx.objectStore("faturas").getAll();
-
-  const rows=await new Promise((resolve,reject)=>{
-    req.onsuccess=()=>resolve(req.result||[]);
-    req.onerror=()=>reject(req.error);
-  });
-
-  db.close();
-
-  return rows.sort((a,b)=>b.createdAt-a.createdAt);
-}
-
-async function delF(id){
-
-  const db=await openDb();
-
-  const tx=db.transaction("faturas","readwrite");
-
-  tx.objectStore("faturas").delete(id);
-
-  await new Promise((resolve,reject)=>{
-    tx.oncomplete=resolve;
-    tx.onerror=()=>reject(tx.error);
-  });
-
-  db.close();
-}
-
-/* =========================================================
-   IMAGEM
-   ========================================================= */
-
-function limitCanvas(src,max=2200){
-
-  const largest=Math.max(src.width,src.height);
-
-  if(largest<=max)return src;
-
-  const scale=max/largest;
-
-  const c=document.createElement("canvas");
-
-  c.width=Math.round(src.width*scale);
-  c.height=Math.round(src.height*scale);
-
-  const ctx=c.getContext("2d");
-
-  ctx.drawImage(
-    src,
-    0,
-    0,
-    c.width,
-    c.height
-  );
-
-  return c;
-}
-
-function fromFile(file){
-
-  return new Promise((resolve,reject)=>{
-
-    const url=URL.createObjectURL(file);
-
-    const img=new Image();
-
-    img.onload=()=>{
-
-      const c=document.createElement("canvas");
-
-      c.width=img.naturalWidth;
-      c.height=img.naturalHeight;
-
-      const ctx=c.getContext("2d");
-
-      ctx.drawImage(img,0,0);
-
-      URL.revokeObjectURL(url);
-
-      resolve(limitCanvas(c));
-    };
-
-    img.onerror=()=>{
-      URL.revokeObjectURL(url);
-      reject(new Error("Não consegui abrir a imagem."));
-    };
-
-    img.src=url;
-  });
-}
-
-/* =========================================================
-   DETECÇÃO DO DOCUMENTO
-   =========================================================
-
-   Esta versão não usa apenas "a mancha de tinta".
-   Analisa o fundo nas margens e procura a área que
-   realmente se destaca da fotografia.
-
-   Depois adiciona uma pequena margem branca.
-   ========================================================= */
-
-function detectDocumentRect(canvas){
-
-  const maxSize=1200;
-
-  const scale=Math.min(
-    1,
-    maxSize/Math.max(canvas.width,canvas.height)
-  );
-
-  const w=Math.max(1,Math.round(canvas.width*scale));
-  const h=Math.max(1,Math.round(canvas.height*scale));
-
-  const sample=document.createElement("canvas");
-
-  sample.width=w;
-  sample.height=h;
-
-  const ctx=sample.getContext("2d",{willReadFrequently:true});
-
-  ctx.drawImage(canvas,0,0,w,h);
-
-  const data=ctx.getImageData(0,0,w,h).data;
-
-  /*
-    Estimar cor do fundo usando os cantos.
-  */
-
-  const cornerPoints=[];
-
-  const cornerSize=Math.max(8,Math.round(Math.min(w,h)*.035));
-
-  for(let y=0;y<cornerSize;y++){
-
-    for(let x=0;x<cornerSize;x++){
-
-      const points=[
-        [x,y],
-        [w-1-x,y],
-        [x,h-1-y],
-        [w-1-x,h-1-y]
-      ];
-
-      for(const [px,py] of points){
-
-        const i=(py*w+px)*4;
-
-        cornerPoints.push([
-          data[i],
-          data[i+1],
-          data[i+2]
-        ]);
-      }
-    }
-  }
-
-  const avg=cornerPoints.reduce(
-    (a,p)=>[
-      a[0]+p[0],
-      a[1]+p[1],
-      a[2]+p[2]
-    ],
-    [0,0,0]
-  ).map(v=>v/cornerPoints.length);
-
-  const threshold=32;
-
-  let minX=w;
-  let minY=h;
-  let maxX=-1;
-  let maxY=-1;
-
-  /*
-    Ignorar uma margem exterior.
-    Isto evita que a própria fotografia inteira
-    seja confundida com o documento.
-  */
-
-  const marginX=Math.round(w*.035);
-  const marginY=Math.round(h*.035);
-
-  for(let y=marginY;y<h-marginY;y++){
-
-    for(let x=marginX;x<w-marginX;x++){
-
-      const i=(y*w+x)*4;
-
-      const r=data[i];
-      const g=data[i+1];
-      const b=data[i+2];
-
-      const distance=
-        Math.abs(r-avg[0])+
-        Math.abs(g-avg[1])+
-        Math.abs(b-avg[2]);
-
-      const brightness=(r+g+b)/3;
-
-      /*
-        Diferença significativa do fundo.
-      */
-
-      if(
-        distance>threshold ||
-        brightness<55 ||
-        brightness>245
-      ){
-
-        if(x<minX)minX=x;
-        if(y<minY)minY=y;
-        if(x>maxX)maxX=x;
-        if(y>maxY)maxY=y;
-      }
-    }
-  }
-
-  if(maxX<0 || maxY<0){
+  if(!value || !String(value).trim()){
     return null;
   }
 
-  const foundW=maxX-minX+1;
-  const foundH=maxY-minY+1;
+  const s=String(value)
+    .trim()
+    .replace(/\s/g,"")
+    .replace(/\./g,"")
+    .replace(",", ".");
 
-  /*
-    Se o "documento" for praticamente a fotografia toda,
-    fazemos um segundo teste usando margens.
-  */
+  const n=Number(s);
 
-  if(
-    foundW>w*.93 &&
-    foundH>h*.93
-  ){
-    return null;
+  return Number.isFinite(n) ? n : null;
+}
+
+function safeHTML(value){
+  return String(value??"")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+
+function monthKey(date){
+
+  if(!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)){
+    return "sem-data";
   }
 
-  /*
-    Expandir ligeiramente.
-    Isto é importante para não cortar letras/bordas.
-  */
-
-  const padX=Math.round(foundW*.035);
-  const padY=Math.round(foundH*.035);
-
-  minX=Math.max(0,minX-padX);
-  minY=Math.max(0,minY-padY);
-  maxX=Math.min(w-1,maxX+padX);
-  maxY=Math.min(h-1,maxY+padY);
-
-  return {
-    x:minX/scale,
-    y:minY/scale,
-    w:(maxX-minX+1)/scale,
-    h:(maxY-minY+1)/scale
-  };
+  return date.substring(0,7);
 }
 
-/* =========================================================
-   RECORTE + EFEITO SCANNER
-   ========================================================= */
+function monthLabel(key){
 
-function renderScannedDocument(source,rect){
-
-  const maxWidth=1700;
-
-  const scale=Math.min(
-    1,
-    maxWidth/rect.w
-  );
-
-  const out=document.createElement("canvas");
-
-  out.width=Math.max(
-    1,
-    Math.round(rect.w*scale)
-  );
-
-  out.height=Math.max(
-    1,
-    Math.round(rect.h*scale)
-  );
-
-  const ctx=out.getContext("2d");
-
-  /*
-    Fundo branco de scanner.
-  */
-
-  ctx.fillStyle="#fff";
-  ctx.fillRect(
-    0,
-    0,
-    out.width,
-    out.height
-  );
-
-  /*
-    Desenhar documento.
-  */
-
-  ctx.drawImage(
-    source,
-    rect.x,
-    rect.y,
-    rect.w,
-    rect.h,
-    0,
-    0,
-    out.width,
-    out.height
-  );
-
-  /*
-    Melhoramento de contraste.
-  */
-
-  const image=ctx.getImageData(
-    0,
-    0,
-    out.width,
-    out.height
-  );
-
-  const p=image.data;
-
-  for(let i=0;i<p.length;i+=4){
-
-    let r=p[i];
-    let g=p[i+1];
-    let b=p[i+2];
-
-    /*
-      Converter ligeiramente para aspecto de scanner,
-      mas preservar cor para documentos.
-    */
-
-    const avg=(r+g+b)/3;
-
-    if(avg>235){
-
-      r=Math.min(255,r+8);
-      g=Math.min(255,g+8);
-      b=Math.min(255,b+8);
-    }
-
-    /*
-      Contraste suave.
-    */
-
-    const factor=1.12;
-
-    r=((r-128)*factor)+128;
-    g=((g-128)*factor)+128;
-    b=((b-128)*factor)+128;
-
-    p[i]=Math.max(0,Math.min(255,r));
-    p[i+1]=Math.max(0,Math.min(255,g));
-    p[i+2]=Math.max(0,Math.min(255,b));
-  }
-
-  ctx.putImageData(image,0,0);
-
-  return out;
-}
-
-function toBlob(canvas){
-
-  return new Promise((resolve,reject)=>{
-
-    canvas.toBlob(
-      blob=>{
-        if(blob)resolve(blob);
-        else reject(new Error("Não consegui criar a imagem."));
-      },
-      "image/jpeg",
-      .90
-    );
-  });
-}
-
-/* =========================================================
-   ESTADO
-   ========================================================= */
-
-const root=document.getElementById("app");
-
-const main=$("main",{class:"main"});
-
-const nav=$("nav",{class:"nav"});
-
-nav.innerHTML=`
-<button type="button" data-tab="nova">
-  ${ico.home}
-  Início
-</button>
-
-<button type="button" data-tab="faturas">
-  ${ico.docs}
-  Documentos
-</button>
-
-<button type="button" data-tab="resumo">
-  ${ico.chart}
-  Análise
-</button>
-
-<button type="button" data-tab="exportar">
-  ${ico.down}
-  Exportar
-</button>
-`;
-
-const fileCam=$("input",{
-  type:"file",
-  accept:"image/*",
-  capture:"environment",
-  class:"hidden"
-});
-
-const fileLib=$("input",{
-  type:"file",
-  accept:"image/*",
-  class:"hidden"
-});
-
-const fab=$("button",{
-  class:"fab",
-  type:"button",
-  "aria-label":"Fotografar"
-},ico.cam);
-
-root.append(
-  main,
-  nav,
-  fab,
-  fileCam,
-  fileLib
-);
-
-let tab="nova";
-let source=null;
-let rect=null;
-let scan=null;
-let busy=false;
-let reading=false;
-let urls=[];
-
-function setTab(n){
-
-  tab=n;
-
-  nav.querySelectorAll("button").forEach(b=>{
-
-    if(b.dataset.tab===n){
-      b.setAttribute("aria-current","page");
-    }else{
-      b.removeAttribute("aria-current");
-    }
-  });
-
-  fab.classList.toggle(
-    "hidden",
-    n!=="nova"
-  );
-}
-
-function revoke(){
-
-  urls.forEach(u=>URL.revokeObjectURL(u));
-
-  urls=[];
-}
-
-/* =========================================================
-   HOME
-   ========================================================= */
-
-function showHome(){
-
-  setTab("nova");
-
-  main.replaceChildren();
-
-  const brand=$("div",{class:"brand"});
-
-  brand.innerHTML=`
-    <div class="brand-mark"></div>
-    <div>
-      <div class="brand-name">TOYOTA</div>
-      <div class="brand-sub">TCAP · Faturas</div>
-    </div>
-  `;
-
-  main.append(
-    brand,
-    $("p",{class:"kicker"},"Novo registo"),
-    $("h1",{class:"page-title"},"Adicionar"),
-    $("div",{class:"workspace"},
-      `<i></i> Faturas pela TCAP`
-    )
-  );
-
-  const hot=$(
-    "button",
-    {class:"cta hot",type:"button"},
-    `<div class="orb">${ico.cam}</div>
-     <div>
-       <b>Digitalizar fatura</b>
-       <span>Fotografa e recorta automaticamente o documento.</span>
-     </div>`
-  );
-
-  const native=$(
-    "button",
-    {class:"cta cold",type:"button"},
-    `<div class="orb">${ico.cam}</div>
-     <div>
-       <b>Câmara nativa</b>
-       <span>Abre diretamente a câmara do dispositivo.</span>
-     </div>`
-  );
-
-  const upload=$(
-    "button",
-    {class:"cta cold",type:"button"},
-    `<div class="orb">${ico.up}</div>
-     <div>
-       <b>Carregar fotografia</b>
-       <span>Escolhe uma imagem da galeria.</span>
-     </div>`
-  );
-
-  const manual=$(
-    "button",
-    {class:"cta cold",type:"button"},
-    `<div class="orb">${ico.form}</div>
-     <div>
-       <b>Introduzir manualmente</b>
-       <span>Regista uma fatura sem digitalização.</span>
-     </div>`
-  );
-
-  hot.onclick=openCam;
-  native.onclick=()=>fileCam.click();
-  upload.onclick=()=>fileLib.click();
-  manual.onclick=openManual;
-
-  main.append(
-    hot,
-    native,
-    upload,
-    manual
-  );
-}
-
-/* =========================================================
-   MANUAL
-   ========================================================= */
-
-function openManual(){
-
-  source=null;
-  rect=null;
-
-  /*
-    Canvas branco mínimo apenas para manter
-    a mesma estrutura de gravação.
-  */
-
-  const c=document.createElement("canvas");
-
-  c.width=900;
-  c.height=1200;
-
-  const ctx=c.getContext("2d");
-
-  ctx.fillStyle="#fff";
-  ctx.fillRect(0,0,c.width,c.height);
-
-  scan=c;
-
-  paintReview(true,true);
-}
-
-/* =========================================================
-   CÂMARA
-   ========================================================= */
-
-async function openCam(){
-
-  if(!navigator.mediaDevices?.getUserMedia){
-    fileCam.click();
-    return;
-  }
-
-  let stream;
-
-  try{
-
-    stream=await navigator.mediaDevices.getUserMedia({
-      audio:false,
-      video:{
-        facingMode:{ideal:"environment"},
-        width:{ideal:1920},
-        height:{ideal:2560}
-      }
-    });
-
-  }catch{
-
-    fileCam.click();
-    return;
-  }
-
-  nav.classList.add("hidden");
-  fab.classList.add("hidden");
-
-  const wrap=$("div",{class:"cam"});
-
-  const video=$("video",{
-    playsinline:"true",
-    autoplay:"true",
-    muted:"true"
-  });
-
-  video.playsInline=true;
-  video.autoplay=true;
-  video.muted=true;
-  video.srcObject=stream;
-
-  const guide=$("div",{class:"cam-guide"});
-
-  const bar=$("div",{class:"cam-bar"});
-
-  const cancel=$(
-    "button",
-    {class:"link",type:"button"},
-    "Fechar"
-  );
-
-  const shutter=$(
-    "button",
-    {
-      class:"shutter",
-      type:"button",
-      "aria-label":"Fotografar"
-    }
-  );
-
-  const gallery=$(
-    "button",
-    {class:"link",type:"button"},
-    "Galeria"
-  );
-
-  bar.append(
-    cancel,
-    shutter,
-    gallery
-  );
-
-  wrap.append(
-    video,
-    guide,
-    bar
-  );
-
-  root.append(wrap);
-
-  await video.play().catch(()=>{});
-
-  const close=()=>{
-
-    stream.getTracks().forEach(
-      t=>t.stop()
-    );
-
-    wrap.remove();
-
-    nav.classList.remove("hidden");
-  };
-
-  cancel.onclick=close;
-
-  gallery.onclick=()=>{
-    close();
-    fileLib.click();
-  };
-
-  shutter.onclick=()=>{
-
-    const w=video.videoWidth;
-    const h=video.videoHeight;
-
-    if(!w||!h)return;
-
-    const c=document.createElement("canvas");
-
-    c.width=w;
-    c.height=h;
-
-    const ctx=c.getContext("2d");
-
-    ctx.drawImage(
-      video,
-      0,
-      0,
-      w,
-      h
-    );
-
-    close();
-
-    beginReview(
-      limitCanvas(c)
-    );
-  };
-}
-
-/* =========================================================
-   DIGITALIZAÇÃO
-   ========================================================= */
-
-function setStep(node,step){
-
-  node.querySelectorAll(".step-row")
-    .forEach((el,i)=>{
-
-      el.classList.toggle(
-        "on",
-        i===step
-      );
-
-      el.classList.toggle(
-        "done",
-        i<step
-      );
-
-      const tick=el.querySelector(".tick");
-
-      if(tick){
-        tick.textContent=i<step?"✓":"";
-      }
-    });
-}
-
-async function beginReview(full){
-
-  source=full;
-  rect=null;
-  scan=null;
-
-  nav.classList.add("hidden");
-  fab.classList.add("hidden");
-
-  const overlay=$(
-    "div",
-    {class:"overlay"}
-  );
-
-  const card=$(
-    "div",
-    {class:"ov-card"}
-  );
-
-  const preview=$(
-    "div",
-    {class:"ov-preview"}
-  );
-
-  const mini=document.createElement("canvas");
-
-  const scale=Math.min(
-    1,
-    520/Math.max(
-      full.width,
-      full.height
-    )
-  );
-
-  mini.width=Math.round(
-    full.width*scale
-  );
-
-  mini.height=Math.round(
-    full.height*scale
-  );
-
-  mini.getContext("2d").drawImage(
-    full,
-    0,
-    0,
-    mini.width,
-    mini.height
-  );
-
-  preview.append(
-    mini,
-    $("div",{class:"scanline"})
-  );
-
-  card.append(
-    preview,
-
-    $("h2",{},"A digitalizar"),
-
-    $("p",{},"A procurar a folha e a preparar a imagem."),
-
-    $("div",{class:"step-row on"},
-      `A detectar a fatura <span class="tick"></span>`
-    ),
-
-    $("div",{class:"step-row"},
-      `A recortar a fotografia <span class="tick"></span>`
-    ),
-
-    $("div",{class:"step-row"},
-      `A melhorar a digitalização <span class="tick"></span>`
-    ),
-
-    $("div",{class:"step-row"},
-      `A ler os dados <span class="tick"></span>`
-    )
-  );
-
-  overlay.append(card);
-
-  root.append(overlay);
-
-  await new Promise(
-    r=>setTimeout(r,300)
-  );
-
-  /*
-    DETECÇÃO
-  */
-
-  rect=detectDocumentRect(full);
-
-  if(!rect){
-
-    rect={
-      x:0,
-      y:0,
-      w:full.width,
-      h:full.height
-    };
-  }
-
-  setStep(card,1);
-
-  await new Promise(
-    r=>setTimeout(r,300)
-  );
-
-  /*
-    RECORTE
-  */
-
-  scan=renderScannedDocument(
-    full,
-    rect
-  );
-
-  setStep(card,2);
-
-  await new Promise(
-    r=>setTimeout(r,350)
-  );
-
-  setStep(card,3);
-
-  await new Promise(
-    r=>setTimeout(r,250)
-  );
-
-  overlay.remove();
-
-  nav.classList.remove("hidden");
-
-  paintReview(
-    !rect ||
-    (
-      rect.x===0 &&
-      rect.y===0 &&
-      rect.w===full.width &&
-      rect.h===full.height
-    ),
-    false
-  );
-
-  runOcr();
-}
-
-/* =========================================================
-   CAMPOS
-   ========================================================= */
-
-function fields(node){
-
-  const q=s=>node.querySelector(s);
-
-  return {
-    status:q("[data-status]"),
-    chips:q("[data-chips]"),
-    supplier:q("[data-supplier]"),
-    nif:q("[data-nif]"),
-    date:q("[data-date]"),
-    vat:q("[data-vat]"),
-    total:q("[data-total]"),
-    cat:q("[data-cat]"),
-    doc:q("[data-doc]"),
-    vehicle:q("[data-vehicle]"),
-    km:q("[data-km]"),
-    project:q("[data-project]"),
-    notes:q("[data-notes]"),
-    ocr:q("[data-ocr]")
-  };
-}
-
-/* =========================================================
-   REVIEW
-   ========================================================= */
-
-function paintReview(failed,manual){
-
-  setTab("nova");
-
-  nav.classList.remove("hidden");
-  fab.classList.add("hidden");
-
-  main.replaceChildren();
-
-  const top=$("div",{class:"review-top"});
-
-  const close=$(
-    "button",
-    {class:"icon-btn",type:"button"},
-    "✕"
-  );
-
-  close.onclick=()=>{
-    source=null;
-    scan=null;
-    rect=null;
-    showHome();
-  };
-
-  top.append(
-    close,
-    $("p",{
-      class:"status",
-      style:"margin:0"
-    },
-    manual?
-      "Registo manual":
-      "Documento digitalizado"
-    )
-  );
-
-  main.append(top);
-
-  if(!manual){
-
-    const fig=$(
-      "section",
-      {class:"card"}
-    );
-
-    const wrap=$(
-      "div",
-      {class:"scan-wrap"}
-    );
-
-    const view=document.createElement("canvas");
-
-    const draw=()=>{
-
-      const img=scan;
-
-      view.width=img.width;
-      view.height=img.height;
-
-      const ctx=view.getContext("2d");
-
-      ctx.drawImage(
-        img,
-        0,
-        0
-      );
-    };
-
-    draw();
-
-    wrap.append(
-      view,
-      $("div",{class:"scan-badge"},"DIGITALIZAÇÃO")
-    );
-
-    fig.append(wrap);
-
-    const tools=$(
-      "div",
-      {class:"editor-tools"}
-    );
-
-    const less=$(
-      "button",
-      {type:"button"},
-      "↙ Apertar"
-    );
-
-    const more=$(
-      "button",
-      {type:"button"},
-      "↗ Alargar"
-    );
-
-    const whole=$(
-      "button",
-      {type:"button"},
-      "□ Foto inteira"
-    );
-
-    const rescan=$(
-      "button",
-      {type:"button"},
-      "⟳ Reprocessar"
-    );
-
-    tools.append(
-      less,
-      more,
-      whole,
-      rescan
-    );
-
-    fig.append(tools);
-
-    if(failed){
-
-      fig.append(
-        $("p",{class:"warn"},
-          "Não consegui identificar com segurança os limites da folha. O documento foi preparado, mas confirma o recorte antes de guardar."
-        )
-      );
-    }else{
-
-      fig.append(
-        $("p",{class:"success"},
-          "Documento recortado automaticamente. A imagem que vês aqui é a mesma que será guardada e enviada para o PDF."
-        )
-      );
-    }
-
-    main.append(fig);
-
-    less.onclick=()=>{
-
-      if(!source||!rect)return;
-
-      const dx=rect.w*.045;
-      const dy=rect.h*.045;
-
-      rect={
-        x:Math.min(
-          source.width-1,
-          rect.x+dx
-        ),
-        y:Math.min(
-          source.height-1,
-          rect.y+dy
-        ),
-        w:Math.max(
-          1,
-          rect.w-dx*2
-        ),
-        h:Math.max(
-          1,
-          rect.h-dy*2
-        )
-      };
-
-      scan=renderScannedDocument(
-        source,
-        rect
-      );
-
-      draw();
-
-      if(!reading)runOcr();
-    };
-
-    more.onclick=()=>{
-
-      if(!source||!rect)return;
-
-      const dx=rect.w*.055;
-      const dy=rect.h*.055;
-
-      const x=Math.max(
-        0,
-        rect.x-dx
-      );
-
-      const y=Math.max(
-        0,
-        rect.y-dy
-      );
-
-      const right=Math.min(
-        source.width,
-        rect.x+rect.w+dx
-      );
-
-      const bottom=Math.min(
-        source.height,
-        rect.y+rect.h+dy
-      );
-
-      rect={
-        x,
-        y,
-        w:right-x,
-        h:bottom-y
-      };
-
-      scan=renderScannedDocument(
-        source,
-        rect
-      );
-
-      draw();
-
-      if(!reading)runOcr();
-    };
-
-    whole.onclick=()=>{
-
-      rect={
-        x:0,
-        y:0,
-        w:source.width,
-        h:source.height
-      };
-
-      scan=renderScannedDocument(
-        source,
-        rect
-      );
-
-      draw();
-
-      if(!reading)runOcr();
-    };
-
-    rescan.onclick=()=>{
-
-      if(!source)return;
-
-      rect=detectDocumentRect(
-        source
-      );
-
-      if(!rect){
-
-        rect={
-          x:0,
-          y:0,
-          w:source.width,
-          h:source.height
-        };
-      }
-
-      scan=renderScannedDocument(
-        source,
-        rect
-      );
-
-      draw();
-
-      if(!reading)runOcr();
-    };
-  }
-
-  const form=$(
-    "section",
-    {class:"card"}
-  );
-
-  form.innerHTML=`
-    <p class="status" data-status>
-      ${manual?
-        "Preenche os campos. Nada é inventado.":
-        "A preparar a leitura automática…"
-      }
-    </p>
-
-    <div class="chips" data-chips></div>
-
-    <label>
-      Fornecedor
-      <input
-        data-supplier
-        maxlength="80"
-        placeholder="Ex.: Toyota, Galp, Continente"
-      >
-    </label>
-
-    <label>
-      NIF
-      <input
-        data-nif
-        inputmode="numeric"
-        maxlength="11"
-        placeholder="9 dígitos"
-      >
-    </label>
-
-    <label>
-      Data de emissão
-      <input
-        data-date
-        type="date"
-      >
-    </label>
-
-    <label>
-      IVA (€)
-      <input
-        data-vat
-        inputmode="decimal"
-        placeholder="1,23"
-      >
-    </label>
-
-    <label>
-      Total (€)
-      <input
-        data-total
-        inputmode="decimal"
-        placeholder="6,69"
-      >
-    </label>
-
-    <label>
-      Categoria
-      <select data-cat>
-        ${CATS.map(c=>
-          `<option ${c==="Outros"?"selected":""}>${c}</option>`
-        ).join("")}
-      </select>
-    </label>
-
-    <label>
-      N.º do documento
-      <input
-        data-doc
-        maxlength="40"
-        placeholder="FT 168/37404"
-      >
-    </label>
-
-    <details>
-      <summary>Viatura, km e projeto</summary>
-
-      <label>
-        Viatura
-        <input data-vehicle maxlength="40">
-      </label>
-
-      <label>
-        Quilómetros
-        <input
-          data-km
-          inputmode="decimal"
-          maxlength="12"
-        >
-      </label>
-
-      <label>
-        Projeto
-        <input data-project maxlength="60">
-      </label>
-
-      <label>
-        Notas
-        <input data-notes maxlength="180">
-      </label>
-    </details>
-
-    ${
-      manual?
-      "":
-      `<label>
-        Texto reconhecido pelo OCR
-        <textarea
-          data-ocr
-          readonly
-          placeholder="O texto reconhecido aparecerá aqui."
-        ></textarea>
-      </label>`
-    }
-  `;
-
-  const actions=$("div",{class:"row"});
-
-  const again=$(
-    "button",
-    {class:"btn ghost",type:"button"},
-    "↺ Repetir"
-  );
-
-  const save=$(
-    "button",
-    {class:"btn primary",type:"button"},
-    "✓ Guardar"
-  );
-
-  actions.append(
-    again,
-    save
-  );
-
-  main.append(
-    form,
-    actions
-  );
-
-  again.onclick=openCam;
-
-  save.onclick=()=>onSave(form);
-
-  if(!manual){
-
-    const reread=$(
-      "button",
-      {
-        class:"btn soft",
-        type:"button",
-        style:"margin-top:10px"
-      },
-      "⌕ Ler novamente"
-    );
-
-    main.append(reread);
-
-    reread.onclick=runOcr;
-  }
-}
-
-/* =========================================================
-   OCR
-   ========================================================= */
-
-async function runOcr(){
-
-  if(!scan || reading)return;
-
-  reading=true;
-
-  const f=fields(main);
-
-  const status=s=>{
-    if(f.status){
-      f.status.textContent=s;
-    }
-  };
-
-  try{
-
-    if(!window.Tesseract){
-
-      throw new Error(
-        "O motor OCR não carregou. Verifica a ligação à internet."
-      );
-    }
-
-    status(
-      "A preparar reconhecimento de texto em português…"
-    );
-
-    /*
-      O OCR recebe SEMPRE a imagem recortada.
-      Isto é uma diferença importante em relação
-      ao código anterior.
-    */
-
-    const worker=await Tesseract.createWorker(
-      "por",
-      1,
-      {
-        logger:m=>{
-
-          if(
-            m.status==="recognizing text"
-          ){
-
-            status(
-              `A ler a fatura… ${Math.round(
-                (m.progress||0)*100
-              )}%`
-            );
-          }
-        }
-      }
-    );
-
-    const blob=await toBlob(scan);
-
-    const result=await worker.recognize(blob);
-
-    await worker.terminate();
-
-    const text=result.data.text||"";
-
-    if(f.ocr){
-      f.ocr.value=text.trim();
-    }
-
-    /*
-      Extrair tudo.
-    */
-
-    const date=parseDate(text);
-    const total=parseTotal(text);
-    const vat=parseVat(text);
-    const supplier=parseSupplier(text);
-    const nif=parseNif(text);
-    const doc=parseDoc(text);
-    const category=categorize(text);
-
-    if(
-      supplier &&
-      f.supplier &&
-      !f.supplier.value
-    ){
-      f.supplier.value=supplier;
-    }
-
-    if(
-      nif &&
-      f.nif &&
-      !f.nif.value
-    ){
-      f.nif.value=nif;
-    }
-
-    if(
-      date &&
-      f.date &&
-      !f.date.value
-    ){
-      f.date.value=date.iso;
-    }
-
-    if(
-      total &&
-      f.total &&
-      !f.total.value
-    ){
-      f.total.value=total.euros
-        .toLocaleString(
-          "pt-PT",
-          {
-            minimumFractionDigits:2,
-            maximumFractionDigits:2
-          }
-        );
-    }
-
-    if(
-      vat &&
-      f.vat &&
-      !f.vat.value
-    ){
-      f.vat.value=vat.toLocaleString(
-        "pt-PT",
-        {
-          minimumFractionDigits:2,
-          maximumFractionDigits:2
-        }
-      );
-    }
-
-    if(
-      doc &&
-      f.doc &&
-      !f.doc.value
-    ){
-      f.doc.value=doc;
-    }
-
-    if(
-      f.cat &&
-      category!=="Outros"
-    ){
-      f.cat.value=category;
-    }
-
-    /*
-      Chips de confirmação.
-    */
-
-    if(f.chips){
-
-      f.chips.innerHTML="";
-
-      const add=(text,kind="")=>{
-
-        const chip=$(
-          "span",
-          {class:"chip "+kind},
-          text
-        );
-
-        f.chips.append(chip);
-      };
-
-      if(date){
-        add(
-          "✓ Data "+date.display,
-          "ok"
-        );
-      }else{
-        add(
-          "Data por preencher",
-          "warn"
-        );
-      }
-
-      if(total){
-        add(
-          "✓ Total "+euros(total.euros),
-          "ok"
-        );
-      }else{
-        add(
-          "Total por preencher",
-          "warn"
-        );
-      }
-
-      if(vat){
-        add(
-          "✓ IVA "+euros(vat),
-          "ok"
-        );
-      }
-
-      if(nif){
-        add(
-          "✓ NIF "+nif,
-          "ok"
-        );
-      }
-
-      if(supplier){
-        add(
-          "✓ "+supplier,
-          "ok"
-        );
-      }
-
-      add(category);
-    }
-
-    const missing=[];
-
-    if(!supplier)missing.push("fornecedor");
-    if(!nif)missing.push("NIF");
-    if(!date)missing.push("data");
-    if(!total)missing.push("total");
-
-    if(!missing.length){
-
-      status(
-        "Leitura concluída. Confirma os dados antes de guardar."
-      );
-
-    }else{
-
-      status(
-        "Leitura concluída. Falta confirmar: "+
-        missing.join(", ")+"."
-      );
-    }
-
-  }catch(error){
-
-    console.error(error);
-
-    status(
-      "Não consegui concluir o OCR. "+
-      (error.message||"Tenta novamente.")
-    );
-
-  }finally{
-
-    reading=false;
-  }
-}
-
-/* =========================================================
-   GUARDAR
-   ========================================================= */
-
-async function onSave(form){
-
-  if(busy||!scan)return;
-
-  const f=fields(form);
-
-  const issued=/^\d{4}-\d{2}-\d{2}$/.test(
-    f.date.value
-  )
-    ?f.date.value
-    :null;
-
-  const total=userMoney(
-    f.total.value
-  );
-
-  const vat=userMoney(
-    f.vat.value
-  );
-
-  const nif=(f.nif.value||"")
-    .replace(/\D/g,"");
-
-  if(
-    f.total.value.trim() &&
-    total==null
-  ){
-
-    f.status.textContent=
-      "Total inválido. Exemplo: 6,69";
-
-    return;
-  }
-
-  if(
-    f.vat.value.trim() &&
-    vat==null
-  ){
-
-    f.status.textContent=
-      "IVA inválido.";
-
-    return;
-  }
-
-  if(
-    nif &&
-    nif.length===9 &&
-    !nifOk(nif)
-  ){
-
-    if(
-      !confirm(
-        "O NIF introduzido não passou a validação. Guardar mesmo assim?"
-      )
-    ){
-      return;
-    }
-  }
-
-  try{
-
-    const existing=await listF();
-
-    const duplicate=existing.some(
-      r=>
-        nif &&
-        r.nif===nif &&
-        r.issuedDate===issued &&
-        r.total===total
-    );
-
-    if(
-      duplicate &&
-      !confirm(
-        "Já existe uma fatura com o mesmo NIF, data e total. Guardar outra?"
-      )
-    ){
-      return;
-    }
-
-  }catch{}
-
-  busy=true;
-
-  try{
-
-    /*
-      IMPORTANTE:
-      guarda apenas a imagem recortada.
-      A fotografia original NÃO vai para a base de dados.
-    */
-
-    const image=await toBlob(scan);
-
-    const record={
-      id:crypto.randomUUID(),
-      createdAt:Date.now(),
-
-      issuedDate:issued,
-      month:monthKey(issued),
-
-      category:f.cat.value,
-
-      total,
-      vat,
-
-      supplier:f.supplier.value.trim(),
-      nif,
-
-      docNumber:f.doc.value.trim(),
-
-      vehicle:f.vehicle
-        ?f.vehicle.value.trim()
-        :"",
-
-      km:f.km
-        ?f.km.value.trim()
-        :"",
-
-      project:f.project
-        ?f.project.value.trim()
-        :"",
-
-      notes:f.notes
-        ?f.notes.value.trim()
-        :"",
-
-      ocrText:f.ocr
-        ?f.ocr.value
-        :"",
-
-      /*
-        imagem digitalizada/recortada
-      */
-      image
-    };
-
-    await saveF(record);
-
-    source=null;
-    scan=null;
-    rect=null;
-
-    await showFaturas();
-
-  }catch(error){
-
-    console.error(error);
-
-    f.status.textContent=
-      "Não consegui guardar a fatura.";
-
-  }finally{
-
-    busy=false;
-  }
-}
-
-/* =========================================================
-   MESES
-   ========================================================= */
-
-function monthKey(iso){
-
-  if(
-    iso &&
-    /^\d{4}-\d{2}-\d{2}$/.test(iso)
-  ){
-    return iso.slice(0,7);
-  }
-
-  return "sem-data";
-}
-
-function monthLabel(k){
-
-  if(k==="sem-data"){
+  if(key==="sem-data"){
     return "Sem data";
   }
 
-  const names=[
+  const months=[
     "janeiro",
     "fevereiro",
     "março",
@@ -3148,49 +907,2310 @@ function monthLabel(k){
     "dezembro"
   ];
 
-  const [y,m]=k.split("-");
+  const [y,m]=key.split("-");
 
-  return `${names[
-    Number(m)-1
-  ]} ${y}`;
+  return `${months[Number(m)-1]} ${y}`;
+}
+
+function revokeUrls(){
+
+  objectUrls.forEach(u=>URL.revokeObjectURL(u));
+  objectUrls=[];
+}
+
+/* =========================================================
+   INDEXED DB
+========================================================= */
+
+function openDB(){
+
+  return new Promise((resolve,reject)=>{
+
+    const request=indexedDB.open(DB_NAME,DB_VERSION);
+
+    request.onupgradeneeded=()=>{
+      const db=request.result;
+
+      if(!db.objectStoreNames.contains(STORE)){
+        db.createObjectStore(STORE,{keyPath:"id"});
+      }
+    };
+
+    request.onsuccess=()=>{
+      resolve(request.result);
+    };
+
+    request.onerror=()=>{
+      reject(request.error);
+    };
+  });
+}
+
+async function saveInvoice(invoice){
+
+  const db=await openDB();
+
+  const tx=db.transaction(STORE,"readwrite");
+
+  tx.objectStore(STORE).put(invoice);
+
+  await new Promise((resolve,reject)=>{
+
+    tx.oncomplete=resolve;
+    tx.onerror=()=>reject(tx.error);
+  });
+
+  db.close();
+}
+
+async function getInvoices(){
+
+  const db=await openDB();
+
+  const tx=db.transaction(STORE,"readonly");
+
+  const req=tx.objectStore(STORE).getAll();
+
+  const result=await new Promise((resolve,reject)=>{
+
+    req.onsuccess=()=>resolve(req.result||[]);
+    req.onerror=()=>reject(req.error);
+  });
+
+  db.close();
+
+  return result.sort((a,b)=>b.createdAt-a.createdAt);
+}
+
+async function deleteInvoice(id){
+
+  const db=await openDB();
+
+  const tx=db.transaction(STORE,"readwrite");
+
+  tx.objectStore(STORE).delete(id);
+
+  await new Promise((resolve,reject)=>{
+
+    tx.oncomplete=resolve;
+    tx.onerror=()=>reject(tx.error);
+  });
+
+  db.close();
+}
+
+/* =========================================================
+   IMAGEM
+========================================================= */
+
+function limitCanvas(canvas,max=2200){
+
+  const largest=Math.max(canvas.width,canvas.height);
+
+  if(largest<=max){
+    return canvas;
+  }
+
+  const scale=max/largest;
+
+  const out=document.createElement("canvas");
+
+  out.width=Math.round(canvas.width*scale);
+  out.height=Math.round(canvas.height*scale);
+
+  const ctx=out.getContext("2d");
+
+  ctx.drawImage(
+    canvas,
+    0,
+    0,
+    out.width,
+    out.height
+  );
+
+  return out;
+}
+
+async function fileToCanvas(file){
+
+  try{
+
+    const bitmap=await createImageBitmap(
+      file,
+      {imageOrientation:"from-image"}
+    );
+
+    const canvas=document.createElement("canvas");
+
+    canvas.width=bitmap.width;
+    canvas.height=bitmap.height;
+
+    canvas.getContext("2d").drawImage(
+      bitmap,
+      0,
+      0
+    );
+
+    bitmap.close();
+
+    return limitCanvas(canvas);
+
+  }catch(error){
+
+    const url=URL.createObjectURL(file);
+
+    try{
+
+      const image=await new Promise((resolve,reject)=>{
+
+        const img=new Image();
+
+        img.onload=()=>resolve(img);
+        img.onerror=reject;
+
+        img.src=url;
+      });
+
+      const canvas=document.createElement("canvas");
+
+      canvas.width=image.naturalWidth;
+      canvas.height=image.naturalHeight;
+
+      canvas.getContext("2d").drawImage(
+        image,
+        0,
+        0
+      );
+
+      return limitCanvas(canvas);
+
+    }finally{
+
+      URL.revokeObjectURL(url);
+    }
+  }
+}
+
+function canvasBlob(canvas,quality=.88){
+
+  return new Promise((resolve,reject)=>{
+
+    canvas.toBlob(
+      blob=>{
+        if(blob) resolve(blob);
+        else reject(new Error("Não foi possível criar a imagem."));
+      },
+      "image/jpeg",
+      quality
+    );
+  });
+}
+
+/* =========================================================
+   OPENCV
+========================================================= */
+
+function waitForOpenCV(timeout=12000){
+
+  return new Promise(resolve=>{
+
+    const started=Date.now();
+
+    const timer=setInterval(()=>{
+
+      if(window.cv && cv.Mat){
+
+        clearInterval(timer);
+        resolve(true);
+        return;
+      }
+
+      if(Date.now()-started>timeout){
+
+        clearInterval(timer);
+        resolve(false);
+      }
+
+    },100);
+  });
+}
+
+/* =========================================================
+   GEOMETRIA
+========================================================= */
+
+function distance(a,b){
+
+  return Math.hypot(
+    a.x-b.x,
+    a.y-b.y
+  );
+}
+
+function orderPoints(points){
+
+  const pts=[...points];
+
+  pts.sort((a,b)=>(a.x+a.y)-(b.x+b.y));
+
+  const tl=pts[0];
+  const br=pts[3];
+
+  const remaining=[pts[1],pts[2]];
+
+  remaining.sort((a,b)=>(a.y-a.x)-(b.y-b.x));
+
+  const tr=remaining[0];
+  const bl=remaining[1];
+
+  return [tl,tr,br,bl];
+}
+
+function polygonArea(points){
+
+  let area=0;
+
+  for(let i=0;i<points.length;i++){
+
+    const a=points[i];
+    const b=points[(i+1)%points.length];
+
+    area+=a.x*b.y-b.x*a.y;
+  }
+
+  return Math.abs(area/2);
+}
+
+/* =========================================================
+   DETEÇÃO DE DOCUMENTO
+========================================================= */
+
+async function detectDocumentCorners(canvas){
+
+  const ready=await waitForOpenCV();
+
+  if(!ready){
+    return null;
+  }
+
+  let src=null;
+  let gray=null;
+  let blur=null;
+  let edges=null;
+  let contours=null;
+  let hierarchy=null;
+
+  try{
+
+    src=cv.imread(canvas);
+
+    const maxSide=1000;
+
+    let work=src;
+
+    if(Math.max(src.cols,src.rows)>maxSide){
+
+      const scale=maxSide/Math.max(src.cols,src.rows);
+
+      work=new cv.Mat();
+
+      cv.resize(
+        src,
+        work,
+        new cv.Size(
+          Math.round(src.cols*scale),
+          Math.round(src.rows*scale)
+        )
+      );
+    }
+
+    gray=new cv.Mat();
+    blur=new cv.Mat();
+    edges=new cv.Mat();
+    contours=new cv.MatVector();
+    hierarchy=new cv.Mat();
+
+    cv.cvtColor(
+      work,
+      gray,
+      cv.COLOR_RGBA2GRAY
+    );
+
+    cv.GaussianBlur(
+      gray,
+      blur,
+      new cv.Size(5,5),
+      0
+    );
+
+    cv.Canny(
+      blur,
+      edges,
+      50,
+      150
+    );
+
+    cv.dilate(
+      edges,
+      edges,
+      cv.Mat.ones(3,3,cv.CV_8U)
+    );
+
+    cv.findContours(
+      edges,
+      contours,
+      hierarchy,
+      cv.RETR_LIST,
+      cv.CHAIN_APPROX_SIMPLE
+    );
+
+    const imageArea=work.cols*work.rows;
+
+    let best=null;
+    let bestScore=0;
+
+    for(let i=0;i<contours.size();i++){
+
+      const contour=contours.get(i);
+
+      const area=Math.abs(cv.contourArea(contour));
+
+      if(area<imageArea*.08){
+        contour.delete();
+        continue;
+      }
+
+      if(area>imageArea*.98){
+        contour.delete();
+        continue;
+      }
+
+      const perimeter=cv.arcLength(
+        contour,
+        true
+      );
+
+      const approx=new cv.Mat();
+
+      cv.approxPolyDP(
+        contour,
+        approx,
+        .025*perimeter,
+        true
+      );
+
+      if(approx.rows===4){
+
+        const pts=[];
+
+        for(let j=0;j<4;j++){
+
+          pts.push({
+            x:approx.intAt(j,0),
+            y:approx.intAt(j,1)
+          });
+        }
+
+        const ordered=orderPoints(pts);
+
+        const areaRatio=area/imageArea;
+
+        const rectArea=
+          distance(ordered[0],ordered[1])*
+          distance(ordered[1],ordered[2]);
+
+        const rectangularity=
+          rectArea>0
+            ? Math.min(1,area/rectArea)
+            : 0;
+
+        const score=
+          areaRatio*.65+
+          rectangularity*.35;
+
+        if(score>bestScore){
+
+          bestScore=score;
+          best=ordered;
+        }
+      }
+
+      approx.delete();
+      contour.delete();
+    }
+
+    if(work!==src){
+      work.delete();
+    }
+
+    if(!best){
+      return null;
+    }
+
+    const scaleX=canvas.width/(src.cols);
+    const scaleY=canvas.height/(src.rows);
+
+    return best.map(p=>({
+      x:p.x*scaleX,
+      y:p.y*scaleY
+    }));
+
+  }catch(error){
+
+    console.warn("Deteção do documento:",error);
+
+    return null;
+
+  }finally{
+
+    if(src)src.delete();
+    if(gray)gray.delete();
+    if(blur)blur.delete();
+    if(edges)edges.delete();
+    if(contours)contours.delete();
+    if(hierarchy)hierarchy.delete();
+  }
+}
+
+/* =========================================================
+   CORREÇÃO DE PERSPETIVA
+========================================================= */
+
+function perspectiveCrop(canvas,points){
+
+  const [tl,tr,br,bl]=orderPoints(points);
+
+  const widthTop=distance(tl,tr);
+  const widthBottom=distance(bl,br);
+
+  const heightLeft=distance(tl,bl);
+  const heightRight=distance(tr,br);
+
+  let width=Math.round(
+    Math.max(widthTop,widthBottom)
+  );
+
+  let height=Math.round(
+    Math.max(heightLeft,heightRight)
+  );
+
+  if(width<100 || height<100){
+    return null;
+  }
+
+  /*
+     Limites para evitar imagens gigantes.
+     Mantemos a proporção real do documento.
+  */
+
+  const maxDimension=2600;
+
+  const factor=Math.min(
+    1,
+    maxDimension/Math.max(width,height)
+  );
+
+  width=Math.round(width*factor);
+  height=Math.round(height*factor);
+
+  const src=cv.imread(canvas);
+
+  const srcPoints=cv.matFromArray(
+    4,
+    1,
+    cv.CV_32FC2,
+    [
+      tl.x,
+      tl.y,
+      tr.x,
+      tr.y,
+      br.x,
+      br.y,
+      bl.x,
+      bl.y
+    ]
+  );
+
+  const dstPoints=cv.matFromArray(
+    4,
+    1,
+    cv.CV_32FC2,
+    [
+      0,
+      0,
+      width-1,
+      0,
+      width-1,
+      height-1,
+      0,
+      height-1
+    ]
+  );
+
+  const matrix=cv.getPerspectiveTransform(
+    srcPoints,
+    dstPoints
+  );
+
+  const dst=new cv.Mat();
+
+  cv.warpPerspective(
+    src,
+    dst,
+    matrix,
+    new cv.Size(width,height),
+    cv.INTER_CUBIC,
+    cv.BORDER_REPLICATE,
+    new cv.Scalar()
+  );
+
+  const output=document.createElement("canvas");
+
+  output.width=width;
+  output.height=height;
+
+  cv.imshow(
+    output,
+    dst
+  );
+
+  src.delete();
+  srcPoints.delete();
+  dstPoints.delete();
+  matrix.delete();
+  dst.delete();
+
+  return output;
+}
+
+/* =========================================================
+   SCANNER PRINCIPAL
+========================================================= */
+
+async function scanDocument(fullCanvas){
+
+  sourceCanvas=fullCanvas;
+
+  const scanner=document.createElement("div");
+
+  scanner.className="scanner";
+
+  const card=document.createElement("div");
+
+  card.className="scanner-card";
+
+  const preview=document.createElement("div");
+
+  preview.className="scanner-preview";
+
+  const mini=document.createElement("canvas");
+
+  const scale=Math.min(
+    1,
+    500/Math.max(
+      fullCanvas.width,
+      fullCanvas.height
+    )
+  );
+
+  mini.width=Math.round(fullCanvas.width*scale);
+  mini.height=Math.round(fullCanvas.height*scale);
+
+  mini.getContext("2d").drawImage(
+    fullCanvas,
+    0,
+    0,
+    mini.width,
+    mini.height
+  );
+
+  preview.append(
+    mini,
+    el("div",{class:"scanner-line"})
+  );
+
+  const title=el(
+    "h2",
+    {},
+    "A digitalizar"
+  );
+
+  const lead=el(
+    "p",
+    {class:"lead"},
+    "A procurar os limites do documento e a corrigir a perspetiva."
+  );
+
+  const step1=el(
+    "div",
+    {class:"step on"},
+    "①  A detetar os quatro cantos <span class='tick'></span>"
+  );
+
+  const step2=el(
+    "div",
+    {class:"step"},
+    "②  A corrigir a perspetiva <span class='tick'></span>"
+  );
+
+  const step3=el(
+    "div",
+    {class:"step"},
+    "③  A preparar o documento para OCR <span class='tick'></span>"
+  );
+
+  card.append(
+    preview,
+    title,
+    lead,
+    step1,
+    step2,
+    step3
+  );
+
+  scanner.append(card);
+
+  document.body.append(scanner);
+
+  await new Promise(r=>setTimeout(r,250));
+
+  corners=await detectDocumentCorners(fullCanvas);
+
+  step1.classList.remove("on");
+  step1.classList.add("done");
+  step1.querySelector(".tick").textContent="✓";
+
+  step2.classList.add("on");
+
+  await new Promise(r=>setTimeout(r,250));
+
+  let corrected=null;
+
+  if(corners){
+
+    corrected=perspectiveCrop(
+      fullCanvas,
+      corners
+    );
+  }
+
+  /*
+    Se não conseguirmos detetar os quatro cantos,
+    NÃO fingimos que fizemos um scan.
+    Guardamos a fotografia inteira apenas como
+    fallback e avisamos o utilizador.
+  */
+
+  if(!corrected){
+
+    corrected=fullCanvas;
+
+    step2.classList.remove("on");
+
+    step2.innerHTML=
+      "②  Não foi possível detetar os cantos <span class='tick'>!</span>";
+
+  }else{
+
+    step2.classList.remove("on");
+    step2.classList.add("done");
+    step2.querySelector(".tick").textContent="✓";
+  }
+
+  step3.classList.add("on");
+
+  await new Promise(r=>setTimeout(r,300));
+
+  scanCanvas=corrected;
+
+  step3.classList.remove("on");
+  step3.classList.add("done");
+  step3.querySelector(".tick").textContent="✓";
+
+  await new Promise(r=>setTimeout(r,200));
+
+  scanner.remove();
+
+  showReview(!corners);
+
+  runOCR();
+}
+
+/* =========================================================
+   HOME
+========================================================= */
+
+const app=document.getElementById("app");
+
+const main=el(
+  "main",
+  {class:"main"}
+);
+
+const nav=el(
+  "nav",
+  {class:"nav"}
+);
+
+nav.innerHTML=`
+<button type="button" data-tab="nova">
+${ICONS.home}
+Início
+</button>
+
+<button type="button" data-tab="faturas">
+${ICONS.docs}
+Documentos
+</button>
+
+<button type="button" data-tab="resumo">
+${ICONS.chart}
+Análise
+</button>
+
+<button type="button" data-tab="exportar">
+${ICONS.download}
+Exportar
+</button>
+`;
+
+const fab=el(
+  "button",
+  {
+    class:"fab",
+    type:"button",
+    "aria-label":"Fotografar"
+  },
+  ICONS.camera
+);
+
+const fileCamera=el(
+  "input",
+  {
+    class:"hidden",
+    type:"file",
+    accept:"image/*",
+    capture:"environment"
+  }
+);
+
+const fileLibrary=el(
+  "input",
+  {
+    class:"hidden",
+    type:"file",
+    accept:"image/*"
+  }
+);
+
+app.append(
+  main,
+  nav,
+  fab,
+  fileCamera,
+  fileLibrary
+);
+
+function setTab(tab){
+
+  currentTab=tab;
+
+  nav.querySelectorAll("button").forEach(button=>{
+
+    if(button.dataset.tab===tab){
+
+      button.setAttribute(
+        "aria-current",
+        "page"
+      );
+
+    }else{
+
+      button.removeAttribute(
+        "aria-current"
+      );
+    }
+  });
+
+  fab.classList.toggle(
+    "hidden",
+    tab!=="nova"
+  );
+}
+
+/* =========================================================
+   HOME
+========================================================= */
+
+function showHome(){
+
+  setTab("nova");
+
+  main.replaceChildren();
+
+  const kicker=el(
+    "p",
+    {class:"kicker"},
+    "Gestão de despesas"
+  );
+
+  const title=el(
+    "h1",
+    {class:"title"},
+    "Adicionar"
+  );
+
+  const workspace=el(
+    "div",
+    {class:"workspace"}
+  );
+
+  workspace.innerHTML=`
+    <span class="toyota-mark">
+      <span class="toyota-symbol"></span>
+      <strong>Faturas pela TCAP</strong>
+    </span>
+  `;
+
+  const camera=el(
+    "button",
+    {class:"cta hot",type:"button"},
+    `
+    <div class="orb">${ICONS.camera}</div>
+    <div>
+      <b>Digitalizar documento</b>
+      <span>
+        Deteta a folha, corrige a perspetiva e guarda apenas o documento.
+      </span>
+    </div>
+    `
+  );
+
+  const native=el(
+    "button",
+    {class:"cta cold",type:"button"},
+    `
+    <div class="orb">${ICONS.camera}</div>
+    <div>
+      <b>Câmara nativa</b>
+      <span>
+        Usar diretamente a câmara do iPhone.
+      </span>
+    </div>
+    `
+  );
+
+  const upload=el(
+    "button",
+    {class:"cta cold",type:"button"},
+    `
+    <div class="orb">${ICONS.upload}</div>
+    <div>
+      <b>Carregar fotografia</b>
+      <span>
+        Escolher uma imagem da galeria.
+      </span>
+    </div>
+    `
+  );
+
+  const manual=el(
+    "button",
+    {class:"cta cold",type:"button"},
+    `
+    <div class="orb">${ICONS.form}</div>
+    <div>
+      <b>Introduzir manualmente</b>
+      <span>
+        Criar uma despesa sem fotografia.
+      </span>
+    </div>
+    `
+  );
+
+  camera.onclick=openCamera;
+
+  native.onclick=()=>{
+    fileCamera.click();
+  };
+
+  upload.onclick=()=>{
+    fileLibrary.click();
+  };
+
+  manual.onclick=openManual;
+
+  main.append(
+    kicker,
+    title,
+    workspace,
+    camera,
+    native,
+    upload,
+    manual
+  );
+}
+
+/* =========================================================
+   CÂMARA
+========================================================= */
+
+async function openCamera(){
+
+  if(!navigator.mediaDevices?.getUserMedia){
+
+    fileCamera.click();
+    return;
+  }
+
+  let stream;
+
+  try{
+
+    stream=await navigator.mediaDevices.getUserMedia({
+      audio:false,
+      video:{
+        facingMode:{
+          ideal:"environment"
+        },
+        width:{
+          ideal:1920
+        },
+        height:{
+          ideal:2560
+        }
+      }
+    });
+
+  }catch(error){
+
+    fileCamera.click();
+    return;
+  }
+
+  nav.classList.add("hidden");
+  fab.classList.add("hidden");
+
+  const camera=el(
+    "div",
+    {class:"camera"}
+  );
+
+  const video=el(
+    "video",
+    {
+      autoplay:"true",
+      playsinline:"true",
+      muted:"true"
+    }
+  );
+
+  video.autoplay=true;
+  video.playsInline=true;
+  video.muted=true;
+  video.srcObject=stream;
+
+  const guide=el(
+    "div",
+    {class:"camera-guide"}
+  );
+
+  const bar=el(
+    "div",
+    {class:"camera-bar"}
+  );
+
+  const close=el(
+    "button",
+    {class:"link",type:"button"},
+    "Fechar"
+  );
+
+  const shutter=el(
+    "button",
+    {
+      class:"shutter",
+      type:"button",
+      "aria-label":"Fotografar"
+    }
+  );
+
+  const gallery=el(
+    "button",
+    {class:"link",type:"button"},
+    "Galeria"
+  );
+
+  bar.append(
+    close,
+    shutter,
+    gallery
+  );
+
+  camera.append(
+    video,
+    guide,
+    bar
+  );
+
+  document.body.append(camera);
+
+  await video.play().catch(()=>{});
+
+  function finish(){
+
+    stream.getTracks().forEach(
+      track=>track.stop()
+    );
+
+    camera.remove();
+
+    nav.classList.remove("hidden");
+  }
+
+  close.onclick=finish;
+
+  gallery.onclick=()=>{
+
+    finish();
+
+    fileLibrary.click();
+  };
+
+  shutter.onclick=()=>{
+
+    const width=video.videoWidth;
+    const height=video.videoHeight;
+
+    if(!width || !height){
+      return;
+    }
+
+    const canvas=document.createElement("canvas");
+
+    canvas.width=width;
+    canvas.height=height;
+
+    canvas.getContext("2d").drawImage(
+      video,
+      0,
+      0,
+      width,
+      height
+    );
+
+    finish();
+
+    scanDocument(
+      limitCanvas(canvas)
+    );
+  };
+}
+
+/* =========================================================
+   MANUAL
+========================================================= */
+
+function openManual(){
+
+  scanCanvas=document.createElement("canvas");
+
+  scanCanvas.width=1000;
+  scanCanvas.height=1400;
+
+  const ctx=scanCanvas.getContext("2d");
+
+  ctx.fillStyle="#fff";
+  ctx.fillRect(
+    0,
+    0,
+    scanCanvas.width,
+    scanCanvas.height
+  );
+
+  showReview(false,true);
+}
+
+/* =========================================================
+   REVIEW
+========================================================= */
+
+function getFields(container){
+
+  const q=s=>container.querySelector(s);
+
+  return {
+    status:q("[data-status]"),
+    chips:q("[data-chips]"),
+    supplier:q("[data-supplier]"),
+    nif:q("[data-nif]"),
+    date:q("[data-date]"),
+    vat:q("[data-vat]"),
+    total:q("[data-total]"),
+    category:q("[data-category]"),
+    document:q("[data-document]"),
+    vehicle:q("[data-vehicle]"),
+    km:q("[data-km]"),
+    project:q("[data-project]"),
+    notes:q("[data-notes]"),
+    ocr:q("[data-ocr]")
+  };
+}
+
+function showReview(fallback=false,manual=false){
+
+  setTab("nova");
+
+  nav.classList.remove("hidden");
+  fab.classList.add("hidden");
+
+  main.replaceChildren();
+
+  const top=el(
+    "div",
+    {
+      style:"display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"
+    }
+  );
+
+  const close=el(
+    "button",
+    {
+      type:"button",
+      style:"width:42px;height:42px;border-radius:50%;background:#1b1c1f;font-size:20px"
+    },
+    "×"
+  );
+
+  close.onclick=()=>{
+    sourceCanvas=null;
+    scanCanvas=null;
+    corners=null;
+    showHome();
+  };
+
+  top.append(
+    close,
+    el(
+      "p",
+      {class:"status",style:"margin:0"},
+      manual
+        ? "Registo manual"
+        : "Documento digitalizado"
+    )
+  );
+
+  main.append(top);
+
+  if(!manual){
+
+    const imageCard=el(
+      "section",
+      {class:"card"}
+    );
+
+    const wrapper=el(
+      "div",
+      {class:"scan-wrap"}
+    );
+
+    const canvas=document.createElement("canvas");
+
+    canvas.width=scanCanvas.width;
+    canvas.height=scanCanvas.height;
+
+    canvas.getContext("2d").drawImage(
+      scanCanvas,
+      0,
+      0
+    );
+
+    wrapper.append(canvas);
+
+    const info=el(
+      "div",
+      {class:"scan-info"},
+      `
+      <span>${scanCanvas.width} × ${scanCanvas.height}px</span>
+      <span>${corners ? "✓ Perspetiva corrigida" : "⚠ Recorte automático não confirmado"}</span>
+      `
+    );
+
+    imageCard.append(
+      wrapper,
+      info
+    );
+
+    if(fallback){
+
+      imageCard.append(
+        el(
+          "p",
+          {class:"warn"},
+          "Não consegui identificar quatro cantos com segurança. A imagem foi mantida para não perder a fatura. Se necessário, fotografa novamente com o documento sobre uma superfície contrastante."
+        )
+      );
+    }
+
+    const tools=el(
+      "div",
+      {class:"mini"}
+    );
+
+    const full=el(
+      "button",
+      {type:"button"},
+      "Ver fotografia original"
+    );
+
+    const recalc=el(
+      "button",
+      {type:"button"},
+      "Voltar a detetar"
+    );
+
+    const rotate=el(
+      "button",
+      {type:"button"},
+      "Rodar 90°"
+    );
+
+    tools.append(
+      full,
+      recalc,
+      rotate
+    );
+
+    imageCard.append(tools);
+
+    full.onclick=()=>{
+
+      if(!sourceCanvas){
+        return;
+      }
+
+      canvas.width=sourceCanvas.width;
+      canvas.height=sourceCanvas.height;
+
+      canvas
+        .getContext("2d")
+        .drawImage(sourceCanvas,0,0);
+
+      info.innerHTML=`
+        <span>${sourceCanvas.width} × ${sourceCanvas.height}px</span>
+        <span>Fotografia original</span>
+      `;
+    };
+
+    recalc.onclick=async()=>{
+
+      if(!sourceCanvas){
+        return;
+      }
+
+      recalc.disabled=true;
+      recalc.textContent="A procurar…";
+
+      const found=await detectDocumentCorners(
+        sourceCanvas
+      );
+
+      if(found){
+
+        const corrected=perspectiveCrop(
+          sourceCanvas,
+          found
+        );
+
+        if(corrected){
+
+          corners=found;
+          scanCanvas=corrected;
+
+          canvas.width=corrected.width;
+          canvas.height=corrected.height;
+
+          canvas
+            .getContext("2d")
+            .drawImage(corrected,0,0);
+
+          info.innerHTML=`
+            <span>${corrected.width} × ${corrected.height}px</span>
+            <span>✓ Perspetiva corrigida</span>
+          `;
+
+          const status=getFields(main);
+
+          if(status.status){
+            status.status.textContent=
+              "Documento recortado novamente. Confirma os campos.";
+          }
+
+          runOCR();
+        }
+      }
+
+      recalc.disabled=false;
+      recalc.textContent="Voltar a detetar";
+    };
+
+    rotate.onclick=()=>{
+
+      const old=scanCanvas;
+
+      const rotated=document.createElement("canvas");
+
+      rotated.width=old.height;
+      rotated.height=old.width;
+
+      const ctx=rotated.getContext("2d");
+
+      ctx.translate(
+        rotated.width,
+        0
+      );
+
+      ctx.rotate(Math.PI/2);
+
+      ctx.drawImage(
+        old,
+        0,
+        0
+      );
+
+      scanCanvas=rotated;
+
+      canvas.width=rotated.width;
+      canvas.height=rotated.height;
+
+      canvas
+        .getContext("2d")
+        .drawImage(rotated,0,0);
+
+      info.innerHTML=`
+        <span>${rotated.width} × ${rotated.height}px</span>
+        <span>Imagem rodada</span>
+      `;
+    };
+
+    main.append(imageCard);
+  }
+
+  const form=el(
+    "section",
+    {class:"card"}
+  );
+
+  form.innerHTML=`
+
+  <p class="status" data-status>
+    ${manual
+      ? "Preenche os campos."
+      : "A preparar a leitura automática…"}
+  </p>
+
+  <div class="chips" data-chips></div>
+
+  <label>
+    Fornecedor
+    <input
+      data-supplier
+      maxlength="100"
+      placeholder="Ex.: Toyota, Galp, Continente"
+    >
+  </label>
+
+  <label>
+    NIF
+    <input
+      data-nif
+      inputmode="numeric"
+      maxlength="11"
+      placeholder="9 dígitos"
+    >
+  </label>
+
+  <label>
+    Data de emissão
+    <input
+      data-date
+      type="date"
+    >
+  </label>
+
+  <label>
+    IVA (€)
+    <input
+      data-vat
+      inputmode="decimal"
+      placeholder="1,23"
+    >
+  </label>
+
+  <label>
+    Total (€)
+    <input
+      data-total
+      inputmode="decimal"
+      placeholder="6,69"
+    >
+  </label>
+
+  <label>
+    Categoria
+
+    <select data-category>
+      ${CATEGORIES.map(
+        category=>
+        `<option>${category}</option>`
+      ).join("")}
+    </select>
+  </label>
+
+  <label>
+    Número do documento
+    <input
+      data-document
+      maxlength="50"
+      placeholder="FT 123/456"
+    >
+  </label>
+
+  <details>
+
+    <summary>
+      Viatura, quilómetros e projeto
+    </summary>
+
+    <label>
+      Viatura
+      <input data-vehicle maxlength="50">
+    </label>
+
+    <label>
+      Quilómetros
+      <input data-km inputmode="decimal">
+    </label>
+
+    <label>
+      Projeto
+      <input data-project maxlength="80">
+    </label>
+
+    <label>
+      Notas
+      <input data-notes maxlength="200">
+    </label>
+
+  </details>
+
+  ${
+    manual
+      ? ""
+      :
+      `
+      <label>
+        Texto lido pelo OCR
+        <textarea
+          data-ocr
+          readonly
+          placeholder="O texto reconhecido aparecerá aqui."
+        ></textarea>
+      </label>
+      `
+  }
+  `;
+
+  const actions=el(
+    "div",
+    {class:"row"}
+  );
+
+  const repeat=el(
+    "button",
+    {class:"btn ghost",type:"button"},
+    "↺ Repetir"
+  );
+
+  const save=el(
+    "button",
+    {class:"btn primary",type:"button"},
+    "✓ Guardar"
+  );
+
+  actions.append(
+    repeat,
+    save
+  );
+
+  main.append(
+    form,
+    actions
+  );
+
+  repeat.onclick=openCamera;
+
+  save.onclick=()=>saveCurrent(form);
+}
+
+/* =========================================================
+   OCR
+========================================================= */
+
+function validateNIF(nif){
+
+  if(!/^\d{9}$/.test(nif)){
+    return false;
+  }
+
+  let sum=0;
+
+  for(let i=0;i<8;i++){
+
+    sum+=Number(nif[i])*(9-i);
+  }
+
+  const mod=sum%11;
+
+  const check=mod<2
+    ?0
+    :11-mod;
+
+  return check===Number(nif[8]);
+}
+
+function parseDate(text){
+
+  const s=normalize(text);
+
+  const candidates=[];
+
+  function add(year,month,day,score){
+
+    if(year<1990 || year>2099){
+      return;
+    }
+
+    if(month<1 || month>12){
+      return;
+    }
+
+    if(day<1 || day>31){
+      return;
+    }
+
+    const date=new Date(
+      Date.UTC(year,month-1,day)
+    );
+
+    if(
+      date.getUTCFullYear()!==year ||
+      date.getUTCMonth()!==month-1 ||
+      date.getUTCDate()!==day
+    ){
+      return;
+    }
+
+    candidates.push({
+      iso:`${year}-${pad(month)}-${pad(day)}`,
+      display:`${pad(day)}/${pad(month)}/${year}`,
+      score
+    });
+  }
+
+  for(
+    const match of s.matchAll(
+      /(\d{4})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{1,2})/g
+    )
+  ){
+
+    add(
+      Number(match[1]),
+      Number(match[2]),
+      Number(match[3]),
+      100
+    );
+  }
+
+  for(
+    const match of s.matchAll(
+      /(\d{1,2})\s*[./-]\s*(\d{1,2})\s*[./-]\s*(\d{2,4})/g
+    )
+  ){
+
+    let year=Number(match[3]);
+
+    if(year<100){
+      year=year>=70
+        ?1900+year
+        :2000+year;
+    }
+
+    add(
+      year,
+      Number(match[2]),
+      Number(match[1]),
+      80
+    );
+  }
+
+  candidates.sort(
+    (a,b)=>b.score-a.score
+  );
+
+  return candidates[0]||null;
+}
+
+function parseTotal(text){
+
+  const lines=text.split(/\r?\n/);
+
+  const candidates=[];
+
+  const totalRegex=
+    /\b(total\s*(?:a\s*pagar)?|valor\s*a\s*pagar|valor\s*pago|importe|montante)\b[^0-9]{0,40}(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/gi;
+
+  for(let i=0;i<lines.length;i++){
+
+    const line=normalize(
+      lines[i]+" "+(lines[i+1]||"")
+    );
+
+    if(
+      /subtotal|total\s+iva|total\s+imposto|base\s+tributavel/.test(line)
+    ){
+      continue;
+    }
+
+    for(
+      const match of line.matchAll(totalRegex)
+    ){
+
+      const value=moneyFromInput(
+        match[2]
+      );
+
+      if(value!==null){
+
+        candidates.push({
+          value,
+          score:/pagar|pago/.test(match[1])
+            ?100
+            :80
+        });
+      }
+    }
+  }
+
+  candidates.sort(
+    (a,b)=>b.score-a.score
+  );
+
+  return candidates[0]?.value??null;
+}
+
+function parseVAT(text){
+
+  const regex=
+    /\biva\b[^0-9]{0,30}(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/gi;
+
+  let last=null;
+
+  for(const match of text.matchAll(regex)){
+
+    const value=moneyFromInput(
+      match[1]
+    );
+
+    if(value!==null){
+      last=value;
+    }
+  }
+
+  return last;
+}
+
+function parseNIF(text){
+
+  for(const line of text.split(/\n/)){
+
+    if(
+      !/\b(nif|nipc|contribuinte)\b/i.test(line)
+    ){
+      continue;
+    }
+
+    if(
+      /\b(adquirente|cliente|hospede)\b/i.test(line)
+    ){
+      continue;
+    }
+
+    const matches=line.match(
+      /\d[\d\s.-]{7,15}\d/g
+    );
+
+    if(!matches){
+      continue;
+    }
+
+    for(const match of matches){
+
+      const digits=match.replace(/\D/g,"");
+
+      if(
+        digits.length===9 &&
+        validateNIF(digits)
+      ){
+        return digits;
+      }
+    }
+  }
+
+  return null;
+}
+
+function parseSupplier(text){
+
+  const known=[
+    ["toyota","Toyota"],
+    ["toyota portugal","Toyota Portugal"],
+    ["galp","Galp"],
+    ["repsol","Repsol"],
+    ["prio","PRIO"],
+    ["cepsa","CEPSA"],
+    ["continente","Continente"],
+    ["pingo doce","Pingo Doce"],
+    ["lidl","Lidl"],
+    ["auchan","Auchan"],
+    ["mercadona","Mercadona"],
+    ["pestana","Pestana"],
+    ["ibis","Ibis"],
+    ["campanile","Campanile"]
+  ];
+
+  const normalized=normalize(text);
+
+  for(const [key,value] of known){
+
+    if(normalized.includes(key)){
+      return value;
+    }
+  }
+
+  const lines=text
+    .split(/\r?\n/)
+    .map(x=>x.trim())
+    .filter(Boolean)
+    .slice(0,12);
+
+  for(const line of lines){
+
+    const n=normalize(line);
+
+    if(
+      n.length<4 ||
+      n.length>70
+    ){
+      continue;
+    }
+
+    if(
+      /nif|nipc|iva|total|data|fatura|tal[aã]o|recibo|telefone|www|http/.test(n)
+    ){
+      continue;
+    }
+
+    const letters=n.replace(/[^a-z]/g,"");
+
+    if(letters.length>=5){
+      return line.substring(0,70);
+    }
+  }
+
+  return null;
+}
+
+function parseDocumentNumber(text){
+
+  const match=text.match(
+    /\b(?:FT|FAT|FS|FR|NC|VD|REC)\s*(?:N[ºo°.]*)?\s*[:.]?\s*[A-Z0-9][A-Z0-9./-]{2,}/i
+  );
+
+  return match
+    ?match[0].replace(/\s+/g," ").substring(0,50)
+    :null;
+}
+
+function categorize(text){
+
+  const s=normalize(text);
+
+  if(
+    /\b(galp|repsol|cepsa|prio|gasolina|gasoleo|diesel|combustivel|posto)\b/.test(s)
+  ){
+    return "Combustível";
+  }
+
+  if(
+    /\b(hotel|hostel|ibis|pestana|pousada|alojamento|campanile)\b/.test(s)
+  ){
+    return "Estadias";
+  }
+
+  if(
+    /\b(restaurante|cafe|caf[eé]|pastelaria|pizza|burger|mcdonald|padaria)\b/.test(s)
+  ){
+    return "Restauração";
+  }
+
+  if(
+    /\b(continente|pingo doce|lidl|auchan|mercadona|supermercado)\b/.test(s)
+  ){
+    return "Alimentação";
+  }
+
+  return "Outros";
+}
+
+async function runOCR(){
+
+  if(
+    !scanCanvas ||
+    readingOCR
+  ){
+    return;
+  }
+
+  readingOCR=true;
+
+  const fields=getFields(main);
+
+  const status=text=>{
+
+    if(fields.status){
+      fields.status.textContent=text;
+    }
+  };
+
+  try{
+
+    if(!window.Tesseract){
+
+      throw new Error(
+        "O OCR não está disponível."
+      );
+    }
+
+    status(
+      "A preparar OCR em português…"
+    );
+
+    const worker=await Tesseract.createWorker(
+      "por",
+      1,
+      {
+        logger:message=>{
+
+          if(
+            message.status==="recognizing text"
+          ){
+
+            const progress=Math.round(
+              (message.progress||0)*100
+            );
+
+            status(
+              `A ler o documento… ${progress}%`
+            );
+          }
+        }
+      }
+    );
+
+    /*
+      OCR sobre a imagem JÁ corrigida.
+      Isto é muito importante:
+      não fazemos OCR sobre a fotografia inclinada.
+    */
+
+    const blob=await canvasBlob(
+      scanCanvas,
+      .92
+    );
+
+    const result=await worker.recognize(
+      blob
+    );
+
+    await worker.terminate();
+
+    const text=result.data.text||"";
+
+    if(fields.ocr){
+      fields.ocr.value=text.trim();
+    }
+
+    const supplier=parseSupplier(text);
+    const nif=parseNIF(text);
+    const date=parseDate(text);
+    const total=parseTotal(text);
+    const vat=parseVAT(text);
+    const documentNumber=parseDocumentNumber(text);
+    const category=categorize(text);
+
+    if(
+      supplier &&
+      !fields.supplier.value
+    ){
+      fields.supplier.value=supplier;
+    }
+
+    if(
+      nif &&
+      !fields.nif.value
+    ){
+      fields.nif.value=nif;
+    }
+
+    if(
+      date &&
+      !fields.date.value
+    ){
+      fields.date.value=date.iso;
+    }
+
+    if(
+      total!==null &&
+      !fields.total.value
+    ){
+      fields.total.value=
+        total.toLocaleString(
+          "pt-PT",
+          {
+            minimumFractionDigits:2,
+            maximumFractionDigits:2
+          }
+        );
+    }
+
+    if(
+      vat!==null &&
+      !fields.vat.value
+    ){
+      fields.vat.value=
+        vat.toLocaleString(
+          "pt-PT",
+          {
+            minimumFractionDigits:2,
+            maximumFractionDigits:2
+          }
+        );
+    }
+
+    if(
+      documentNumber &&
+      !fields.document.value
+    ){
+      fields.document.value=
+        documentNumber;
+    }
+
+    if(
+      category!=="Outros"
+    ){
+      fields.category.value=
+        category;
+    }
+
+    fields.chips.innerHTML="";
+
+    function chip(text,type){
+
+      const node=el(
+        "span",
+        {class:`chip ${type||""}`},
+        text
+      );
+
+      fields.chips.append(node);
+    }
+
+    if(date){
+      chip(
+        `Data ${date.display}`,
+        "ok"
+      );
+    }else{
+      chip(
+        "Data por confirmar",
+        "warn"
+      );
+    }
+
+    if(total!==null){
+      chip(
+        `Total ${euros(total)}`,
+        "ok"
+      );
+    }else{
+      chip(
+        "Total por confirmar",
+        "warn"
+      );
+    }
+
+    if(nif){
+      chip(
+        `NIF ${nif}`,
+        "ok"
+      );
+    }
+
+    if(supplier){
+      chip(
+        supplier,
+        "ok"
+      );
+    }
+
+    chip(category);
+
+    status(
+      "Leitura concluída. Confirma os dados antes de guardar."
+    );
+
+  }catch(error){
+
+    console.error(error);
+
+    status(
+      "O OCR não conseguiu interpretar completamente o documento. Os campos podem ser preenchidos manualmente."
+    );
+
+  }finally{
+
+    readingOCR=false;
+  }
+}
+
+/* =========================================================
+   GUARDAR
+========================================================= */
+
+async function saveCurrent(form){
+
+  if(
+    busy ||
+    !scanCanvas
+  ){
+    return;
+  }
+
+  const fields=getFields(form);
+
+  const issuedDate=
+    /^\d{4}-\d{2}-\d{2}$/.test(
+      fields.date.value
+    )
+    ?fields.date.value
+    :null;
+
+  const total=moneyFromInput(
+    fields.total.value
+  );
+
+  const vat=moneyFromInput(
+    fields.vat.value
+  );
+
+  const nif=
+    fields.nif.value
+      .replace(/\D/g,"");
+
+  if(
+    fields.total.value.trim() &&
+    total===null
+  ){
+
+    fields.status.textContent=
+      "Total inválido.";
+
+    return;
+  }
+
+  if(
+    fields.vat.value.trim() &&
+    vat===null
+  ){
+
+    fields.status.textContent=
+      "IVA inválido.";
+
+    return;
+  }
+
+  busy=true;
+
+  try{
+
+    const existing=await getInvoices();
+
+    const duplicate=existing.some(
+      item=>
+        nif &&
+        item.nif===nif &&
+        item.issuedDate===issuedDate &&
+        item.total===total
+    );
+
+    if(
+      duplicate &&
+      !confirm(
+        "Já existe uma fatura com o mesmo NIF, data e total. Guardar novamente?"
+      )
+    ){
+
+      busy=false;
+      return;
+    }
+
+    /*
+      MUITO IMPORTANTE:
+      guardamos scanCanvas e NÃO sourceCanvas.
+      Portanto a base de dados fica com a
+      versão digitalizada.
+    */
+
+    const image=await canvasBlob(
+      scanCanvas,
+      .92
+    );
+
+    const invoice={
+      id:crypto.randomUUID(),
+
+      createdAt:Date.now(),
+
+      issuedDate,
+
+      month:monthKey(
+        issuedDate
+      ),
+
+      category:fields.category.value,
+
+      supplier:
+        fields.supplier.value.trim(),
+
+      nif,
+
+      vat,
+
+      total,
+
+      docNumber:
+        fields.document.value.trim(),
+
+      vehicle:
+        fields.vehicle?.value.trim()||"",
+
+      km:
+        fields.km?.value.trim()||"",
+
+      project:
+        fields.project?.value.trim()||"",
+
+      notes:
+        fields.notes?.value.trim()||"",
+
+      ocrText:
+        fields.ocr?.value||"",
+
+      /*
+        Documento final digitalizado.
+      */
+      image,
+
+      /*
+        Guarda dimensão para o PDF
+        saber se é vertical/horizontal.
+      */
+      imageWidth:scanCanvas.width,
+      imageHeight:scanCanvas.height
+    };
+
+    await saveInvoice(invoice);
+
+    sourceCanvas=null;
+    scanCanvas=null;
+    corners=null;
+
+    await showInvoices();
+
+  }catch(error){
+
+    console.error(error);
+
+    fields.status.textContent=
+      "Não foi possível guardar a fatura.";
+
+  }finally{
+
+    busy=false;
+  }
 }
 
 /* =========================================================
    DOCUMENTOS
-   ========================================================= */
+========================================================= */
 
-async function showFaturas(){
+async function showInvoices(){
 
   setTab("faturas");
 
-  revoke();
+  revokeUrls();
 
   main.replaceChildren();
 
   main.append(
-    $("p",{class:"kicker"},"Arquivo"),
-    $("h1",{class:"page-title"},"Documentos")
+    el(
+      "p",
+      {class:"kicker"},
+      "Arquivo"
+    ),
+    el(
+      "h1",
+      {class:"title"},
+      "Documentos"
+    )
   );
 
-  let rows=[];
+  let invoices=[];
 
   try{
-    rows=await listF();
-  }catch{
+
+    invoices=await getInvoices();
+
+  }catch(error){
 
     main.append(
-      $("p",{class:"warn"},
-        "Não consegui abrir os documentos."
+      el(
+        "p",
+        {class:"warn"},
+        "Não consegui abrir o arquivo."
       )
     );
 
     return;
   }
 
-  if(!rows.length){
+  if(!invoices.length){
 
     main.append(
-      $("p",{class:"status"},
+      el(
+        "p",
+        {class:"status"},
         "Ainda não existem documentos."
       )
     );
@@ -3198,47 +3218,54 @@ async function showFaturas(){
     return;
   }
 
-  const search=$(
+  const search=el(
     "input",
     {
       class:"search",
       type:"search",
-      placeholder:"Procurar fornecedor, NIF ou documento"
+      placeholder:"Pesquisar fornecedor, NIF, categoria..."
     }
   );
 
-  const list=$("div");
+  const list=el(
+    "div"
+  );
 
   main.append(
     search,
     list
   );
 
-  const paint=()=>{
-
-    const q=fold(search.value);
+  function render(){
 
     list.replaceChildren();
 
-    revoke();
+    revokeUrls();
 
-    const visible=rows.filter(r=>{
+    const query=normalize(
+      search.value
+    );
 
-      const blob=fold(`
-        ${r.supplier||""}
-        ${r.nif||""}
-        ${r.notes||""}
-        ${r.category||""}
-        ${r.docNumber||""}
-      `);
+    const filtered=invoices.filter(
+      invoice=>
+        !query ||
+        normalize(
+          [
+            invoice.supplier,
+            invoice.nif,
+            invoice.category,
+            invoice.docNumber,
+            invoice.notes
+          ].join(" ")
+        ).includes(query)
+    );
 
-      return !q||blob.includes(q);
-    });
-
-    if(!visible.length){
+    if(!filtered.length){
 
       list.append(
-        $("p",{class:"status"},
+        el(
+          "p",
+          {class:"status"},
           "Nenhum documento encontrado."
         )
       );
@@ -3248,53 +3275,56 @@ async function showFaturas(){
 
     const groups=new Map();
 
-    for(const r of visible){
+    for(const invoice of filtered){
 
-      const k=r.month||"sem-data";
+      const key=
+        invoice.month||"sem-data";
 
-      if(!groups.has(k)){
-        groups.set(k,[]);
+      if(!groups.has(key)){
+        groups.set(key,[]);
       }
 
-      groups.get(k).push(r);
+      groups.get(key).push(invoice);
     }
 
     const keys=[...groups.keys()].sort(
-      (a,b)=>
-        a==="sem-data"
-          ?1
-          :b==="sem-data"
-            ?-1
-            :a<b?1:-1
+      (a,b)=>{
+
+        if(a==="sem-data")return 1;
+        if(b==="sem-data")return -1;
+
+        return a<b?1:-1;
+      }
     );
 
     for(const key of keys){
 
       const items=groups.get(key);
 
-      let grand=0;
+      let total=0;
       let vat=0;
 
-      const sums=new Map();
+      const categories=new Map();
 
-      for(const it of items){
+      for(const invoice of items){
 
-        if(it.total!=null){
+        if(invoice.total!==null){
 
-          grand+=it.total;
+          total+=invoice.total;
 
-          sums.set(
-            it.category,
-            (sums.get(it.category)||0)+it.total
+          categories.set(
+            invoice.category,
+            (categories.get(invoice.category)||0)
+              +invoice.total
           );
         }
 
-        if(it.vat!=null){
-          vat+=it.vat;
+        if(invoice.vat!==null){
+          vat+=invoice.vat;
         }
       }
 
-      const card=$(
+      const card=el(
         "section",
         {class:"card"}
       );
@@ -3302,7 +3332,7 @@ async function showFaturas(){
       card.innerHTML=`
         <div class="month">
           <h2>${monthLabel(key)}</h2>
-          <p class="sum">${euros(grand)}</p>
+          <p class="sum">${euros(total)}</p>
         </div>
 
         <p class="status">
@@ -3310,68 +3340,80 @@ async function showFaturas(){
         </p>
       `;
 
-      for(const c of CATS){
+      for(const category of CATEGORIES){
 
-        if(!sums.has(c))continue;
+        if(!categories.has(category)){
+          continue;
+        }
 
         card.append(
-          $("div",{class:"sub"},
-            `<span>${c}</span>
-             <strong>${euros(sums.get(c))}</strong>`
+          el(
+            "div",
+            {class:"sub"},
+            `
+            <span>${safeHTML(category)}</span>
+            <strong>${euros(categories.get(category))}</strong>
+            `
           )
         );
       }
 
-      for(const it of items){
+      for(const invoice of items){
 
         const url=URL.createObjectURL(
-          it.image
+          invoice.image
         );
 
-        urls.push(url);
+        objectUrls.push(url);
 
-        const date=it.issuedDate
-          ?it.issuedDate.split("-").reverse().join("/")
-          :"Sem data";
-
-        const item=$(
+        const item=el(
           "article",
           {class:"item"}
         );
 
+        const date=invoice.issuedDate
+          ?invoice.issuedDate
+            .split("-")
+            .reverse()
+            .join("/")
+          :"Sem data";
+
         item.innerHTML=`
           <img
             src="${url}"
-            alt="Documento digitalizado"
+            alt=""
           >
 
           <div>
+
             <h3>
-              ${escapeHtml(
-                it.supplier||date
+              ${safeHTML(
+                invoice.supplier||date
               )}
             </h3>
 
             <p>
-              ${date} ·
-              ${escapeHtml(it.category||"Outros")} ·
-              ${euros(it.total)}
+              ${date}
+              ·
+              ${safeHTML(invoice.category)}
+              ·
+              ${euros(invoice.total)}
             </p>
 
             ${
-              it.nif
-                ?`<p>NIF ${it.nif}</p>`
-                :""
+              invoice.nif
+              ?`<p>NIF ${safeHTML(invoice.nif)}</p>`
+              :""
             }
 
             <div
               class="row"
-              style="margin-top:8px"
+              style="margin-top:9px"
             >
 
               <button
-                class="btn soft tiny"
-                data-edit="${it.id}"
+                class="btn ghost tiny"
+                data-edit="${invoice.id}"
                 type="button"
               >
                 Corrigir
@@ -3379,13 +3421,14 @@ async function showFaturas(){
 
               <button
                 class="btn danger tiny"
-                data-del="${it.id}"
+                data-delete="${invoice.id}"
                 type="button"
               >
                 Apagar
               </button>
 
             </div>
+
           </div>
         `;
 
@@ -3395,167 +3438,196 @@ async function showFaturas(){
       list.append(card);
     }
 
-    list.querySelectorAll(
-      "[data-del]"
-    ).forEach(button=>{
+    list
+      .querySelectorAll("[data-delete]")
+      .forEach(button=>{
 
-      button.onclick=async()=>{
+        button.onclick=async()=>{
 
-        if(
-          !confirm(
-            "Apagar esta fatura?"
-          )
-        ){
-          return;
-        }
+          if(
+            !confirm(
+              "Apagar esta fatura?"
+            )
+          ){
+            return;
+          }
 
-        await delF(
-          button.dataset.del
-        );
+          await deleteInvoice(
+            button.dataset.delete
+          );
 
-        showFaturas();
-      };
-    });
+          showInvoices();
+        };
+      });
 
-    list.querySelectorAll(
-      "[data-edit]"
-    ).forEach(button=>{
+    list
+      .querySelectorAll("[data-edit]")
+      .forEach(button=>{
 
-      button.onclick=async()=>{
+        button.onclick=async()=>{
 
-        const it=rows.find(
-          r=>r.id===button.dataset.edit
-        );
+          const invoice=invoices.find(
+            x=>x.id===button.dataset.edit
+          );
 
-        if(it){
-          openEdit(it);
-        }
-      };
-    });
-  };
+          if(invoice){
+            openEdit(invoice);
+          }
+        };
+      });
+  }
 
-  search.oninput=paint;
+  search.oninput=render;
 
-  paint();
+  render();
 }
 
 /* =========================================================
    EDITAR
-   ========================================================= */
+========================================================= */
 
-function openEdit(it){
+function openEdit(invoice){
+
+  revokeUrls();
+
+  const url=URL.createObjectURL(
+    invoice.image
+  );
+
+  objectUrls.push(url);
 
   main.replaceChildren();
 
-  const url=URL.createObjectURL(
-    it.image
+  main.append(
+    el(
+      "p",
+      {class:"kicker"},
+      "Documento"
+    ),
+    el(
+      "h1",
+      {class:"title"},
+      "Corrigir"
+    )
   );
 
-  urls.push(url);
-
-  const money=v=>
-    v==null
-      ?""
-      :v.toLocaleString(
-        "pt-PT",
-        {
-          minimumFractionDigits:2,
-          maximumFractionDigits:2
-        }
-      );
-
-  const card=$(
+  const card=el(
     "section",
     {class:"card"}
   );
 
   card.innerHTML=`
-    <div class="scan-wrap">
-      <img
-        src="${url}"
-        alt="Documento digitalizado"
-      >
-      <div class="scan-badge">
-        DIGITALIZAÇÃO
-      </div>
-    </div>
 
-    <label>
-      Fornecedor
-      <input
-        data-supplier
-        value="${escapeAttr(it.supplier||"")}"
-      >
-    </label>
+  <div class="scan-wrap">
+    <img
+      src="${url}"
+      alt=""
+    >
+  </div>
 
-    <label>
-      NIF
-      <input
-        data-nif
-        value="${escapeAttr(it.nif||"")}"
-      >
-    </label>
+  <label>
+    Fornecedor
+    <input
+      data-supplier
+      value="${safeHTML(invoice.supplier)}"
+    >
+  </label>
 
-    <label>
-      Data de emissão
-      <input
-        data-date
-        type="date"
-        value="${it.issuedDate||""}"
-      >
-    </label>
+  <label>
+    NIF
+    <input
+      data-nif
+      inputmode="numeric"
+      value="${safeHTML(invoice.nif)}"
+    >
+  </label>
 
-    <label>
-      IVA (€)
-      <input
-        data-vat
-        value="${money(it.vat)}"
-      >
-    </label>
+  <label>
+    Data
+    <input
+      data-date
+      type="date"
+      value="${safeHTML(invoice.issuedDate||"")}"
+    >
+  </label>
 
-    <label>
-      Total (€)
-      <input
-        data-total
-        value="${money(it.total)}"
-      >
-    </label>
+  <label>
+    IVA (€)
+    <input
+      data-vat
+      inputmode="decimal"
+      value="${
+        invoice.vat===null
+          ?""
+          :invoice.vat.toLocaleString(
+              "pt-PT",
+              {
+                minimumFractionDigits:2,
+                maximumFractionDigits:2
+              }
+            )
+      }"
+    >
+  </label>
 
-    <label>
-      Categoria
-      <select data-cat>
-        ${CATS.map(c=>
-          `<option ${
-            c===it.category?"selected":""
-          }>${c}</option>`
-        ).join("")}
-      </select>
-    </label>
+  <label>
+    Total (€)
+    <input
+      data-total
+      inputmode="decimal"
+      value="${
+        invoice.total===null
+          ?""
+          :invoice.total.toLocaleString(
+              "pt-PT",
+              {
+                minimumFractionDigits:2,
+                maximumFractionDigits:2
+              }
+            )
+      }"
+    >
+  </label>
 
-    <label>
-      N.º do documento
-      <input
-        data-doc
-        value="${escapeAttr(it.docNumber||"")}"
-      >
-    </label>
+  <label>
+    Categoria
 
-    <label>
-      Notas
-      <input
-        data-notes
-        value="${escapeAttr(it.notes||"")}"
-      >
-    </label>
+    <select data-category>
+      ${CATEGORIES.map(
+        c=>
+        `<option ${
+          c===invoice.category
+            ?"selected"
+            :""
+        }>${c}</option>`
+      ).join("")}
+    </select>
+  </label>
+
+  <label>
+    Número do documento
+    <input
+      data-document
+      value="${safeHTML(invoice.docNumber||"")}"
+    >
+  </label>
+
+  <label>
+    Notas
+    <input
+      data-notes
+      value="${safeHTML(invoice.notes||"")}"
+    >
+  </label>
   `;
 
-  const save=$(
+  const save=el(
     "button",
     {class:"btn primary",type:"button"},
-    "✓ Atualizar"
+    "Guardar alterações"
   );
 
-  const back=$(
+  const back=el(
     "button",
     {
       class:"btn ghost",
@@ -3565,96 +3637,97 @@ function openEdit(it){
     "Voltar"
   );
 
-  const status=$(
+  const status=el(
     "p",
-    {class:"status"}
+    {class:"status",style:"margin-top:10px"}
   );
 
   main.append(
-    $("h1",{class:"page-title"},"Corrigir"),
     card,
     save,
     back,
     status
   );
 
-  back.onclick=showFaturas;
+  back.onclick=showInvoices;
 
   save.onclick=async()=>{
 
-    const date=card.querySelector(
-      "[data-date]"
-    ).value;
-
-    const total=userMoney(
-      card.querySelector(
-        "[data-total]"
-      ).value
-    );
-
-    const vat=userMoney(
-      card.querySelector(
-        "[data-vat]"
-      ).value
-    );
-
-    const issued=
-      /^\d{4}-\d{2}-\d{2}$/.test(date)
-        ?date
-        :null;
-
     try{
 
-      await saveF({
-        ...it,
+      const date=
+        card.querySelector("[data-date]").value;
 
-        issuedDate:issued,
-        month:monthKey(issued),
+      const total=
+        moneyFromInput(
+          card.querySelector("[data-total]").value
+        );
 
-        total,
-        vat,
+      const vat=
+        moneyFromInput(
+          card.querySelector("[data-vat]").value
+        );
+
+      await saveInvoice({
+        ...invoice,
+
+        issuedDate:
+          /^\d{4}-\d{2}-\d{2}$/.test(date)
+            ?date
+            :null,
+
+        month:monthKey(
+          date
+        ),
 
         supplier:
-          card.querySelector(
-            "[data-supplier]"
-          ).value.trim(),
+          card
+            .querySelector("[data-supplier]")
+            .value
+            .trim(),
 
         nif:
-          card.querySelector(
-            "[data-nif]"
-          ).value.replace(/\D/g,""),
+          card
+            .querySelector("[data-nif]")
+            .value
+            .replace(/\D/g,""),
+
+        vat,
+        total,
 
         category:
-          card.querySelector(
-            "[data-cat]"
-          ).value,
+          card
+            .querySelector("[data-category]")
+            .value,
 
         docNumber:
-          card.querySelector(
-            "[data-doc]"
-          ).value.trim(),
+          card
+            .querySelector("[data-document]")
+            .value
+            .trim(),
 
         notes:
-          card.querySelector(
-            "[data-notes]"
-          ).value.trim()
+          card
+            .querySelector("[data-notes]")
+            .value
+            .trim()
       });
 
-      showFaturas();
+      await showInvoices();
 
-    }catch{
+    }catch(error){
 
       status.textContent=
-        "Não consegui atualizar.";
+        "Não foi possível atualizar.";
     }
   };
 }
 
 /* =========================================================
-   ANÁLISE / EXPORTAÇÃO
-   ========================================================= */
+   EXPORTAÇÃO / ANÁLISE
+========================================================= */
 
-async function showResumo(exportMode=false){
+async function showSummary(exportMode=false){
 
   setTab(
     exportMode
@@ -3665,28 +3738,48 @@ async function showResumo(exportMode=false){
   main.replaceChildren();
 
   main.append(
-    $("p",{class:"kicker"},
+    el(
+      "p",
+      {class:"kicker"},
       exportMode
-        ?"Enviar o mês"
+        ?"Impressão e exportação"
         :"Totais"
     ),
-
-    $("h1",{class:"page-title"},
+    el(
+      "h1",
+      {class:"title"},
       exportMode
         ?"Exportar"
         :"Análise"
     )
   );
 
-  let rows=[];
+  let invoices=[];
 
   try{
-    rows=await listF();
-  }catch{
+
+    invoices=await getInvoices();
+
+  }catch(error){
 
     main.append(
-      $("p",{class:"warn"},
-        "Não consegui abrir os documentos."
+      el(
+        "p",
+        {class:"warn"},
+        "Não consegui abrir as faturas."
+      )
+    );
+
+    return;
+  }
+
+  if(!invoices.length){
+
+    main.append(
+      el(
+        "p",
+        {class:"status"},
+        "Ainda não existem documentos."
       )
     );
 
@@ -3695,115 +3788,262 @@ async function showResumo(exportMode=false){
 
   const months=[
     ...new Set(
-      rows.map(
-        r=>r.month||"sem-data"
+      invoices.map(
+        invoice=>invoice.month||"sem-data"
       )
     )
   ].sort(
     (a,b)=>a<b?1:-1
   );
 
-  if(!months.length){
-
-    main.append(
-      $("p",{class:"status"},
-        "Ainda não existem faturas."
-      )
-    );
-
-    return;
-  }
-
-  const card=$(
+  const card=el(
     "section",
     {class:"card"}
   );
 
-  const select=$("select");
-
-  select.setAttribute(
-    "aria-label",
-    "Mês"
+  const select=el(
+    "select"
   );
 
-  months.forEach(k=>{
+  months.forEach(month=>{
 
-    const option=$("option");
-
-    option.value=k;
-    option.textContent=monthLabel(k);
-
-    select.append(option);
+    select.append(
+      el(
+        "option",
+        {value:month},
+        monthLabel(month)
+      )
+    );
   });
 
-  const stats=$("div");
-
-  const actions=$(
-    "div",
-    {class:"row"}
-  );
-
-  const pdf=$(
-    "button",
-    {class:"btn primary",type:"button"},
-    "PDF compacto"
-  );
-
-  const csv=$(
-    "button",
-    {class:"btn ghost",type:"button"},
-    "Excel"
-  );
-
-  actions.append(
-    pdf,
-    csv
-  );
+  const stats=el("div");
 
   card.append(
     select,
-    stats,
-    actions
+    stats
   );
+
+  if(exportMode){
+
+    const title=el(
+      "p",
+      {
+        style:"font-weight:900;margin:18px 0 8px"
+      },
+      "Impressão"
+    );
+
+    const info=el(
+      "p",
+      {class:"status"},
+      "As imagens usadas no PDF são as versões já digitalizadas e recortadas."
+    );
+
+    const layout=el(
+      "div",
+      {class:"print-options"}
+    );
+
+    const one=el(
+      "div",
+      {class:"print-option"}
+    );
+
+    one.innerHTML=`
+      <b>Compacto</b>
+      <span>Várias faturas por página, aproveitando melhor o papel.</span>
+    `;
+
+    const large=el(
+      "div",
+      {class:"print-option"}
+    );
+
+    large.innerHTML=`
+      <b>Documento</b>
+      <span>Uma fatura maior por área de impressão.</span>
+    `;
+
+    layout.append(
+      one,
+      large
+    );
+
+    const copiesTitle=el(
+      "p",
+      {
+        style:"font-weight:900;margin:18px 0 8px"
+      },
+      "Número de cópias"
+    );
+
+    const copies=el(
+      "div",
+      {class:"copies"}
+    );
+
+    const minus=el(
+      "button",
+      {type:"button"},
+      "−"
+    );
+
+    const copiesInput=el(
+      "input",
+      {
+        type:"number",
+        min:"1",
+        max:"20",
+        value:"1"
+      }
+    );
+
+    const plus=el(
+      "button",
+      {type:"button"},
+      "+"
+    );
+
+    copies.append(
+      minus,
+      copiesInput,
+      plus
+    );
+
+    minus.onclick=()=>{
+      copiesInput.value=
+        Math.max(
+          1,
+          Number(copiesInput.value)-1
+        );
+    };
+
+    plus.onclick=()=>{
+      copiesInput.value=
+        Math.min(
+          20,
+          Number(copiesInput.value)+1
+        );
+    };
+
+    const pdfCompact=el(
+      "button",
+      {
+        class:"btn primary",
+        type:"button",
+        style:"margin-top:16px"
+      },
+      "PDF compacto para impressão"
+    );
+
+    const pdfNormal=el(
+      "button",
+      {
+        class:"btn ghost",
+        type:"button",
+        style:"margin-top:10px"
+      },
+      "PDF — uma por área"
+    );
+
+    const csv=el(
+      "button",
+      {
+        class:"btn ghost",
+        type:"button",
+        style:"margin-top:10px"
+      },
+      "Exportar Excel / CSV"
+    );
+
+    card.append(
+      title,
+      info,
+      layout,
+      copiesTitle,
+      copies,
+      pdfCompact,
+      pdfNormal,
+      csv
+    );
+
+    pdfCompact.onclick=()=>{
+
+      createPDF(
+        invoices,
+        select.value,
+        "compact",
+        Math.max(
+          1,
+          Number(copiesInput.value)||1
+        ),
+        pdfCompact
+      );
+    };
+
+    pdfNormal.onclick=()=>{
+
+      createPDF(
+        invoices,
+        select.value,
+        "normal",
+        Math.max(
+          1,
+          Number(copiesInput.value)||1
+        ),
+        pdfNormal
+      );
+    };
+
+    csv.onclick=()=>{
+
+      exportCSV(
+        invoices,
+        select.value
+      );
+    };
+  }
 
   main.append(card);
 
-  const itemsOf=()=>rows.filter(
-    r=>
-      (r.month||"sem-data")===
-      select.value
-  );
+  function paint(){
 
-  const paint=()=>{
+    const items=invoices.filter(
+      invoice=>
+        (invoice.month||"sem-data")
+        ===select.value
+    );
 
-    const items=itemsOf();
-
-    let grand=0;
+    let total=0;
     let vat=0;
 
-    const sums=new Map();
+    const categories=new Map();
 
-    for(const it of items){
+    for(const invoice of items){
 
-      if(it.total!=null){
+      if(invoice.total!==null){
 
-        grand+=it.total;
+        total+=invoice.total;
 
-        sums.set(
-          it.category,
-          (sums.get(it.category)||0)+it.total
+        categories.set(
+          invoice.category,
+          (categories.get(invoice.category)||0)
+            +invoice.total
         );
       }
 
-      if(it.vat!=null){
-        vat+=it.vat;
+      if(invoice.vat!==null){
+        vat+=invoice.vat;
       }
     }
 
     stats.innerHTML=`
-      <div class="month">
+      <div
+        class="month"
+        style="margin-top:18px"
+      >
         <h2>${items.length} docs</h2>
-        <p class="sum">${euros(grand)}</p>
+        <p class="sum">${euros(total)}</p>
       </div>
 
       <p class="status">
@@ -3811,395 +4051,496 @@ async function showResumo(exportMode=false){
       </p>
 
       ${
-        CATS
-          .filter(c=>sums.has(c))
-          .map(c=>
-            `<div class="sub">
-              <span>${c}</span>
-              <strong>${euros(
-                sums.get(c)
-              )}</strong>
-            </div>`
+        CATEGORIES
+          .filter(c=>categories.has(c))
+          .map(
+            c=>
+            `
+            <div class="sub">
+              <span>${safeHTML(c)}</span>
+              <strong>${euros(categories.get(c))}</strong>
+            </div>
+            `
           )
           .join("")
       }
     `;
-  };
+  }
 
   select.onchange=paint;
 
   paint();
-
-  /* =======================================================
-     PDF
-     ======================================================= */
-
-  pdf.onclick=async()=>{
-
-    const items=itemsOf();
-
-    if(!items.length){
-
-      alert(
-        "Não existem documentos neste mês."
-      );
-
-      return;
-    }
-
-    pdf.textContent="A criar PDF…";
-    pdf.disabled=true;
-
-    try{
-
-      if(!window.jspdf){
-
-        await loadScript(
-          "https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"
-        );
-      }
-
-      const jsPDF=
-        window.jspdf.jsPDF;
-
-      /*
-        A4.
-        4 documentos por folha.
-      */
-
-      const doc=new jsPDF({
-        unit:"mm",
-        format:"a4",
-        orientation:"portrait",
-        compress:true
-      });
-
-      const pageW=
-        doc.internal.pageSize.getWidth();
-
-      const pageH=
-        doc.internal.pageSize.getHeight();
-
-      const margin=7;
-      const gap=5;
-
-      const cellW=
-        (pageW-margin*2-gap)/2;
-
-      const cellH=
-        (pageH-margin*2-gap)/2;
-
-      /*
-        Cabeçalho muito pequeno.
-        O objetivo é poupar papel.
-      */
-
-      for(let i=0;i<items.length;i++){
-
-        const position=i%4;
-
-        if(
-          i>0 &&
-          position===0
-        ){
-          doc.addPage();
-        }
-
-        const col=position%2;
-        const row=Math.floor(position/2);
-
-        const x=
-          margin+
-          col*(cellW+gap);
-
-        const y=
-          margin+
-          row*(cellH+gap);
-
-        const it=items[i];
-
-        /*
-          Caixa muito discreta para facilitar
-          corte manual das cópias.
-        */
-
-        doc.setDrawColor(
-          190,
-          190,
-          190
-        );
-
-        doc.setLineWidth(.25);
-
-        doc.rect(
-          x,
-          y,
-          cellW,
-          cellH
-        );
-
-        /*
-          Cabeçalho.
-        */
-
-        doc.setFont(
-          "helvetica",
-          "bold"
-        );
-
-        doc.setFontSize(7);
-
-        doc.setTextColor(
-          30,
-          30,
-          30
-        );
-
-        const date=it.issuedDate
-          ?it.issuedDate
-            .split("-")
-            .reverse()
-            .join("/")
-          :"Sem data";
-
-        const title=[
-          it.supplier||"Documento",
-          date
-        ].join(" · ");
-
-        doc.text(
-          title.slice(0,58),
-          x+3,
-          y+4
-        );
-
-        doc.text(
-          euros(it.total),
-          x+cellW-3,
-          y+4,
-          {align:"right"}
-        );
-
-        /*
-          Converter blob para DataURL.
-        */
-
-        const data=await blobToDataURL(
-          it.image
-        );
-
-        /*
-          Área de imagem.
-        */
-
-        const imgX=x+3;
-        const imgY=y+7;
-        const imgW=cellW-6;
-        const imgH=cellH-10;
-
-        /*
-          jsPDF consegue preservar proporção
-          quando passamos a dimensão correta.
-        */
-
-        const size=await imageSize(
-          data
-        );
-
-        const ratio=Math.min(
-          imgW/size.width,
-          imgH/size.height
-        );
-
-        const drawW=
-          size.width*ratio;
-
-        const drawH=
-          size.height*ratio;
-
-        const drawX=
-          imgX+(imgW-drawW)/2;
-
-        const drawY=
-          imgY+(imgH-drawH)/2;
-
-        doc.addImage(
-          data,
-          "JPEG",
-          drawX,
-          drawY,
-          drawW,
-          drawH,
-          undefined,
-          "FAST"
-        );
-      }
-
-      const blob=doc.output(
-        "blob"
-      );
-
-      await downloadOrShare(
-        `faturas-${select.value}-4porfolha.pdf`,
-        blob,
-        "application/pdf"
-      );
-
-    }catch(error){
-
-      console.error(error);
-
-      alert(
-        "Não consegui criar o PDF."
-      );
-
-    }finally{
-
-      pdf.textContent=
-        "PDF compacto";
-
-      pdf.disabled=false;
-    }
-  };
-
-  /* =======================================================
-     CSV
-     ======================================================= */
-
-  csv.onclick=async()=>{
-
-    const items=itemsOf();
-
-    const lines=[
-      [
-        "Data",
-        "Fornecedor",
-        "NIF",
-        "Documento",
-        "Categoria",
-        "IVA",
-        "Total",
-        "Viatura",
-        "Km",
-        "Projeto",
-        "Notas"
-      ].join(";")
-    ];
-
-    const cell=v=>
-      `"${String(v??"")
-        .replace(/"/g,'""')}"`;
-
-    for(const it of items){
-
-      const date=it.issuedDate
-        ?it.issuedDate
-          .split("-")
-          .reverse()
-          .join("/")
-        :"";
-
-      lines.push([
-        date,
-        it.supplier,
-        it.nif,
-        it.docNumber,
-        it.category,
-        it.vat??"",
-        it.total??"",
-        it.vehicle??"",
-        it.km??"",
-        it.project??"",
-        it.notes??""
-      ].map(cell).join(";"));
-    }
-
-    await downloadOrShare(
-      `faturas-${select.value}.csv`,
-      new Blob(
-        [
-          "\uFEFF"+
-          lines.join("\r\n")
-        ],
-        {
-          type:
-            "text/csv;charset=utf-8"
-        }
-      ),
-      "text/csv"
-    );
-  };
 }
 
 /* =========================================================
-   UTILITÁRIOS EXPORTAÇÃO
-   ========================================================= */
+   PDF
+========================================================= */
 
-function loadScript(src){
+async function loadJsPDF(){
 
-  return new Promise(
-    (resolve,reject)=>{
+  if(window.jspdf?.jsPDF){
+    return;
+  }
 
-      const s=document.createElement(
-        "script"
+  await new Promise((resolve,reject)=>{
+
+    const script=document.createElement("script");
+
+    script.src=
+      "https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js";
+
+    script.onload=resolve;
+    script.onerror=reject;
+
+    document.head.append(script);
+  });
+}
+
+async function blobToDataURL(blob){
+
+  return new Promise((resolve,reject)=>{
+
+    const reader=new FileReader();
+
+    reader.onload=()=>{
+      resolve(reader.result);
+    };
+
+    reader.onerror=reject;
+
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function createPDF(
+  invoices,
+  month,
+  mode,
+  copies,
+  button
+){
+
+  button.disabled=true;
+
+  const originalText=button.textContent;
+
+  button.textContent=
+    "A criar PDF…";
+
+  try{
+
+    await loadJsPDF();
+
+    const selected=invoices.filter(
+      invoice=>
+        (invoice.month||"sem-data")
+        ===month
+    );
+
+    /*
+      Repete as faturas conforme número de cópias.
+    */
+
+    const printable=[];
+
+    for(const invoice of selected){
+
+      for(let i=0;i<copies;i++){
+
+        printable.push(invoice);
+      }
+    }
+
+    const PDF=window.jspdf.jsPDF;
+
+    const pdf=new PDF({
+      orientation:"portrait",
+      unit:"mm",
+      format:"a4",
+      compress:true
+    });
+
+    const pageWidth=
+      pdf.internal.pageSize.getWidth();
+
+    const pageHeight=
+      pdf.internal.pageSize.getHeight();
+
+    const margin=8;
+
+    if(mode==="compact"){
+
+      /*
+        A4 com 2 colunas.
+        Cada documento é colocado dentro
+        do espaço disponível mantendo a
+        proporção da digitalização.
+
+        Para recibos estreitos, o espaço
+        vertical é reduzido.
+      */
+
+      const columns=2;
+      const gap=4;
+
+      const boxWidth=
+        (pageWidth-margin*2-gap)
+        /columns;
+
+      const boxHeight=65;
+
+      let x=margin;
+      let y=margin;
+      let column=0;
+
+      let first=true;
+
+      for(const invoice of printable){
+
+        if(!first){
+
+          if(column===columns-1){
+
+            column=0;
+            x=margin;
+            y+=boxHeight+gap;
+
+          }else{
+
+            column++;
+            x+=boxWidth+gap;
+          }
+        }
+
+        if(
+          y+boxHeight>
+          pageHeight-margin
+        ){
+
+          pdf.addPage();
+
+          x=margin;
+          y=margin;
+          column=0;
+        }
+
+        first=false;
+
+        const data=
+          await blobToDataURL(
+            invoice.image
+          );
+
+        /*
+          Moldura muito discreta para facilitar
+          o corte das cópias impressas.
+        */
+
+        pdf.setDrawColor(
+          210,
+          210,
+          210
+        );
+
+        pdf.rect(
+          x,
+          y,
+          boxWidth,
+          boxHeight
+        );
+
+        const ratio=
+          (invoice.imageWidth||1000)/
+          (invoice.imageHeight||1400);
+
+        let imageWidth=boxWidth-4;
+        let imageHeight=imageWidth/ratio;
+
+        if(imageHeight>boxHeight-12){
+
+          imageHeight=boxHeight-12;
+          imageWidth=imageHeight*ratio;
+        }
+
+        const imageX=
+          x+(boxWidth-imageWidth)/2;
+
+        const imageY=
+          y+4;
+
+        pdf.addImage(
+          data,
+          "JPEG",
+          imageX,
+          imageY,
+          imageWidth,
+          imageHeight,
+          undefined,
+          "FAST"
+        );
+
+        /*
+          Pequena legenda apenas se houver
+          espaço suficiente.
+        */
+
+        const date=
+          invoice.issuedDate
+            ?invoice.issuedDate
+              .split("-")
+              .reverse()
+              .join("/")
+            :"";
+
+        const label=[
+          invoice.supplier||"",
+          date
+        ].filter(Boolean).join(" · ");
+
+        if(label){
+
+          pdf.setFont(
+            "helvetica",
+            "normal"
+          );
+
+          pdf.setFontSize(5.5);
+
+          pdf.setTextColor(
+            80,
+            80,
+            80
+          );
+
+          pdf.text(
+            label.substring(0,55),
+            x+2,
+            y+boxHeight-2
+          );
+        }
+      }
+
+    }else{
+
+      /*
+        Modo normal:
+        cada documento ocupa uma área
+        confortável, mas continua a manter
+        a proporção original.
+      */
+
+      let y=margin;
+
+      for(let index=0;index<printable.length;index++){
+
+        const invoice=printable[index];
+
+        if(
+          index>0 &&
+          y>pageHeight-80
+        ){
+
+          pdf.addPage();
+
+          y=margin;
+        }
+
+        const data=
+          await blobToDataURL(
+            invoice.image
+          );
+
+        const ratio=
+          (invoice.imageWidth||1000)/
+          (invoice.imageHeight||1400);
+
+        const maxWidth=
+          pageWidth-margin*2;
+
+        const maxHeight=
+          pageHeight-40;
+
+        let width=maxWidth;
+        let height=width/ratio;
+
+        if(height>maxHeight){
+
+          height=maxHeight;
+          width=height*ratio;
+        }
+
+        const x=
+          (pageWidth-width)/2;
+
+        pdf.addImage(
+          data,
+          "JPEG",
+          x,
+          y,
+          width,
+          height,
+          undefined,
+          "FAST"
+        );
+
+        y+=height+10;
+      }
+    }
+
+    /*
+      Rodapé discreto.
+    */
+
+    const pageCount=
+      pdf.getNumberOfPages();
+
+    for(
+      let page=1;
+      page<=pageCount;
+      page++
+    ){
+
+      pdf.setPage(page);
+
+      pdf.setFont(
+        "helvetica",
+        "normal"
       );
 
-      s.src=src;
+      pdf.setFontSize(6);
 
-      s.onload=resolve;
-      s.onerror=reject;
+      pdf.setTextColor(
+        140,
+        140,
+        140
+      );
 
-      document.head.append(s);
+      pdf.text(
+        `Faturas pela TCAP · ${monthLabel(month)} · ${page}/${pageCount}`,
+        pageWidth-margin,
+        pageHeight-3,
+        {align:"right"}
+      );
     }
+
+    const blob=
+      pdf.output("blob");
+
+    await downloadOrShare(
+      blob,
+      `faturas-${month}-${mode}.pdf`,
+      "application/pdf"
+    );
+
+  }catch(error){
+
+    console.error(error);
+
+    alert(
+      "Não foi possível criar o PDF."
+    );
+
+  }finally{
+
+    button.disabled=false;
+    button.textContent=
+      originalText;
+  }
+}
+
+/* =========================================================
+   CSV
+========================================================= */
+
+async function exportCSV(
+  invoices,
+  month
+){
+
+  const selected=invoices.filter(
+    invoice=>
+      (invoice.month||"sem-data")
+      ===month
+  );
+
+  const rows=[
+    [
+      "Data",
+      "Fornecedor",
+      "NIF",
+      "Documento",
+      "Categoria",
+      "IVA",
+      "Total",
+      "Viatura",
+      "KM",
+      "Projeto",
+      "Notas"
+    ].join(";")
+  ];
+
+  const quote=value=>
+    `"${String(value??"")
+      .replace(/"/g,'""')}"`;
+
+  for(const invoice of selected){
+
+    const date=invoice.issuedDate
+      ?invoice.issuedDate
+        .split("-")
+        .reverse()
+        .join("/")
+      :"";
+
+    rows.push(
+      [
+        date,
+        invoice.supplier,
+        invoice.nif,
+        invoice.docNumber,
+        invoice.category,
+        invoice.vat??"",
+        invoice.total??"",
+        invoice.vehicle,
+        invoice.km,
+        invoice.project,
+        invoice.notes
+      ]
+      .map(quote)
+      .join(";")
+    );
+  }
+
+  const blob=new Blob(
+    [
+      "\uFEFF",
+      rows.join("\r\n")
+    ],
+    {
+      type:"text/csv;charset=utf-8"
+    }
+  );
+
+  await downloadOrShare(
+    blob,
+    `faturas-${month}.csv`,
+    "text/csv"
   );
 }
 
-function blobToDataURL(blob){
-
-  return new Promise(
-    (resolve,reject)=>{
-
-      const reader=
-        new FileReader();
-
-      reader.onload=()=>
-        resolve(reader.result);
-
-      reader.onerror=reject;
-
-      reader.readAsDataURL(blob);
-    }
-  );
-}
-
-function imageSize(data){
-
-  return new Promise(
-    (resolve,reject)=>{
-
-      const img=new Image();
-
-      img.onload=()=>resolve({
-        width:img.naturalWidth,
-        height:img.naturalHeight
-      });
-
-      img.onerror=reject;
-
-      img.src=data;
-    }
-  );
-}
+/* =========================================================
+   DOWNLOAD / PARTILHA
+========================================================= */
 
 async function downloadOrShare(
-  name,
   blob,
+  filename,
   type
 ){
 
   const file=new File(
     [blob],
-    name,
+    filename,
     {type}
   );
 
@@ -4214,7 +4555,7 @@ async function downloadOrShare(
 
       await navigator.share({
         files:[file],
-        title:name
+        title:filename
       });
 
       return;
@@ -4222,7 +4563,6 @@ async function downloadOrShare(
     }catch(error){
 
       if(
-        error &&
         error.name==="AbortError"
       ){
         return;
@@ -4233,211 +4573,125 @@ async function downloadOrShare(
   const url=
     URL.createObjectURL(blob);
 
-  const a=document.createElement("a");
+  const anchor=
+    document.createElement("a");
 
-  a.href=url;
-  a.download=name;
+  anchor.href=url;
+  anchor.download=filename;
 
-  document.body.append(a);
+  document.body.append(anchor);
 
-  a.click();
+  anchor.click();
 
-  a.remove();
+  anchor.remove();
 
   setTimeout(
     ()=>URL.revokeObjectURL(url),
-    3000
+    1000
   );
 }
 
 /* =========================================================
-   SEGURANÇA HTML
-   ========================================================= */
+   EVENTOS
+========================================================= */
 
-function escapeHtml(value){
+nav.addEventListener(
+  "click",
+  event=>{
 
-  return String(value??"")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
-}
+    const button=
+      event.target.closest("button");
 
-function escapeAttr(value){
-
-  return escapeHtml(value);
-}
-
-/* =========================================================
-   IMPRESSÃO COMPACTA
-   =========================================================
-
-   Esta função fica disponível para uma futura opção
-   "Imprimir diretamente".
-
-   O PDF continua a ser a opção principal.
-   ========================================================= */
-
-async function preparePrint(month){
-
-  const rows=await listF();
-
-  const items=rows.filter(
-    r=>
-      (r.month||"sem-data")===month
-  );
-
-  const printRoot=
-    document.getElementById(
-      "printRoot"
-    );
-
-  printRoot.innerHTML="";
-
-  for(let i=0;i<items.length;i+=4){
-
-    const page=$(
-      "div",
-      {class:"print-page"}
-    );
-
-    const batch=items.slice(
-      i,
-      i+4
-    );
-
-    for(const it of batch){
-
-      const box=$(
-        "div",
-        {class:"print-doc"}
-      );
-
-      const head=$(
-        "div",
-        {class:"print-doc-head"}
-      );
-
-      head.innerHTML=`
-        <span>
-          ${escapeHtml(
-            it.supplier||"Documento"
-          )}
-        </span>
-
-        <span>
-          ${euros(it.total)}
-        </span>
-      `;
-
-      const img=$("img");
-
-      img.src=
-        URL.createObjectURL(
-          it.image
-        );
-
-      box.append(
-        head,
-        img
-      );
-
-      page.append(box);
+    if(!button){
+      return;
     }
 
-    printRoot.append(page);
+    const tab=
+      button.dataset.tab;
+
+    if(tab==="nova"){
+      showHome();
+    }
+
+    if(tab==="faturas"){
+      showInvoices();
+    }
+
+    if(tab==="resumo"){
+      showSummary(false);
+    }
+
+    if(tab==="exportar"){
+      showSummary(true);
+    }
   }
+);
 
-  window.print();
-}
+fab.onclick=openCamera;
 
-/* =========================================================
-   NAVEGAÇÃO
-   ========================================================= */
+fileCamera.onchange=async()=>{
 
-nav.onclick=e=>{
+  const file=
+    fileCamera.files?.[0];
 
-  const button=
-    e.target.closest("button");
+  fileCamera.value="";
 
-  const n=button?.dataset.tab;
-
-  if(n==="nova"){
-    showHome();
+  if(!file){
+    return;
   }
-
-  if(n==="faturas"){
-    showFaturas();
-  }
-
-  if(n==="resumo"){
-    showResumo(false);
-  }
-
-  if(n==="exportar"){
-    showResumo(true);
-  }
-};
-
-fab.onclick=openCam;
-
-/* =========================================================
-   INPUTS
-   ========================================================= */
-
-fileCam.onchange=async()=>{
-
-  const file=fileCam.files?.[0];
-
-  fileCam.value="";
-
-  if(!file)return;
 
   try{
 
-    const image=await fromFile(file);
+    const canvas=
+      await fileToCanvas(file);
 
-    beginReview(image);
+    await scanDocument(canvas);
 
   }catch(error){
 
+    console.error(error);
+
     alert(
-      error.message||
       "Não consegui abrir a fotografia."
     );
   }
 };
 
-fileLib.onchange=async()=>{
+fileLibrary.onchange=async()=>{
 
-  const file=fileLib.files?.[0];
+  const file=
+    fileLibrary.files?.[0];
 
-  fileLib.value="";
+  fileLibrary.value="";
 
-  if(!file)return;
+  if(!file){
+    return;
+  }
 
   try{
 
-    const image=await fromFile(file);
+    const canvas=
+      await fileToCanvas(file);
 
-    beginReview(image);
+    await scanDocument(canvas);
 
   }catch(error){
 
+    console.error(error);
+
     alert(
-      error.message||
       "Não consegui abrir a fotografia."
     );
   }
 };
 
 /* =========================================================
-   INÍCIO
-   ========================================================= */
+   START
+========================================================= */
 
 showHome();
 
 </script>
+
 </body>
 </html>
